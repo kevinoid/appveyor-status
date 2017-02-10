@@ -45,8 +45,8 @@ var statusColor = {
   success: 'green'
 };
 
-function coerceNumber(arg) {
-  var val = Number(arg);
+function coerceWait(arg) {
+  var val = arg === true ? Infinity : Number(arg);
   if (isNaN(val)) {
     throw new Error('Invalid number "' + arg + '"');
   }
@@ -248,7 +248,7 @@ function appveyorStatusCmd(args, options, callback) {
       alias: 'w',
       describe: 'Wait if build is pending (timeout in seconds)',
       defaultDescription: 'Infinity',
-      coerce: coerceNumber
+      coerce: coerceWait
     })
     .option('webhook', {
       alias: 'W',
