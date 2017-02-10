@@ -301,7 +301,7 @@ function canonicalizeOptions(options) {
 
 /** Wraps a function exposed as part of the module API with argument checking,
  * option canonicalization, and callback support.
- * @template T
+ * @ template T
  * @param {function(AppveyorStatusOptions=, function(Error, T=)): Promise<T>}
  * apiFunc API function to wrap.
  * @return {function(AppveyorStatusOptions=, function(Error, T=)): Promise<T>}
