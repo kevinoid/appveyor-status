@@ -119,7 +119,8 @@ function makeClientErrorHandler(opDesc) {
  * used to query the AppVeyor API.  Must be constructed with usePromise: true.
  * @property {(string|boolean)=} branch query latest build for named branch,
  * or the current branch
- * @property {string=} commit require build to be for a specific commit
+ * @property {string=} commit require build to be for a specific commit.
+ * Named commits are resolved in <code>options.repo</code> or current dir.
  * (requires token)
  * @property {stream.Writable=} err Stream to which errors (and non-output
  * status messages) are written. (default: <code>process.stderr</code>)
@@ -246,10 +247,17 @@ function canonicalizeOptions(options) {
     appveyorClientP = new SwaggerClient(appveyorClientOptions);
   }
 
+  var commitP;
+  if (options.commit) {
+    commitP = /^[0-9a-f]{40}$/i.test(options.commit) ?
+      Promise.resolve(options.commit.toLowerCase()) :
+      gitUtils.resolveCommit(options.commit, gitOptions);
+  }
+
   return Promise.all([
     appveyorClientP,
     branchP,
-    options.commit && gitUtils.resolveCommit(options.commit, gitOptions),
+    commitP,
     remoteUrlP || options.repo
   ])
     .then(function(results) {
