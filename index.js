@@ -58,7 +58,8 @@ function getResponseJson(response) {
  * @private
  */
 function getResponseSvg(response) {
-  var contentType = response.headers['content-type'].toLowerCase();
+  var contentType =
+    (response.headers['content-type'] || '(none)').toLowerCase();
   var svgType = 'image/svg+xml';
   if (contentType.lastIndexOf(svgType, 0) !== 0) {
     throw new Error('Expected ' + svgType + ' got ' + contentType);
