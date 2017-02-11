@@ -82,6 +82,9 @@ function makeClientErrorHandler(opDesc) {
       result.errObj && result.errObj.response && result.errObj.response.error;
     if (errHttp && errHttp.message) {
       message += ': ' + errHttp.message;
+    } else if (result.errObj && result.errObj.message) {
+      // Node http Error object
+      message += ': ' + result.errObj.message;
     }
 
     // Parsed JSON response body
