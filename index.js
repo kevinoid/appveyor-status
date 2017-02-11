@@ -293,7 +293,12 @@ function wrapApiFunc(apiFunc) {
       throw new TypeError('callback must be a function');
     }
 
-    var resultP = canonicalizeOptions(options).then(apiFunc);
+    var resultP;
+    try {
+      resultP = canonicalizeOptions(options).then(apiFunc);
+    } catch (err) {
+      resultP = Promise.reject(err);
+    }
     return nodeify(resultP, callback);
   };
 }
