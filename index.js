@@ -205,18 +205,21 @@ function canonicalizeOptions(options) {
 
   var remoteUrlP;
   if (options.repo && gitUtils.gitUrlIsLocalNotSsh(options.repo)) {
-    var gitOptions = {cwd: options.repo};
-    remoteUrlP = gitUtils.getRemoteRef(null, gitOptions)
-      .catch(function getDefaultRemoteRef(err) {
-        if (options.verbosity > 0) {
-          options.err.write(
-            'DEBUG: Unable to get remote for current branch: ' + err + '\n'
-          );
-        }
-        return {remote: 'origin'};
+    // Use user-requested branch with default of current branch
+    var branchForRemoteP = branchP || gitUtils.getBranch(gitOptions);
+    remoteUrlP = branchForRemoteP
+      .then(function(branch) {
+        return gitUtils.getRemote(branch, gitOptions);
       })
-      .then(function(remoteRef) {
-        return gitUtils.getRemoteUrl(remoteRef.remote, gitOptions);
+      .catch(function(err) {
+        if (options.verbosity > 0) {
+          options.err.write('DEBUG: Unable to get remote: ' + err + '\n' +
+                            'DEBUG: Will try to use origin remote.\n');
+        }
+        return 'origin';
+      })
+      .then(function(remote) {
+        return gitUtils.getRemoteUrl(remote, gitOptions);
       });
   }
 
