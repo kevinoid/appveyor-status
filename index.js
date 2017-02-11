@@ -167,7 +167,7 @@ function canonicalizeOptions(options) {
       });
     if (projectOpts.length > 1) {
       throw new Error(
-        projectOpts.join(' and ') + 'can not be specified together'
+        projectOpts.join(' and ') + ' can not be specified together'
       );
     }
   }
