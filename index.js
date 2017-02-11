@@ -189,10 +189,19 @@ function canonicalizeOptions(options) {
     throw new Error('options.project must have accountName and slug');
   }
 
+  var gitOptions = {};
+  if (options.repo && gitUtils.gitUrlIsLocalNotSsh(options.repo)) {
+    gitOptions.cwd = options.repo;
+  }
+
   // If project, repo, and webhookId are unspecified, use repo in current dir
   if (!options.project && !options.repo && !options.webhookId) {
     options.repo = '.';
   }
+
+  var branchP = options.branch === true ? gitUtils.getBranch(gitOptions) :
+    options.branch ? Promise.resolve(options.branch) :
+    null;
 
   var remoteUrlP;
   if (options.repo && gitUtils.gitUrlIsLocalNotSsh(options.repo)) {
@@ -241,8 +250,8 @@ function canonicalizeOptions(options) {
 
   return Promise.all([
     appveyorClientP,
-    options.branch === true ? gitUtils.getBranch() : options.branch,
-    options.commit && gitUtils.resolveCommit(options.commit),
+    branchP,
+    options.commit && gitUtils.resolveCommit(options.commit, gitOptions),
     remoteUrlP || options.repo,
     projectsP
   ])
