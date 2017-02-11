@@ -48,7 +48,7 @@ describe('appveyorUtils', function() {
   describe('.projectBuildToStatus', function() {
     it('returns any status of ProjectBuild', function() {
       var testStatus = 'foo';
-      var projectBuild = apiResponses.getProjectBuild(testStatus);
+      var projectBuild = apiResponses.getProjectBuild({status: testStatus});
       var result = appveyorUtils.projectBuildToStatus(projectBuild);
       assert.strictEqual(result, testStatus);
     });
