@@ -404,9 +404,9 @@ var errIsQueued = new Error('queued');
  * <code>options.commit</code>, ignores <code>options.wait</code>, returns
  * {@link errIsQueued} if queued.
  * @param {!AppveyorStatusOptions} options Options.
- * @return {Promise<!ProjectBuild>} The AppVeyor last build or an error if the
- * build can not be fetched or does not match <code>options.commit</code> or
- * status is 'queued'.
+ * @param {function(Error, ProjectBuild=)} callback Callback for the AppVeyor
+ * last build or an Error if the build can not be fetched or does not match
+ * <code>options.commit</code> or status is 'queued'.
  * @private
  */
 function getLastBuildNoQueued(options, callback) {
