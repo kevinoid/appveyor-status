@@ -161,7 +161,7 @@ function canonicalizeOptions(options) {
   }
 
   if (options) {
-    var projectOpts = ['project', 'repo', 'webhook']
+    var projectOpts = ['project', 'repo', 'webhookId']
       .filter(function(propName) {
         return options[propName];
       });
