@@ -184,7 +184,7 @@ function canonicalizeOptions(options) {
     throw new TypeError('options.wait must be a number');
   }
   if (options.wait < 0) {
-    throw new TypeError('options.wait must be non-negative');
+    throw new RangeError('options.wait must be non-negative');
   }
 
   if (typeof options.project === 'string') {
