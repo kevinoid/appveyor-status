@@ -113,7 +113,7 @@ function makeClientErrorHandler(opDesc) {
  *   requestOpts: Object|undefined,
  *   token: string|undefined,
  *   verbosity: number|undefined,
- *   wait: number|undefined,
+ *   wait: boolean|number|undefined,
  *   webhookId: string|undefined
  * }} AppveyorStatusOptions
  * @property {(SwaggerClient|Promise<SwaggerClient>)=} appveyorClient client
@@ -179,7 +179,7 @@ function canonicalizeOptions(options) {
     throw new TypeError('options.err must be a stream.Writable');
   }
 
-  options.wait = Number(options.wait || 0);
+  options.wait = options.wait === true ? Infinity : Number(options.wait || 0);
   if (isNaN(options.wait)) {
     throw new TypeError('options.wait must be a number');
   }
