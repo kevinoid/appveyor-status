@@ -122,7 +122,7 @@ function makeClientErrorHandler(opDesc) {
  * or the current branch
  * @property {string=} commit require build to be for a specific commit.
  * Named commits are resolved in <code>options.repo</code> or current dir.
- * (requires token)
+ * (requires token or project)
  * @property {stream.Writable=} err Stream to which errors (and non-output
  * status messages) are written. (default: <code>process.stderr</code>)
  * @property {(string|Project)=} project AppVeyor project to query (default:

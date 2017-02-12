@@ -219,7 +219,7 @@ function appveyorStatusCmd(args, options, callback) {
     })
     .option('commit', {
       alias: 'c',
-      description: 'Require build to be for a specific commit (requires token)',
+      description: 'Require build to be for named commit (requires project or token)',
       defaultDescription: 'HEAD'
     })
     .option('project', {
