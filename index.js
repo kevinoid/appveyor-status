@@ -312,10 +312,13 @@ function wrapApiFunc(apiFunc) {
  */
 function getLastBuildNoWait(options) {
   var lastBuildP;
-  if (options.useProjectBuilds && options.project.builds) {
+  var buildFromProject = options.project.builds && options.project.builds[0];
+  if (options.useProjectBuilds &&
+      buildFromProject &&
+      (!options.branch || options.branch === buildFromProject.branch)) {
     lastBuildP = Promise.resolve({
       project: options.project,
-      build: options.project.builds[0]
+      build: buildFromProject
     });
   } else {
     var params = {
