@@ -425,57 +425,35 @@ function getLastBuildForProject(options) {
 }
 
 /** Gets the AppVeyor project which matches the given options.
- * @param {!Object} options Options, which must include .repo or .webhookId.
+ * @param {!Object} options Options, which must include .repo.
  * @return {!Promise<!Project>} AppVeyor project with the same repository
  * or webhookId as <code>options</code> or an Error if there is no single
  * project which matches or another error occurs.
  * @private
  */
 function getMatchingProject(options) {
+  // Parse early to avoid delay on error
+  var avRepo = appveyorUtils.parseAppveyorRepoUrl('git', options.repo);
+
   return options.appveyorClient.Project.getProjects()
     .then(getResponseJson, makeClientErrorHandler('get projects'))
     .then(function(projects) {
-      if (options.repo) {
-        var avRepo = appveyorUtils.parseAppveyorRepoUrl('git', options.repo);
+      var repoProjects = projects.filter(function(project) {
+        return shallowStrictCommonEqual(avRepo, project);
+      });
 
-        var repoProjects = projects.filter(function(project) {
-          return shallowStrictCommonEqual(avRepo, project);
-        });
-
-        if (repoProjects.length === 0) {
-          throw new Error('No AppVeyor projects matching ' +
-                          JSON.stringify(avRepo));
-        } else if (repoProjects.length > 1) {
-          throw new Error('Multiple AppVeyor projects matching ' +
-                          JSON.stringify(avRepo) + ': ' +
-                          repoProjects
-                            .map(appveyorUtils.projectToString)
-                            .join(', '));
-        }
-
-        return repoProjects[0];
+      if (repoProjects.length === 0) {
+        throw new Error('No AppVeyor projects matching ' +
+                        JSON.stringify(avRepo));
+      } else if (repoProjects.length > 1) {
+        throw new Error('Multiple AppVeyor projects matching ' +
+                        JSON.stringify(avRepo) + ': ' +
+                        repoProjects
+                          .map(appveyorUtils.projectToString)
+                          .join(', '));
       }
 
-      if (options.webhookId) {
-        var webhookProjects = projects.filter(function(project) {
-          return project.webhookId === options.webhookId;
-        });
-
-        if (webhookProjects.length === 0) {
-          throw new Error('No AppVeyor projects with webhookId ' +
-                          options.webhookId);
-        } else if (webhookProjects.length > 1) {
-          throw new Error('Multiple AppVeyor projects with webhookId ' +
-                          options.webhookId + ': ' +
-                          webhookProjects
-                            .map(appveyorUtils.projectToString)
-                            .join(', '));
-        }
-
-        return webhookProjects[0];
-      }
-
-      throw new Error('Internal Error: No repo or webhookId to match!?');
+      return repoProjects[0];
     });
 }
 
@@ -486,6 +464,10 @@ function getMatchingProject(options) {
 function getLastBuildInternal(options) {
   if (options.project) {
     return getLastBuildForProject(options);
+  }
+
+  if (!options.repo) {
+    throw new Error('project or repo is required');
   }
 
   return getMatchingProject(options)

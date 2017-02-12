@@ -263,7 +263,7 @@ function appveyorStatusCmd(args, options, callback) {
     })
     .option('webhook', {
       alias: 'W',
-      describe: 'Webhook ID of a project to query (from badge URL)',
+      describe: 'Webhook ID of project (from badge URL, exclusive with commit)',
       nargs: 1
     })
     .version(packageJson.name + ' ' + packageJson.version)
