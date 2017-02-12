@@ -5,6 +5,7 @@
 
 'use strict';
 
+var AmbiguousProjectError = require('./lib/ambiguous-project-error');
 var CommitMismatchError = require('./lib/commit-mismatch-error');
 var SwaggerClient = require('swagger-client');
 var appveyorSwagger = require('appveyor-swagger');
@@ -449,11 +450,13 @@ function getMatchingProject(options) {
         throw new Error('No AppVeyor projects matching ' +
                         JSON.stringify(avRepo));
       } else if (repoProjects.length > 1) {
-        throw new Error('Multiple AppVeyor projects matching ' +
-                        JSON.stringify(avRepo) + ': ' +
-                        repoProjects
-                          .map(appveyorUtils.projectToString)
-                          .join(', '));
+        // Callers may want to handle this error specially, so make it usable
+        var repoProjectStrs = repoProjects.map(appveyorUtils.projectToString);
+        throw new AmbiguousProjectError(
+          'Multiple AppVeyor projects matching ' + JSON.stringify(avRepo) +
+            ': ' + repoProjectStrs.join(', '),
+          repoProjectStrs
+        );
       }
 
       return repoProjects[0];
