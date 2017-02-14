@@ -225,6 +225,177 @@ describe('appveyorStatus', function() {
         });
     });
 
+    it('returns queued status as-is without wait', function() {
+      var testProject = 'foo/bar';
+      var testStatus = 'queued';
+      var ne = nock(apiUrl)
+        .get('/api/projects/' + testProject)
+        .query(true)
+        .reply(200, apiResponses.getProjectBuild({status: testStatus}));
+      options.project = testProject;
+      return appveyorStatus.getLastBuild(options)
+        .then(function(projectBuild) {
+          assert.strictEqual(projectBuildToStatus(projectBuild), testStatus);
+          ne.done();
+        });
+    });
+
+    describe('with wait', function() {
+      var clock;
+      beforeEach(function() {
+        // No need to mock setImmediate, which is used in this file.
+        clock = sinon.useFakeTimers(
+          'setTimeout',
+          'clearTimeout',
+          'setInterval',
+          'clearInterval',
+          'Date'
+        );
+      });
+      afterEach(function() {
+        clock.restore();
+      });
+
+      /** Runs a function after the first mocked request has completed.
+       *
+       * Because of intermediate Promises, setTimeout will not have been
+       * called when getLastBuild returns.  It is further complicated by
+       * gratuitous use of setTimeout by SwaggerClient
+       * https://github.com/swagger-api/swagger-js/blob/v2.1.32/lib/client.js#L264-L266
+       * and by use of setImmediate in nock.  This function is a workaround.
+       */
+      function afterFirstRequest(cb) {
+        // Wait for any Promises to resolve
+        setImmediate(function() {
+          // SwaggerClient constructor has been called.
+          // Tick for SwaggerClient.buildFromSpec.
+          clock.tick(10);
+          // Wait for Promises to resolve
+          setImmediate(function() {
+            // First (mocked) request has been made.
+            // Wait for response to propagate and callback to be called.
+            setImmediate(function() {
+              // Still propagating...
+              setImmediate(cb);
+            });
+          });
+        });
+      }
+
+      it('true retries queued status', function() {
+        var testProject = 'foo/bar';
+        var testStatus = 'success';
+        var expectQueued = nock(apiUrl)
+          .get('/api/projects/' + testProject)
+          .query(true)
+          .reply(200, apiResponses.getProjectBuild({status: 'queued'}));
+        var expectSuccess = nock(apiUrl)
+          .get('/api/projects/' + testProject)
+          .query(true)
+          .reply(200, apiResponses.getProjectBuild({status: testStatus}));
+
+        var retriesDone = false;
+        afterFirstRequest(function() {
+          assert(expectQueued.isDone(), 'First call is made immediately.');
+          assert(!expectSuccess.isDone(), 'Retry is not done immediately.');
+
+          clock.tick(900);
+          assert(!expectSuccess.isDone(), 'Retry is not done less than 1 sec.');
+
+          clock.tick(60000);
+          assert(expectSuccess.isDone(), 'Retry is done less than 1 minute.');
+          retriesDone = true;
+        });
+
+        options.project = testProject;
+        options.wait = true;
+        return appveyorStatus.getLastBuild(options)
+          .then(function(projectBuild) {
+            assert.strictEqual(projectBuildToStatus(projectBuild), testStatus);
+            assert(retriesDone, 'Retries completed');
+          });
+      });
+
+      it('true retries queued status from project', function() {
+        var testProjectParts = ['foo', 'bar'];
+        var testRepoUrl = 'git://foo.bar/baz';
+        var testStatus = 'success';
+        var expectQueued = nock(apiUrl)
+          .get('/api/projects')
+          .query(true)
+          .reply(200, [
+            apiResponses.getProject({
+              accountName: testProjectParts[0],
+              repositoryType: 'git',
+              repositoryName: testRepoUrl,
+              slug: testProjectParts[1],
+              status: 'queued'
+            })
+          ]);
+        var expectSuccess = nock(apiUrl)
+          .get('/api/projects/' + testProjectParts.join('/'))
+          .query(true)
+          .reply(200, apiResponses.getProjectBuild({status: testStatus}));
+
+        var retriesDone = false;
+        afterFirstRequest(function() {
+          assert(expectQueued.isDone(), 'First call is made immediately.');
+          assert(!expectSuccess.isDone(), 'Retry is not done immediately.');
+
+          clock.tick(900);
+          assert(!expectSuccess.isDone(), 'Retry is not done less than 1 sec.');
+
+          clock.tick(60000);
+          assert(expectSuccess.isDone(), 'Retry is done less than 1 minute.');
+          retriesDone = true;
+        });
+
+        options.repo = testRepoUrl;
+        options.wait = true;
+        return appveyorStatus.getLastBuild(options)
+          .then(function(projectBuild) {
+            assert.strictEqual(projectBuildToStatus(projectBuild), testStatus);
+            assert(retriesDone, 'Retries completed');
+          });
+      });
+
+      it('is stopped on error', function() {
+        var testErrMsg = 'something bad';
+        var testProject = 'foo/bar';
+        var expectQueued = nock(apiUrl)
+          .get('/api/projects/' + testProject)
+          .query(true)
+          .reply(200, apiResponses.getProjectBuild({status: 'queued'}));
+        var expectSuccess = nock(apiUrl)
+          .get('/api/projects/' + testProject)
+          .query(true)
+          .replyWithError(testErrMsg);
+
+        var retriesDone = false;
+        afterFirstRequest(function() {
+          assert(expectQueued.isDone(), 'First call is made immediately.');
+          assert(!expectSuccess.isDone(), 'Retry is not done immediately.');
+
+          clock.tick(900);
+          assert(!expectSuccess.isDone(), 'Retry is not done less than 1 sec.');
+
+          clock.tick(60000);
+          assert(expectSuccess.isDone(), 'Retry is done less than 1 minute.');
+          retriesDone = true;
+        });
+
+        options.project = testProject;
+        options.wait = true;
+        return appveyorStatus.getLastBuild(options).then(
+          sinon.mock().never(),
+          function(err) {
+            assert.include(err.message, testErrMsg);
+            assert(retriesDone, 'Retries completed');
+          }
+        );
+      });
+    });
+
     it('queries repo in cwd by default', function() {
       var testBranch = 'testb';
       var testRemote = 'testr';
