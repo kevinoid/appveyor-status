@@ -18,8 +18,11 @@ var deepStrictEqual = assert.deepStrictEqual || assert.deepEqual;
 var rimrafP = pify(rimraf);
 
 var BRANCH_REMOTES = {
+  // Note:  must be origin so ls-remote default is origin for all git versions
+  master: 'origin/master',
   branch1: 'remote1/rbranch5',
   branch2: 'remote2/rbranch6',
+  branchnoremote: false,
   branchnourl: 'nourl/rbranch2',
   branchnotslug: 'notslug/rbranch3'
 };
@@ -87,37 +90,44 @@ before('setup test repository', function() {
       }, Promise.resolve());
     })
     .then(function makeBranches() {
+      return Object.keys(BRANCH_REMOTES)
+        .filter(function(branchName) { return branchName !== 'master'; })
+        .reduce(function(p, branchName) {
+          return p.then(function() {
+            return execFileOut(
+              'git',
+              ['-C', TEST_REPO_PATH, 'branch', branchName]
+            );
+          });
+        }, Promise.resolve());
+    })
+    .then(function setBranchRemotes() {
       return Object.keys(BRANCH_REMOTES).reduce(function(p, branchName) {
         return p.then(function() {
           var upstream = BRANCH_REMOTES[branchName];
-          var gitBranchP =
-            execFileOut('git', ['-C', TEST_REPO_PATH, 'branch', branchName]);
-          if (upstream) {
-            gitBranchP = gitBranchP.then(function setBranchUpstream() {
-              // Note:  Can't use 'git branch -u' without fetching remote
-              var upstreamParts = upstream.split('/');
-              assert.strictEqual(upstreamParts.length, 2);
-              var remoteName = upstreamParts[0];
-              var remoteBranch = upstreamParts[1];
-              var remoteRef = 'refs/heads/' + remoteBranch;
-              var configBranch = 'branch.' + branchName;
-              var configMerge = configBranch + '.merge';
-              var configRemote = configBranch + '.remote';
+          if (!upstream) {
+            return p;
+          }
+          // Note:  Can't use 'git branch -u' without fetching remote
+          var upstreamParts = upstream.split('/');
+          assert.strictEqual(upstreamParts.length, 2);
+          var remoteName = upstreamParts[0];
+          var remoteBranch = upstreamParts[1];
+          var remoteRef = 'refs/heads/' + remoteBranch;
+          var configBranch = 'branch.' + branchName;
+          var configMerge = configBranch + '.merge';
+          var configRemote = configBranch + '.remote';
+          return execFileOut(
+            'git',
+            ['-C', TEST_REPO_PATH, 'config', '--add', configRemote, remoteName]
+          )
+            .then(function() {
               return execFileOut(
                 'git',
                 ['-C', TEST_REPO_PATH,
-                  'config', '--add', configRemote, remoteName]
-              )
-                .then(function() {
-                  return execFileOut(
-                    'git',
-                    ['-C', TEST_REPO_PATH,
-                      'config', '--add', configMerge, remoteRef]
-                  );
-                });
+                  'config', '--add', configMerge, remoteRef]
+              );
             });
-          }
-          return gitBranchP;
         });
       }, Promise.resolve());
     });
@@ -170,7 +180,11 @@ describe('gitUtils', function() {
     after(checkoutMaster);
 
     Object.keys(BRANCH_REMOTES).forEach(function(branch) {
-      var remote = BRANCH_REMOTES[branch].split('/')[0];
+      var remoteRef = BRANCH_REMOTES[branch];
+      if (!remoteRef) {
+        return;
+      }
+      var remote = remoteRef.split('/')[0];
       it('resolves ' + branch + ' to ' + remote, function() {
         return gitUtils.getRemote(branch, options).then(function(result) {
           assert.strictEqual(result, remote);
@@ -179,7 +193,7 @@ describe('gitUtils', function() {
     });
 
     it('rejects branch without remote with Error', function() {
-      return gitUtils.getRemote('master', options).then(
+      return gitUtils.getRemote('branchnoremote', options).then(
         neverCalled,
         function(err) {
           assert.instanceOf(err, Error);
@@ -199,13 +213,20 @@ describe('gitUtils', function() {
       });
     });
 
-    it('rejects invalid remoteremote with Error', function() {
-      return gitUtils.getRemote('invalidremote', options).then(
+    it('rejects invalid remote with Error', function() {
+      return gitUtils.getRemoteUrl('invalidremote', options).then(
         neverCalled,
         function(err) {
           assert.instanceOf(err, Error);
         }
       );
+    });
+
+    it('uses ls-remote default for unspecified remote', function() {
+      return gitUtils.getRemoteUrl(null, options)
+        .then(function(resultUrl) {
+          assert.strictEqual(resultUrl, REMOTES.origin);
+        });
     });
   });
 
