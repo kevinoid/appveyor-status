@@ -290,36 +290,38 @@ describe('appveyor-status command', function() {
     );
   });
 
-  it('returns Error for non-object options', function(done) {
+  it('yields Error for non-object options', function(done) {
     appveyorStatusMock.expects('getStatus').never();
-    appveyorStatusCmd([], true, function(err) {
+    appveyorStatusCmd(RUNTIME_ARGS, true, function(err) {
       assert.instanceOf(err, TypeError);
       assert.match(err.message, /\boptions\b/);
       done();
     });
   });
 
-  it('returns Error for non-Readable in', function(done) {
+  it('yields Error for non-Readable in', function(done) {
     appveyorStatusMock.expects('getStatus').never();
-    appveyorStatusCmd([], {in: true}, function(err) {
+    appveyorStatusCmd(RUNTIME_ARGS, {in: true}, function(err) {
       assert.instanceOf(err, TypeError);
       assert.match(err.message, /\boptions.in\b/);
       done();
     });
   });
 
-  it('returns Error for non-Writable out', function(done) {
+  it('yields Error for non-Writable out', function(done) {
     appveyorStatusMock.expects('getStatus').never();
-    appveyorStatusCmd([], {out: new stream.Readable()}, function(err) {
+    var badOptions = {out: new stream.Readable()};
+    appveyorStatusCmd(RUNTIME_ARGS, badOptions, function(err) {
       assert.instanceOf(err, TypeError);
       assert.match(err.message, /\boptions.out\b/);
       done();
     });
   });
 
-  it('returns Error for non-Writable err', function(done) {
+  it('yields Error for non-Writable err', function(done) {
     appveyorStatusMock.expects('getStatus').never();
-    appveyorStatusCmd([], {err: new stream.Readable()}, function(err) {
+    var badOptions = {err: new stream.Readable()};
+    appveyorStatusCmd(RUNTIME_ARGS, badOptions, function(err) {
       assert.instanceOf(err, TypeError);
       assert.match(err.message, /\boptions.err\b/);
       done();
