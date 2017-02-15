@@ -397,7 +397,8 @@ function getLastBuildForProject(options) {
     }
 
     var remaining = deadline - Date.now();
-    if (remaining < RETRY_DELAY_MIN_MS) {
+    // Note:  If options.wait < RETRY_DELAY_MIN_MS, honor it
+    if (remaining < Math.min(RETRY_DELAY_MIN_MS, options.wait)) {
       return projectBuild;
     }
 
