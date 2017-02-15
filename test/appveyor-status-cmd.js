@@ -12,6 +12,7 @@ var appveyorStatus = require('..');
 var appveyorSwagger = require('appveyor-swagger');
 var assert = require('chai').assert;
 var escapeStringRegexp = require('escape-string-regexp');
+var fs = require('fs');
 var packageJson = require('../package.json');
 var path = require('path');
 var sinon = require('sinon');
@@ -178,6 +179,22 @@ describe('appveyor-status command', function() {
 
   // Unexpected arguments
   expectArgsResult(['foo'], 4, null, /\barguments?\b/i);
+
+  it('interprets -T - as reading token from stdin', function(done) {
+    appveyorStatusMock.expects('getStatus').once()
+      .withArgs(
+        match({token: 'file-token'}),
+        match.func
+      )
+      .yields(null, 'success');
+    var allArgs = RUNTIME_ARGS.concat('-T', '-');
+    options.in = fs.createReadStream(TEST_TOKEN_PATH);
+    appveyorStatusCmd(allArgs, options, function(err) {
+      assert.ifError(err);
+      appveyorStatusMock.verify();
+      done();
+    });
+  });
 
   function expectCodeForStatusCode(expectCode, status) {
     var desc = 'exits with code ' + expectCode + ' for build ' + status;
