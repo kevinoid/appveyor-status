@@ -48,17 +48,6 @@ describe('appveyor-status command', function() {
     };
   });
 
-  it('accepts empty arguments', function() {
-    appveyorStatusMock.expects('getStatus')
-      .once()
-      .withArgs(
-        match.object,
-        match.func
-      );
-    appveyorStatusCmd([], sinon.mock().never());
-    appveyorStatusMock.verify();
-  });
-
   it('returns undefined when called with a function', function() {
     appveyorStatusMock.expects('getStatus')
       .once()
