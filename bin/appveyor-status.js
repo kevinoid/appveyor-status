@@ -201,7 +201,9 @@ function appveyorStatusCmd(args, options, callback) {
     return undefined;
   }
 
-  var yargs = new Yargs()
+  // Workaround for https://github.com/yargs/yargs/issues/783
+  require.main = module;
+  var yargs = new Yargs(null, null, require)
     .usage('Usage: $0 [options]')
     .help()
     .alias('help', 'h')
