@@ -126,6 +126,7 @@ describe('appveyor-status command', function() {
   expectArgsAs(['--commit'], match({commit: 'HEAD'}));
   expectArgsAs(['-c'], match({commit: 'HEAD'}));
   expectArgsAs(['--commit', 'foo'], match({commit: 'foo'}));
+  expectArgsAs(['--commit', '123'], match({commit: '123'}));
   expectArgsAs(['-c', 'foo'], match({commit: 'foo'}));
   expectArgsResult(['--help'], 0, /usage/i, null);
   expectArgsResult(['-h'], 0, /usage/i, null);
