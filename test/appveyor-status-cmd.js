@@ -290,6 +290,24 @@ describe('appveyor-status command', function() {
     );
   });
 
+  it('yields TypeError for non-Array-like args', function(done) {
+    appveyorStatusMock.expects('getStatus').never();
+    appveyorStatusCmd(true, options, function(err) {
+      assert.instanceOf(err, TypeError);
+      assert.match(err.message, /\bArray\b/);
+      done();
+    });
+  });
+
+  it('yields RangeError for less than 2 args', function(done) {
+    appveyorStatusMock.expects('getStatus').never();
+    appveyorStatusCmd([], options, function(err) {
+      assert.instanceOf(err, RangeError);
+      assert.match(err.message, /\bargs\b/);
+      done();
+    });
+  });
+
   it('yields Error for non-object options', function(done) {
     appveyorStatusMock.expects('getStatus').never();
     appveyorStatusCmd(RUNTIME_ARGS, true, function(err) {
