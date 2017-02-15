@@ -361,19 +361,43 @@ describe('appveyor-status command', function() {
   });
 
   it('exit code 3 and prints message on CommitMismatchError', function(done) {
+    var testCommit = '123';
     var errTest = new CommitMismatchError({
       actual: 'foo',
-      expected: 'bar'
+      expected: testCommit
     });
     appveyorStatusMock.expects('getStatus')
       .once().withArgs(match.object, match.func).yields(errTest);
-    appveyorStatusCmd(RUNTIME_ARGS, options, function(err, code) {
+    var allArgs = RUNTIME_ARGS.concat(['-c', testCommit]);
+    appveyorStatusCmd(allArgs, options, function(err, code) {
       assert.ifError(err);
       assert.strictEqual(code, 3);
       assert.strictEqual(options.out.read(), null);
       var errString = String(options.err.read());
       assert.include(errString, errTest.actual);
       assert.include(errString, errTest.expected);
+      done();
+    });
+  });
+
+  it('CommitMismatchError prints both given and resolved', function(done) {
+    var testCommit = '123';
+    var testTag = 'tagname';
+    var errTest = new CommitMismatchError({
+      actual: 'abc',
+      expected: testCommit
+    });
+    appveyorStatusMock.expects('getStatus')
+      .once().withArgs(match.object, match.func).yields(errTest);
+    var allArgs = RUNTIME_ARGS.concat(['-c', testTag]);
+    appveyorStatusCmd(allArgs, options, function(err, code) {
+      assert.ifError(err);
+      assert.strictEqual(code, 3);
+      assert.strictEqual(options.out.read(), null);
+      var errString = String(options.err.read());
+      assert.include(errString, errTest.actual);
+      assert.include(errString, errTest.expected);
+      assert.include(errString, testTag);
       done();
     });
   });
