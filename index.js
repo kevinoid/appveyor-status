@@ -11,9 +11,26 @@ var SwaggerClient = require('swagger-client');
 var appveyorSwagger = require('appveyor-swagger');
 var appveyorUtils = require('./lib/appveyor-utils');
 var assign = require('object-assign');
-var backoff = require('backoff');
 var gitUtils = require('./lib/git-utils');
 var nodeify = require('promise-nodeify');
+
+/** Multiplicative increase in delay between retries for queued status.
+ * @const
+ * @private
+ */
+var RETRY_DELAY_FACTOR_MS = 2;
+
+/** Minimum/Initial delay between retries for queued status (in milliseconds).
+ * @const
+ * @private
+ */
+var RETRY_DELAY_MIN_MS = 4000;
+
+/** Maximum delay between retries for queued status (in milliseconds).
+ * @const
+ * @private
+ */
+var RETRY_DELAY_MAX_MS = 60000;
 
 /** Shallow, strict equality of properties in common between two objects.
  * @param {!Object} obj1 Object to compare.
@@ -361,40 +378,6 @@ function getLastBuildNoWait(options) {
   return checkedLastBuildP;
 }
 
-/** Error returned by getLastBuildNoQueued if the last build has status
- * 'queued'.
- * @const
- * @private
- */
-var errIsQueued = new Error('queued');
-
-/** Gets the last build and checks that the commit matches
- * <code>options.commit</code>, ignores <code>options.wait</code>, returns
- * {@link errIsQueued} if queued.
- * @param {!AppveyorStatusOptions} options Options.
- * @param {function(Error, ProjectBuild=)} callback Callback for the AppVeyor
- * last build or an Error if the build can not be fetched or does not match
- * <code>options.commit</code> or status is 'queued'.
- * @private
- */
-function getLastBuildNoQueued(options, callback) {
-  getLastBuildNoWait(options)
-    .then(
-      function checkIsQueued(projectBuild) {
-        // Clear useProjectBuilds so any retry will get fresh data
-        delete options.useProjectBuilds;
-
-        callback(
-          appveyorUtils.projectBuildToStatus(projectBuild) === 'queued' ?
-            errIsQueued :
-            null,
-          projectBuild
-        );
-      },
-      callback
-    );
-}
-
 /** Implements {@link getLastBuild} for options with non-null .project.
  * @param {!AppveyorStatusOptions} options Options object with non-null
  * .project.
@@ -406,26 +389,43 @@ function getLastBuildForProject(options) {
     return getLastBuildNoWait(options);
   }
 
-  return new Promise(function(resolve, reject) {
-    var call = backoff.call(
-      getLastBuildNoQueued,
-      options,
-      function(err, lastBuild) {
-        if (err && err !== errIsQueued) {
-          reject(err);
-        } else {
-          resolve(lastBuild);
-        }
-      }
+  var deadline = Date.now() + options.wait;
+
+  function checkRetry(projectBuild, prevDelay) {
+    if (appveyorUtils.projectBuildToStatus(projectBuild) !== 'queued') {
+      return projectBuild;
+    }
+
+    var remaining = deadline - Date.now();
+    if (remaining < RETRY_DELAY_MIN_MS) {
+      return projectBuild;
+    }
+
+    var delay = Math.min(
+      prevDelay * RETRY_DELAY_FACTOR_MS,
+      remaining,
+      RETRY_DELAY_MAX_MS
     );
-    call.setStrategy(new backoff.ExponentialStrategy({
-      initialDelay: 4000,
-      maxDelay: 60000
-    }));
-    call.retryIf(function(err) { return err === errIsQueued; });
-    call.failAfterTime(options.wait);
-    call.start();
-  });
+    return new Promise(function(resolve) {
+      setTimeout(function() {
+        // Do not use options.project.builds after waiting
+        delete options.useProjectBuilds;
+
+        resolve(
+          getLastBuildNoWait(options)
+            .then(function(result) {
+              return checkRetry(result, delay);
+            })
+        );
+      }, delay);
+    });
+  }
+
+  return getLastBuildNoWait(options)
+    .then(function(result) {
+      var seedDelay = RETRY_DELAY_MIN_MS / RETRY_DELAY_FACTOR_MS;
+      return checkRetry(result, seedDelay);
+    });
 }
 
 /** Gets the AppVeyor project which matches the given options.
