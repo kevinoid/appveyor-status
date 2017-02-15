@@ -43,7 +43,7 @@ describe('execFileOut', function() {
   it('returns a Promise with stdout', function() {
     var testOut = 'stdout content';
     var testArgs = ['-e', makeScript(testOut)];
-    return execFileOut('node', testArgs)
+    return execFileOut(process.execPath, testArgs)
       .then(function(stdout) {
         assert.strictEqual(stdout, testOut);
       });
@@ -53,7 +53,7 @@ describe('execFileOut', function() {
     var testOut = 'stdout content';
     var testArgs = ['-e', makeScript(testOut)];
     var options = {encoding: 'buffer'};
-    return execFileOut('node', testArgs, options)
+    return execFileOut(process.execPath, testArgs, options)
       .then(function(stdout) {
         deepStrictEqual(stdout, new Buffer(testOut));
       });
@@ -63,10 +63,10 @@ describe('execFileOut', function() {
     var testOut = 'stdout content';
     var testCode = 2;
     var testArgs = ['-e', makeScript(testOut, null, testCode)];
-    return execFileOut('node', testArgs).then(
+    return execFileOut(process.execPath, testArgs).then(
       neverCalled,
       function(err) {
-        assert.strictEqual(err.cmd, ['node'].concat(testArgs).join(' '));
+        assert.strictEqual(err.cmd, [process.execPath].concat(testArgs).join(' '));
         assert.strictEqual(err.code, testCode);
         assert.strictEqual(err.stderr, '');
         assert.strictEqual(err.stdout, testOut);
@@ -77,11 +77,11 @@ describe('execFileOut', function() {
     var testOut = 'stdout content';
     var testErr = 'stderr content';
     var testArgs = ['-e', makeScript(testOut, testErr)];
-    return execFileOut('node', testArgs).then(
+    return execFileOut(process.execPath, testArgs).then(
       neverCalled,
       function(err) {
         assert(err.message.indexOf(testErr) >= 0, 'stderr is in message');
-        assert.strictEqual(err.cmd, ['node'].concat(testArgs).join(' '));
+        assert.strictEqual(err.cmd, [process.execPath].concat(testArgs).join(' '));
         assert.strictEqual(err.code, 0);
         assert.strictEqual(err.stderr, testErr);
         assert.strictEqual(err.stdout, testOut);
@@ -93,11 +93,11 @@ describe('execFileOut', function() {
     var testErr = 'stderr content';
     var testArgs = ['-e', makeScript(testOut, testErr)];
     var options = {encoding: 'buffer'};
-    return execFileOut('node', testArgs, options).then(
+    return execFileOut(process.execPath, testArgs, options).then(
       neverCalled,
       function(err) {
         assert(err.message.indexOf(testErr) >= 0, 'stderr is in message');
-        assert.strictEqual(err.cmd, ['node'].concat(testArgs).join(' '));
+        assert.strictEqual(err.cmd, [process.execPath].concat(testArgs).join(' '));
         assert.strictEqual(err.code, 0);
         deepStrictEqual(err.stderr, new Buffer(testErr));
         deepStrictEqual(err.stdout, new Buffer(testOut));
@@ -108,7 +108,7 @@ describe('execFileOut', function() {
     var testOut = 'stdout content';
     var testErr = '\n\t\t  \n';
     var testArgs = ['-e', makeScript(testOut, testErr)];
-    return execFileOut('node', testArgs)
+    return execFileOut(process.execPath, testArgs)
       .then(function(stdout) {
         assert.strictEqual(stdout, testOut);
       });
@@ -116,6 +116,6 @@ describe('execFileOut', function() {
 
   it('closes stdin to prevent hanging', function() {
     // Test will timeout if stdin is not closed
-    return execFileOut('node');
+    return execFileOut(process.execPath);
   });
 });
