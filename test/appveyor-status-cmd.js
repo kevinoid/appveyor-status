@@ -260,6 +260,27 @@ describe('appveyor-status command', function() {
     });
   });
 
+  // This tests exception handling in the parseYargs wrapper
+  it('allows callback errors to propagate', function() {
+    appveyorStatusMock.expects('getStatus').never();
+    var errTest = new Error('test');
+    var caughtError = false;
+    var called = false;
+    // Note:  Chai assert.throws does not accept comparison function like node
+    try {
+      var allArgs = RUNTIME_ARGS.concat(['foo']);
+      appveyorStatusCmd(allArgs, options, function() {
+        assert(!called, 'callback called exactly once');
+        called = true;
+        throw errTest;
+      });
+    } catch (err) {
+      caughtError = true;
+      assert.strictEqual(err, errTest);
+    }
+    assert(caughtError, 'Missing expected exception.');
+  });
+
   it('throws for non-function callback', function() {
     appveyorStatusMock.expects('getStatus').never();
     assert.throws(
