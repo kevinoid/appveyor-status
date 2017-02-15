@@ -187,6 +187,9 @@ describe('appveyor-status command', function() {
   expectArgsResult(['--version'], 0, versionRE, null);
   expectArgsResult(['-V'], 0, versionRE, null);
 
+  // Unexpected arguments
+  expectArgsResult(['foo'], 4, null, /\barguments?\b/i);
+
   function expectCodeForStatusCode(expectCode, status) {
     var desc = 'exits with code ' + expectCode + ' for build ' + status;
     it(desc, function(done) {
