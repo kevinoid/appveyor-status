@@ -296,6 +296,17 @@ describe('appveyor-status command', function() {
     );
   });
 
+  it('can be called without arguments', function() {
+    appveyorStatusMock.expects('getStatus')
+      .once()
+      .withArgs(
+        match.object,
+        match.func
+      );
+    appveyorStatusCmd(null, sinon.mock().never());
+    appveyorStatusMock.verify();
+  });
+
   it('yields TypeError for non-Array-like args', function(done) {
     appveyorStatusMock.expects('getStatus').never();
     appveyorStatusCmd(true, options, function(err) {
