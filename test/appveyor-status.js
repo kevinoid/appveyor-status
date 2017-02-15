@@ -394,6 +394,45 @@ describe('appveyorStatus', function() {
           }
         );
       });
+
+      it('returns queued status if wait elapses', function() {
+        var testProject = 'foo/bar';
+        var expectQueued1 = nock(apiUrl)
+          .get('/api/projects/' + testProject)
+          .query(true)
+          .reply(200, apiResponses.getProjectBuild({status: 'queued'}));
+        var expectQueued2 = nock(apiUrl)
+          .get('/api/projects/' + testProject)
+          .query(true)
+          .reply(200, apiResponses.getProjectBuild({status: 'queued'}));
+        // This test does not specify specifics of exponential backoff
+        nock(apiUrl)
+          .persist()
+          .get('/api/projects/' + testProject)
+          .query(true)
+          .reply(200, apiResponses.getProjectBuild({status: 'queued'}));
+
+        var retriesDone = false;
+        afterFirstRequest(function() {
+          assert(expectQueued1.isDone(), 'First call is made immediately.');
+          assert(!expectQueued2.isDone(), 'Retry is not done immediately.');
+
+          clock.tick(900);
+          assert(!expectQueued2.isDone(), 'Retry is not done less than 1 sec.');
+
+          clock.tick(60000);
+          assert(expectQueued2.isDone(), 'Retry is done less than 1 minute.');
+          retriesDone = true;
+        });
+
+        options.project = testProject;
+        options.wait = 8000;
+        return appveyorStatus.getLastBuild(options)
+          .then(function(projectBuild) {
+            assert.strictEqual(projectBuildToStatus(projectBuild), 'queued');
+            assert(retriesDone, 'Retries completed');
+          });
+      });
     });
 
     it('queries repo in cwd by default', function() {
