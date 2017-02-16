@@ -475,7 +475,7 @@ function getLastBuildForProject(options) {
  */
 function getMatchingProject(options) {
   // Parse early to avoid delay on error
-  var avRepo = appveyorUtils.parseAppveyorRepoUrl('git', options.repo);
+  var avRepo = appveyorUtils.parseAppveyorRepoUrl(options.repo);
 
   return options.appveyorClient.Project.getProjects()
     .then(getResponseJson, makeClientErrorHandler('get projects'))
@@ -568,7 +568,7 @@ function getStatusBadgeInternal(options) {
       responseP = client.Project.getProjectStatusBadge(params);
     }
   } else {
-    assign(params, appveyorUtils.repoUrlToBadgeParams('git', options.repo));
+    assign(params, appveyorUtils.repoUrlToBadgeParams(options.repo));
     if (options.branch) {
       params.branch = options.branch;
     }

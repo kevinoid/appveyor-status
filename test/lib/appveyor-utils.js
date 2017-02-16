@@ -55,27 +55,12 @@ describe('appveyorUtils', function() {
   });
 
   describe('.parseAppveyorRepoUrl', function() {
-    ['mercurial', 'subversion'].forEach(function(testScm) {
-      it('returns ' + testScm + ' URL as-is', function() {
-        var testUrl = 'foo';
-        deepStrictEqual(
-          appveyorUtils.parseAppveyorRepoUrl(testScm, testUrl),
-          {
-            repositoryScm: testScm,
-            repositoryType: testScm,
-            repositoryName: testUrl
-          }
-        );
-      });
-    });
-
     it('parses bitBucket HTTPS URL', function() {
       var testProject = 'foo/bar';
       var testUrl = 'https://bitbucket.org/' + testProject + '.git';
       deepStrictEqual(
-        appveyorUtils.parseAppveyorRepoUrl('git', testUrl),
+        appveyorUtils.parseAppveyorRepoUrl(testUrl),
         {
-          repositoryScm: 'git',
           repositoryType: 'bitBucket',
           repositoryName: testProject
         }
@@ -86,9 +71,8 @@ describe('appveyorUtils', function() {
       var testProject = 'foo/bar';
       var testUrl = 'git@bitbucket.org:' + testProject + '.git';
       deepStrictEqual(
-        appveyorUtils.parseAppveyorRepoUrl('git', testUrl),
+        appveyorUtils.parseAppveyorRepoUrl(testUrl),
         {
-          repositoryScm: 'git',
           repositoryType: 'bitBucket',
           repositoryName: testProject
         }
@@ -99,9 +83,8 @@ describe('appveyorUtils', function() {
       var testProject = 'foo/bar';
       var testUrl = 'https://github.com/' + testProject + '.git';
       deepStrictEqual(
-        appveyorUtils.parseAppveyorRepoUrl('git', testUrl),
+        appveyorUtils.parseAppveyorRepoUrl(testUrl),
         {
-          repositoryScm: 'git',
           repositoryType: 'gitHub',
           repositoryName: testProject
         }
@@ -112,9 +95,8 @@ describe('appveyorUtils', function() {
       var testProject = 'foo/bar';
       var testUrl = 'git@github.com:' + testProject + '.git';
       deepStrictEqual(
-        appveyorUtils.parseAppveyorRepoUrl('git', testUrl),
+        appveyorUtils.parseAppveyorRepoUrl(testUrl),
         {
-          repositoryScm: 'git',
           repositoryType: 'gitHub',
           repositoryName: testProject
         }
@@ -125,9 +107,8 @@ describe('appveyorUtils', function() {
       var testProject = 'foo/bar';
       var testUrl = 'https://gitlab.com/' + testProject + '.git';
       deepStrictEqual(
-        appveyorUtils.parseAppveyorRepoUrl('git', testUrl),
+        appveyorUtils.parseAppveyorRepoUrl(testUrl),
         {
-          repositoryScm: 'git',
           repositoryType: 'gitLab',
           repositoryName: testProject
         }
@@ -138,9 +119,8 @@ describe('appveyorUtils', function() {
       var testProject = 'foo/bar';
       var testUrl = 'git@gitlab.com:' + testProject + '.git';
       deepStrictEqual(
-        appveyorUtils.parseAppveyorRepoUrl('git', testUrl),
+        appveyorUtils.parseAppveyorRepoUrl(testUrl),
         {
-          repositoryScm: 'git',
           repositoryType: 'gitLab',
           repositoryName: testProject
         }
@@ -151,9 +131,8 @@ describe('appveyorUtils', function() {
     it('parses vso project git HTTPS URL', function() {
       var testUrl = 'https://kevinoid.visualstudio.com/_git/TestProj';
       deepStrictEqual(
-        appveyorUtils.parseAppveyorRepoUrl('git', testUrl),
+        appveyorUtils.parseAppveyorRepoUrl(testUrl),
         {
-          repositoryScm: 'git',
           repositoryType: 'vso',
           repositoryName: 'git/kevinoid/TestProj/TestProj'
         }
@@ -164,9 +143,8 @@ describe('appveyorUtils', function() {
     it('parses vso project git SSH URL', function() {
       var testUrl = 'ssh://kevinoid@kevinoid.visualstudio.com:22/_git/TestProj';
       deepStrictEqual(
-        appveyorUtils.parseAppveyorRepoUrl('git', testUrl),
+        appveyorUtils.parseAppveyorRepoUrl(testUrl),
         {
-          repositoryScm: 'git',
           repositoryType: 'vso',
           repositoryName: 'git/kevinoid/TestProj/TestProj'
         }
@@ -177,9 +155,8 @@ describe('appveyorUtils', function() {
     it('parses vso sub-project git HTTPS URL', function() {
       var testUrl = 'https://kevinoid.visualstudio.com/TestProj/_git/repo2';
       deepStrictEqual(
-        appveyorUtils.parseAppveyorRepoUrl('git', testUrl),
+        appveyorUtils.parseAppveyorRepoUrl(testUrl),
         {
-          repositoryScm: 'git',
           repositoryType: 'vso',
           repositoryName: 'git/kevinoid/TestProj/repo2'
         }
@@ -191,58 +168,39 @@ describe('appveyorUtils', function() {
       var testUrl =
         'ssh://kevinoid@kevinoid.visualstudio.com:22/TestProj/_git/repo2';
       deepStrictEqual(
-        appveyorUtils.parseAppveyorRepoUrl('git', testUrl),
+        appveyorUtils.parseAppveyorRepoUrl(testUrl),
         {
-          repositoryScm: 'git',
           repositoryType: 'vso',
           repositoryName: 'git/kevinoid/TestProj/repo2'
         }
       );
     });
 
-    it('returns unknown git HTTPS URL', function() {
+    it('returns unknown HTTPS URL', function() {
       var testUrl = 'https://example.com/foo.git';
       deepStrictEqual(
-        appveyorUtils.parseAppveyorRepoUrl('git', testUrl),
-        {
-          repositoryScm: 'git',
-          repositoryType: 'git',
-          repositoryName: testUrl
-        }
+        appveyorUtils.parseAppveyorRepoUrl(testUrl),
+        {repositoryName: testUrl}
       );
     });
 
-    it('returns unknown git SSH URL', function() {
+    it('returns unknown SCP-like URL', function() {
       var testUrl = 'user@example.com:foo.git';
       deepStrictEqual(
-        appveyorUtils.parseAppveyorRepoUrl('git', testUrl),
-        {
-          repositoryScm: 'git',
-          repositoryType: 'git',
-          repositoryName: testUrl
-        }
+        appveyorUtils.parseAppveyorRepoUrl(testUrl),
+        {repositoryName: testUrl}
       );
     });
   });
 
   describe('.repoUrlToBadgeParams', function() {
-    ['mercurial', 'subversion'].forEach(function(testScm) {
-      it('throws Error for ' + testScm + ' scm', function() {
-        var testUrl = 'foo';
-        assert.throws(
-          function() { appveyorUtils.repoUrlToBadgeParams(testScm, testUrl); },
-          Error
-        );
-      });
-    });
-
     it('parses bitBucket HTTPS URL', function() {
       var testAccount = 'foo';
       var testProject = 'bar';
       var testUrl =
         'https://bitbucket.org/' + testAccount + '/' + testProject + '.git';
       deepStrictEqual(
-        appveyorUtils.repoUrlToBadgeParams('git', testUrl),
+        appveyorUtils.repoUrlToBadgeParams(testUrl),
         {
           badgeRepoProvider: 'bitBucket',
           repoAccountName: testAccount,
@@ -257,7 +215,7 @@ describe('appveyorUtils', function() {
       var testUrl =
         'git@bitbucket.org:' + testAccount + '/' + testProject + '.git';
       deepStrictEqual(
-        appveyorUtils.repoUrlToBadgeParams('git', testUrl),
+        appveyorUtils.repoUrlToBadgeParams(testUrl),
         {
           badgeRepoProvider: 'bitBucket',
           repoAccountName: testAccount,
@@ -271,7 +229,7 @@ describe('appveyorUtils', function() {
     it('throws for bitBucket URL with 3 path parts', function() {
       var testUrl = 'https://bitbucket.org/foo/bar/baz.git';
       assert.throws(
-        function() { appveyorUtils.repoUrlToBadgeParams('git', testUrl); },
+        function() { appveyorUtils.repoUrlToBadgeParams(testUrl); },
         Error
       );
     });
@@ -282,7 +240,7 @@ describe('appveyorUtils', function() {
       var testUrl =
         'https://github.com/' + testAccount + '/' + testProject + '.git';
       deepStrictEqual(
-        appveyorUtils.repoUrlToBadgeParams('git', testUrl),
+        appveyorUtils.repoUrlToBadgeParams(testUrl),
         {
           badgeRepoProvider: 'gitHub',
           repoAccountName: testAccount,
@@ -297,7 +255,7 @@ describe('appveyorUtils', function() {
       var testUrl =
         'git@github.com:' + testAccount + '/' + testProject + '.git';
       deepStrictEqual(
-        appveyorUtils.repoUrlToBadgeParams('git', testUrl),
+        appveyorUtils.repoUrlToBadgeParams(testUrl),
         {
           badgeRepoProvider: 'gitHub',
           repoAccountName: testAccount,
@@ -310,7 +268,7 @@ describe('appveyorUtils', function() {
     it('throws for gitLab HTTPS URL', function() {
       var testUrl = 'https://gitlab.com/foo/bar.git';
       assert.throws(
-        function() { appveyorUtils.repoUrlToBadgeParams('git', testUrl); },
+        function() { appveyorUtils.repoUrlToBadgeParams(testUrl); },
         Error
       );
     });
@@ -319,7 +277,7 @@ describe('appveyorUtils', function() {
     it('throws for gitLab HTTPS URL', function() {
       var testUrl = 'git@gitlab.com:foo/bar.git';
       assert.throws(
-        function() { appveyorUtils.repoUrlToBadgeParams('git', testUrl); },
+        function() { appveyorUtils.repoUrlToBadgeParams(testUrl); },
         Error
       );
     });
@@ -328,7 +286,7 @@ describe('appveyorUtils', function() {
     it('throws for vso HTTPS URL', function() {
       var testUrl = 'https://kevinoid.visualstudio.com/_git/TestProj';
       assert.throws(
-        function() { appveyorUtils.repoUrlToBadgeParams('git', testUrl); },
+        function() { appveyorUtils.repoUrlToBadgeParams(testUrl); },
         Error
       );
     });
@@ -337,7 +295,7 @@ describe('appveyorUtils', function() {
     it('throws for vso SSH URL', function() {
       var testUrl = 'ssh://kevinoid@kevinoid.visualstudio.com:22/_git/TestProj';
       assert.throws(
-        function() { appveyorUtils.repoUrlToBadgeParams('git', testUrl); },
+        function() { appveyorUtils.repoUrlToBadgeParams(testUrl); },
         Error
       );
     });
@@ -345,7 +303,7 @@ describe('appveyorUtils', function() {
     it('throws for other git HTTPS URLs', function() {
       var testUrl = 'https://example.com/foo.git';
       assert.throws(
-        function() { appveyorUtils.repoUrlToBadgeParams('git', testUrl); },
+        function() { appveyorUtils.repoUrlToBadgeParams(testUrl); },
         Error
       );
     });
@@ -353,7 +311,7 @@ describe('appveyorUtils', function() {
     it('returns unknown git SSH URL', function() {
       var testUrl = 'user@example.com:foo.git';
       assert.throws(
-        function() { appveyorUtils.repoUrlToBadgeParams('git', testUrl); },
+        function() { appveyorUtils.repoUrlToBadgeParams(testUrl); },
         Error
       );
     });
