@@ -313,6 +313,11 @@ describe('appveyorStatus', function() {
           .then(function(projectBuild) {
             assert.strictEqual(projectBuildToStatus(projectBuild), testStatus);
             assert(retriesDone, 'Retries completed');
+            assert.strictEqual(
+              options.err.read(),
+              null,
+              'does not print wait messages by default'
+            );
           });
       });
 
@@ -352,10 +357,16 @@ describe('appveyorStatus', function() {
 
         options.repo = testRepoUrl;
         options.wait = true;
+        options.verbosity = 1;
         return appveyorStatus.getLastBuild(options)
           .then(function(projectBuild) {
             assert.strictEqual(projectBuildToStatus(projectBuild), testStatus);
             assert(retriesDone, 'Retries completed');
+            assert.match(
+              String(options.err.read()),
+              /\bwait/i,
+              'prints wait message when verbose'
+            );
           });
       });
 

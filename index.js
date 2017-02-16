@@ -438,6 +438,12 @@ function getLastBuildForProject(options) {
       remaining,
       RETRY_DELAY_MAX_MS
     );
+
+    if (options.verbosity > 0) {
+      options.err.write('DEBUG: AppVeyor build queued.  Waiting ' +
+                        (delay / 1000) + ' seconds before retrying...\n');
+    }
+
     return new Promise(function(resolve) {
       setTimeout(function() {
         // Do not use options.project.builds after waiting
