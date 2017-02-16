@@ -12,7 +12,9 @@ var appveyorSwagger = require('appveyor-swagger');
 var appveyorUtils = require('./lib/appveyor-utils');
 var assign = require('object-assign');
 var gitUtils = require('./lib/git-utils');
+var https = require('https');
 var nodeify = require('promise-nodeify');
+var promiseFinally = require('promise-finally').default;
 
 /** Multiplicative increase in delay between retries for queued status.
  * @const
@@ -121,6 +123,7 @@ function makeClientErrorHandler(opDesc) {
 /** Options for {@link appveyorStatus} functions.
  *
  * @typedef {{
+ *   agent: http.Agent|undefined,
  *   appveyorClient: SwaggerClient|Promise<SwaggerClient>|undefined,
  *   branch: string|boolean|undefined,
  *   commit: string|undefined,
@@ -134,6 +137,9 @@ function makeClientErrorHandler(opDesc) {
  *   wait: boolean|number|undefined,
  *   webhookId: string|undefined
  * }} AppveyorStatusOptions
+ * @property {http.Agent=} agent Agent to use for HTTP requests (useful for
+ * inter-call keep-alive and request sharing) (ignored if appveyorClient is
+ * set).
  * @property {(SwaggerClient|Promise<SwaggerClient>)=} appveyorClient client
  * used to query the AppVeyor API.  Must be constructed with usePromise: true.
  * @property {(string|boolean)=} branch query latest build for named branch,
@@ -250,11 +256,22 @@ function canonicalizeOptions(options, apiFunc) {
   }
 
   var appveyorClientP = options.appveyorClient;
+  var newAgent;
   if (!appveyorClientP) {
     var appveyorClientOptions = {
+      connectionAgent: options.agent,
       spec: appveyorSwagger,
       usePromise: true
     };
+
+    // If unspecified by caller, use an HTTP Agent with keep-alive enabled for
+    // requests to avoid reconnection overhead and reduce latency for multiple
+    // API calls.
+    if (options.agent === undefined || options.agent === null) {
+      newAgent = new https.Agent({keepAlive: true});
+      appveyorClientOptions.connectionAgent = newAgent;
+    }
+
     if (options.token) {
       appveyorClientOptions.authorizations = {
         apiToken: new SwaggerClient.ApiKeyAuthorization(
@@ -276,7 +293,7 @@ function canonicalizeOptions(options, apiFunc) {
       gitUtils.resolveCommit(options.commit, gitOptions);
   }
 
-  return Promise.all([
+  var resultP = Promise.all([
     appveyorClientP,
     branchP,
     commitP,
@@ -290,6 +307,16 @@ function canonicalizeOptions(options, apiFunc) {
 
       return apiFunc(options);
     });
+
+  if (newAgent) {
+    resultP = promiseFinally(
+      resultP,
+      // Avoid holding connections open when caller does not expect it.
+      function() { newAgent.destroy(); }
+    );
+  }
+
+  return resultP;
 }
 
 /** Wraps a function exposed as part of the module API with argument checking,
