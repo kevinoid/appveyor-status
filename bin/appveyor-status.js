@@ -16,10 +16,11 @@ var fs = require('fs');
 var packageJson = require('../package.json');
 var readAllStream = require('read-all-stream');
 
-/** Exit codes returned by {@link appveyorStatusCmd} as a bi-directional map.
+/** Exit codes returned by {@link appveyorStatusCmd} (as a bi-directional map).
  * @const
+ * @enum {number}
  */
-var exitCodes = assign([], {
+var ExitCode = {
   /** Success. */
   SUCCESS: 0,
   /** Failed for an unspecified reason. */
@@ -30,10 +31,12 @@ var exitCodes = assign([], {
   FAIL_COMMIT: 3,
   /** Failed due to invalid arguments. */
   FAIL_ARGUMENTS: 4
-});
-Object.keys(exitCodes).forEach(function(codeName) {
-  var code = exitCodes[codeName];
-  exitCodes[code] = codeName;
+};
+
+// Add mapping from code to name
+Object.keys(ExitCode).forEach(function(codeName) {
+  var code = ExitCode[codeName];
+  ExitCode[code] = codeName;
 });
 
 /** Maps AppVeyor build status to a chalk color name.
@@ -91,10 +94,10 @@ function checkStatus(options, callback) {
         }
         options.err.write('Error: Last build commit ' + err.actual +
                           ' did not match ' + expected + '\n');
-        callback(null, exitCodes.FAIL_COMMIT);
+        callback(null, ExitCode.FAIL_COMMIT);
       } else {
         options.err.write(err + '\n');
-        callback(null, exitCodes.FAIL_OTHER);
+        callback(null, ExitCode.FAIL_OTHER);
       }
 
       return;
@@ -108,7 +111,7 @@ function checkStatus(options, callback) {
     }
     callback(
       null,
-      status === 'success' ? exitCodes.SUCCESS : exitCodes.FAIL_STATUS
+      status === 'success' ? ExitCode.SUCCESS : ExitCode.FAIL_STATUS
     );
   });
 }
@@ -136,7 +139,7 @@ function checkStatus(options, callback) {
  * @param {?function(Error, number=)=}
  * callback Callback for the exit code or an <code>Error</code>.  Required if
  * <code>global.Promise</code> is not defined.
- * @return {Promise<number>|undefined} If <code>callback</code> is not given
+ * @return {Promise<ExitCode>|undefined} If <code>callback</code> is not given
  * and <code>global.Promise</code> is defined, a <code>Promise</code> with the
  * exit code or <code>Error</code>.
  */
@@ -275,7 +278,7 @@ function appveyorStatusCmd(args, options, callback) {
       options.err.write(output ?
                           output + '\n' :
                           err.name + ': ' + err.message + '\n');
-      callback(null, exitCodes.FAIL_ARGUMENTS);
+      callback(null, ExitCode.FAIL_ARGUMENTS);
       return;
     }
 
@@ -284,13 +287,13 @@ function appveyorStatusCmd(args, options, callback) {
     }
 
     if (argOpts.help || argOpts.version) {
-      callback(null, exitCodes.SUCCESS);
+      callback(null, ExitCode.SUCCESS);
       return;
     }
 
     if (argOpts._.length !== 0) {
       options.err.write('Error: Unexpected non-option arguments.\n');
-      callback(null, exitCodes.FAIL_ARGUMENTS);
+      callback(null, ExitCode.FAIL_ARGUMENTS);
       return;
     }
 
@@ -323,7 +326,7 @@ function appveyorStatusCmd(args, options, callback) {
         if (errRead) {
           options.err.write('Error: Unable to read API token file: ' +
                             errRead.message + '\n');
-          callback(null, exitCodes.FAIL_ARGUMENTS);
+          callback(null, ExitCode.FAIL_ARGUMENTS);
           return;
         }
 
@@ -341,7 +344,7 @@ function appveyorStatusCmd(args, options, callback) {
 }
 
 appveyorStatusCmd.default = appveyorStatusCmd;
-appveyorStatusCmd.exitCodes = exitCodes;
+appveyorStatusCmd.ExitCode = ExitCode;
 module.exports = appveyorStatusCmd;
 
 if (require.main === module) {
@@ -355,7 +358,7 @@ if (require.main === module) {
   appveyorStatusCmd(process.argv, mainOptions, function(err, exitCode) {
     if (err) {
       process.stderr.write(err.stack + '\n');
-      exitCode = exitCodes.FAIL_OTHER;
+      exitCode = ExitCode.FAIL_OTHER;
     }
 
     process.exit(exitCode);
