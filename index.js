@@ -165,15 +165,18 @@ function makeClientErrorHandler(opDesc) {
 // var AppveyorStatusOptions;
 
 /** Checks and canonicalizes a caller-provided options object so that it
- * contains required information in the expected form.
+ * contains required information in the expected form then calls the API
+ * function.
+ * @ template T
  * @param {AppveyorStatusOptions=} options Caller-provided options.
- * @return {!AppveyorStatusOptions} <code>options</code> in canonical form with
- * default values applied.
+ * @param {function(!AppveyorStatusOptions): !Promise<T>} apiFunc Function to
+ * call with canonicalized <code>options</code>.
+ * @return {!Promise<T>} Return value from <code>apiFunc</code>.
  * @throws {Error} If <code>options</code> is invalid, inconsistent, or can not
  * be canonicalized.
  * @private
  */
-function canonicalizeOptions(options) {
+function canonicalizeOptions(options, apiFunc) {
   if (options !== undefined && typeof options !== 'object') {
     throw new TypeError('options must be an object');
   }
@@ -284,7 +287,8 @@ function canonicalizeOptions(options) {
       options.branch = results[1];
       options.commit = results[2];
       options.repo = results[3];
-      return options;
+
+      return apiFunc(options);
     });
 }
 
@@ -294,8 +298,8 @@ function canonicalizeOptions(options) {
  * @param {function(AppveyorStatusOptions=, function(Error, T=)): Promise<T>}
  * apiFunc API function to wrap.
  * @return {function(AppveyorStatusOptions=, function(Error, T=)): Promise<T>}
- * Function which calls {@link canonicalizeOptions} on its argument and passes
- * the result to <code>apiFunc</code>.
+ * Function which calls {@link canonicalizeOptions} with its argument and
+ * <code>apiFunc</code>.
  * @throws {TypeError} If callback argument passed to wrapped function is not
  * a function.
  * @private
@@ -313,7 +317,7 @@ function wrapApiFunc(apiFunc) {
 
     var resultP;
     try {
-      resultP = canonicalizeOptions(options).then(apiFunc);
+      resultP = canonicalizeOptions(options, apiFunc);
     } catch (err) {
       resultP = Promise.reject(err);
     }
