@@ -16,9 +16,29 @@ CI](https://travis-ci.org/).
 
 ## Introductory Example
 
+### Command-Line Use
+
     $ npm install -g appveyor-status
     $ appveyor-status
     AppVeyor build status: success
+
+### JavaScript Use
+
+```js
+const appveyorStatus = require('appveyor-status');
+// See https://kevinoid.github.io/appveyor-status/api/module-appveyor-status.html#.AppveyorStatusOptions
+const options = {
+  // By AppVeyor project name
+  // project: 'kevinoid/appveyor-status',
+  // By repository path or URL
+  // repo: 'https://github.com/kevinoid/appveyor-status.git',
+  // By webhookId (from badge URL)
+  // webhookId: '2fi78evfynm3wfog',
+};
+appveyorStatus.getStatus(options).then(function(status) {
+  console.log('Status of project matching git repo in cwd: ' + status);
+});
+```
 
 ## Features
 
