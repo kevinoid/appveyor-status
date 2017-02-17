@@ -1,6 +1,7 @@
 /**
  * @copyright Copyright 2017 Kevin Locke <kevin@kevinlocke.name>
  * @license MIT
+ * @module appveyor-status
  */
 
 'use strict';
@@ -122,6 +123,7 @@ function makeClientErrorHandler(opDesc) {
 
 /** Options for {@link appveyorStatus} functions.
  *
+ * @static
  * @typedef {{
  *   agent: http.Agent|undefined,
  *   appveyorClient: SwaggerClient|Promise<SwaggerClient>|undefined,
@@ -131,7 +133,6 @@ function makeClientErrorHandler(opDesc) {
  *   out: stream.Writable|undefined,
  *   project: string|undefined,
  *   repo: string|undefined,
- *   requestOpts: Object|undefined,
  *   token: string|undefined,
  *   verbosity: number|undefined,
  *   wait: boolean|number|undefined,
@@ -154,16 +155,11 @@ function makeClientErrorHandler(opDesc) {
  * @property {string=} repo repository to query (as
  * {bitbucket,github}/$user/$proj) (default: auto-detect)
  * (exclusive with project and webhookId)
- * @property {Object=} requestOpts Options for AppVeyor API requests (suitable
- * for the {@link https://www.npmjs.com/package/request request module}).
- * Callers are encouraged to pass the <code>agent</code> or
- * <code>forever</code> options to leverage TCP keep-alive across requests.
- * @property {string=} token access token to use (ignored if appveyorClient is
- * set).
+ * @property {string=} token AppVeyor API access token.
  * @property {number=} verbosity Amount of diagnostic information to print
  * (0 is default, larger yields more output).
- * @property {number=} wait poll build when status is queued up to wait time
- * (in milliseconds).  If wait time is reached, last queued status is returned.
+ * @property {number=} wait Poll build status when status is "queued".  If wait
+ * time (in milliseconds) is reached, last queued status is returned.
  * (default: no polling)
  * @property {string=} webhookId webhook ID to query (default: auto-detect)
  * (exclusive with project and repo)
@@ -174,8 +170,10 @@ function makeClientErrorHandler(opDesc) {
  * contains required information in the expected form then calls the API
  * function.
  * @ template T
- * @param {AppveyorStatusOptions=} options Caller-provided options.
- * @param {function(!AppveyorStatusOptions): !Promise<T>} apiFunc Function to
+ * @param {module:appveyor-status.AppveyorStatusOptions=} options
+ * Caller-provided options.
+ * @param {function(!module:appveyor-status.AppveyorStatusOptions): !Promise<T>}
+ * apiFunc Function to
  * call with canonicalized <code>options</code>.
  * @return {!Promise<T>} Return value from <code>apiFunc</code>.
  * @throws {Error} If <code>options</code> is invalid, inconsistent, or can not
@@ -322,10 +320,11 @@ function canonicalizeOptions(options, apiFunc) {
 /** Wraps a function exposed as part of the module API with argument checking,
  * option canonicalization, and callback support.
  * @ template T
- * @param {function(AppveyorStatusOptions=, function(Error, T=)): Promise<T>}
- * apiFunc API function to wrap.
- * @return {function(AppveyorStatusOptions=, function(Error, T=)): Promise<T>}
- * Function which calls {@link canonicalizeOptions} with its argument and
+ * @param {function(module:appveyor-status.AppveyorStatusOptions=,
+ * function(Error, T=)): Promise<T>} apiFunc API function to wrap.
+ * @return {function(module:appveyor-status.AppveyorStatusOptions=,
+ * function(Error, T=)): Promise<T>} Function which calls
+ * {@link canonicalizeOptions} with its argument and
  * <code>apiFunc</code>.
  * @throws {TypeError} If callback argument passed to wrapped function is not
  * a function.
@@ -354,7 +353,7 @@ function wrapApiFunc(apiFunc) {
 
 /** Gets the last build and checks that the commit matches
  * <code>options.commit</code>, ignores <code>options.wait</code>.
- * @param {!AppveyorStatusOptions} options Options.
+ * @param {!module:appveyor-status.AppveyorStatusOptions} options Options.
  * @return {Promise<!ProjectBuild>} The AppVeyor last build or an error if the
  * build can not be fetched or does not match <code>options.commit</code>.
  * @private
@@ -410,8 +409,8 @@ function getLastBuildNoWait(options) {
 }
 
 /** Implements {@link getLastBuild} for options with non-null .project.
- * @param {!AppveyorStatusOptions} options Options object with non-null
- * .project.
+ * @param {!module:appveyor-status.AppveyorStatusOptions} options Options
+ * object with non-null <code>.project</code>.
  * @return {!Promise<!ProjectBuild>} Last AppVeyor build for project.
  * @private
  */
@@ -502,7 +501,9 @@ function getMatchingProject(options) {
 }
 
 /** Implements {@link getLastBuild}.
- * @param {!AppveyorStatusOptions} options Options.
+ * @param {!module:appveyor-status.AppveyorStatusOptions} options Options.
+ * @return {!Promise<!ProjectBuild>} Last AppVeyor build for project matching
+ * <code>options</code>.
  * @private
  */
 function getLastBuildInternal(options) {
@@ -525,19 +526,27 @@ function getLastBuildInternal(options) {
 
 /** Gets the last AppVeyor build for a repo/branch.
  *
- * @param {?AppveyorStatusOptions=} options Options.
+ * Errors include {@link module:appveyor-status.AmbiguousProjectError} if an
+ * AppVeyor project was not uniquely matched by <code>options</code> and
+ * {@link module:appveyor-status.CommitMismatchError} if
+ * <code>commitId</code> in the last build did not match the hash of
+ * <code>options.commit</code>.
+ *
+ * @function
+ * @param {?module:appveyor-status.AppveyorStatusOptions=} options Options.
  * @param {?function(Error, Object=)=} callback Callback function called
  * with the last build from the AppVeyor API, or an <code>Error</code> if it
  * could not be retrieved.
- * @return {!Promise<!Object>|undefined} If <code>callback</code> is not given,
- * a <code>Promise</code> with the current build information from the AppVeyor
- * API, or <code>Error</code> if it could not be retrieved.
- * Otherwise <code>undefined</code>.
+ * @return {!Promise<!ProjectBuild>|undefined} If <code>callback</code> is not
+ * given, a <code>Promise</code> with the current build information from the
+ * AppVeyor API, or <code>Error</code> if it could not be retrieved.  Otherwise
+ * <code>undefined</code>.
  */
 exports.getLastBuild = wrapApiFunc(getLastBuildInternal);
 
 /** Implements {@link getStatusBadge}.
- * @param {!AppveyorStatusOptions} options Options.
+ * @param {!module:appveyor-status.AppveyorStatusOptions} options Options.
+ * @return {!Promise<string>} The current SVG status badge.
  * @private
  */
 function getStatusBadgeInternal(options) {
@@ -583,22 +592,24 @@ function getStatusBadgeInternal(options) {
 
 /** Gets the AppVeyor status badge for a repo/branch.
  *
- * @param {?AppveyorStatusOptions=} options Options.  Note that
- * {@link AppveyorStatusOptions.project} is not supported by this function.  To
- * get the status badge for a project, call this function using the
- * <code>webhookId</code> from the result of {@link getLastBuild}.
- * @param {?function(Error, Object=)=} callback Callback function called
- * with the last build from the AppVeyor API, or an <code>Error</code> if it
- * could not be retrieved.
- * @return {!Promise<!Object>|undefined} If <code>callback</code> is not given,
- * a <code>Promise</code> with the current build information from the AppVeyor
- * API, or <code>Error</code> if it could not be retrieved.
+ * @function
+ * @param {?module:appveyor-status.AppveyorStatusOptions=} options Options.
+ * {@link module:appveyor-status.AppveyorStatusOptions.commit} and
+ * {@link module:appveyor-status.AppveyorStatusOptions.project}} are not
+ * supported by this function.
+ * @param {?function(Error, string=)=} callback Callback function called
+ * with the SVG status badge from the AppVeyor API, or an <code>Error</code> if
+ * it could not be retrieved.
+ * @return {!Promise<string>|undefined} If <code>callback</code> is not given,
+ * a <code>Promise</code> with the current SVG status badge (as a string) from
+ * the AppVeyor API, or <code>Error</code> if it could not be retrieved.
  * Otherwise <code>undefined</code>.
  */
 exports.getStatusBadge = wrapApiFunc(getStatusBadgeInternal);
 
 /** Implements {@link getStatus}.
- * @param {!AppveyorStatusOptions} options Options.
+ * @param {!module:appveyor-status.AppveyorStatusOptions} options Options.
+ * @return {!Promise<string>} The current build status.
  * @private
  */
 function getStatusInternal(options) {
@@ -616,14 +627,21 @@ function getStatusInternal(options) {
 
 /** Gets the current AppVeyor status of a repo/branch.
  *
- * @param {?AppveyorStatusOptions=} options Options.
- * @param {?function(Error, Object=)=} callback Callback function called
- * with the current build information from the AppVeyor API, or an
+ * Errors include {@link module:appveyor-status.AmbiguousProjectError} if an
+ * AppVeyor project was not uniquely matched by <code>options</code> and
+ * {@link module:appveyor-status.CommitMismatchError} if
+ * <code>commitId</code> in the last build did not match the hash of
+ * <code>options.commit</code>.
+ *
+ * @function
+ * @param {?module:appveyor-status.AppveyorStatusOptions=} options Options.
+ * @param {?function(Error, string=)=} callback Callback function called
+ * with the current build status from the AppVeyor API, or an
  * <code>Error</code> if it could not be retrieved.
- * @return {!Promise<!Object>|undefined} If <code>callback</code> is not given,
- * a <code>Promise</code> with the current build information from the AppVeyor
- * API, or <code>Error</code> if it could not be retrieved.
- * Otherwise <code>undefined</code>.
+ * @return {!Promise<string>|undefined} If <code>callback</code> is not given,
+ * a <code>Promise</code> with the current build status from the AppVeyor
+ * API, or <code>Error</code> if it could not be retrieved.  Otherwise
+ * <code>undefined</code>.
  */
 exports.getStatus = wrapApiFunc(getStatusInternal);
 

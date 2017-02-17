@@ -4,6 +4,7 @@
  *
  * @copyright Copyright 2017 Kevin Locke <kevin@kevinlocke.name>
  * @license MIT
+ * @module appveyor-status/bin/appveyor-status
  */
 
 'use strict';
@@ -16,8 +17,10 @@ var fs = require('fs');
 var packageJson = require('../package.json');
 var readAllStream = require('read-all-stream');
 
-/** Exit codes returned by {@link appveyorStatusCmd} (as a bi-directional map).
+/** Exit codes returned by {@link module:appveyor-status/bin/appveyor-status}
+ * (as a bi-directional map).
  * @const
+ * @static
  * @enum {number}
  */
 var ExitCode = {
@@ -41,6 +44,7 @@ Object.keys(ExitCode).forEach(function(codeName) {
 
 /** Maps AppVeyor build status to a chalk color name.
  * @const
+ * @type {Object<string, string>}
  * @private
  */
 var statusColor = {
@@ -118,6 +122,7 @@ function checkStatus(options, callback) {
 
 /** Options for command entry points.
  *
+ * @static
  * @typedef {{
  *   in: (stream.Readable|undefined),
  *   out: (stream.Writable|undefined),
@@ -135,15 +140,17 @@ function checkStatus(options, callback) {
 /** Entry point for this command.
  *
  * @param {!Array<string>} args Command-line arguments.
- * @param {CommandOptions=} options Options.
+ * @param {module:appveyor-status/bin/appveyor-status.CommandOptions=} options
+ * Options.
  * @param {?function(Error, number=)=}
  * callback Callback for the exit code or an <code>Error</code>.  Required if
  * <code>global.Promise</code> is not defined.
- * @return {Promise<ExitCode>|undefined} If <code>callback</code> is not given
- * and <code>global.Promise</code> is defined, a <code>Promise</code> with the
- * exit code or <code>Error</code>.
+ * @return
+ * {Promise<module:appveyor-status/bin/appveyor-status.ExitCode>|undefined}
+ * If <code>callback</code> is not given and <code>global.Promise</code> is
+ * defined, a <code>Promise</code> with the exit code or <code>Error</code>.
  */
-function appveyorStatusCmd(args, options, callback) {
+module.exports = function appveyorStatusCmd(args, options, callback) {
   if (!callback && typeof options === 'function') {
     callback = options;
     options = null;
@@ -341,11 +348,10 @@ function appveyorStatusCmd(args, options, callback) {
   });
 
   return undefined;
-}
+};
 
-appveyorStatusCmd.default = appveyorStatusCmd;
-appveyorStatusCmd.ExitCode = ExitCode;
-module.exports = appveyorStatusCmd;
+module.exports.default = module.exports;
+module.exports.ExitCode = ExitCode;
 
 if (require.main === module) {
   // This file was invoked directly.
@@ -355,7 +361,7 @@ if (require.main === module) {
     out: process.stdout,
     err: process.stderr
   };
-  appveyorStatusCmd(process.argv, mainOptions, function(err, exitCode) {
+  module.exports(process.argv, mainOptions, function(err, exitCode) {
     if (err) {
       process.stderr.write(err.stack + '\n');
       exitCode = ExitCode.FAIL_OTHER;
