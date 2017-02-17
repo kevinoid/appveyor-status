@@ -6,6 +6,7 @@
 'use strict';
 
 var execFileOut = require('../../lib/exec-file-out');
+var fileUrl = require('file-url');
 var gitUtils = require('../../lib/git-utils');
 var assert = require('chai').assert;
 var assign = require('object-assign');
@@ -15,6 +16,7 @@ var rimraf = require('rimraf');
 var url = require('url');
 
 var deepStrictEqual = assert.deepStrictEqual || assert.deepEqual;
+var isWindows = /^win/i.test(process.platform);
 var rimrafP = pify(rimraf);
 
 var BRANCH_REMOTES = {
@@ -250,7 +252,7 @@ describe('gitUtils', function() {
     });
 
     var drivePath = 'C:/foo';
-    if (/^win/i.test(process.platform)) {
+    if (isWindows) {
       it(drivePath + ' is true on Windows', function() {
         assert.strictEqual(
           gitUtils.gitUrlIsLocalNotSsh(drivePath),
@@ -295,19 +297,35 @@ describe('gitUtils', function() {
       );
     });
 
-    it('parses path like file:// URL', function() {
-      var testPath = '/foo/bar';
+    it('parses absolute path like file:// URL', function() {
+      var testPath = path.resolve(path.join('foo', 'bar'));
       deepStrictEqual(
         gitUtils.parseGitUrl(testPath),
-        assign(url.parse('file://' + testPath), {helper: undefined})
+        assign(url.parse(fileUrl(testPath)), {helper: undefined})
       );
     });
 
-    if (/^win/i.test(process.platform)) {
+    it('parses relative path like file:// URL', function() {
+      var testPath = path.join('foo', 'bar');
+      deepStrictEqual(
+        gitUtils.parseGitUrl(testPath),
+        assign(url.parse(fileUrl(testPath)), {helper: undefined})
+      );
+    });
+
+    if (isWindows) {
       it('parses Windows path like file:// URL on Windows', function() {
         deepStrictEqual(
           gitUtils.parseGitUrl('C:\\foo\\bar'),
-          assign(url.parse('file:///C/foo/bar'), {helper: undefined})
+          assign(url.parse('file:///C:/foo/bar'), {helper: undefined})
+        );
+      });
+    } else {
+      it('parses Windows path like URL on non-Windows', function() {
+        var testPath = 'C:\\foo\\bar';
+        deepStrictEqual(
+          gitUtils.parseGitUrl(testPath),
+          assign(url.parse(testPath), {helper: undefined})
         );
       });
     }
