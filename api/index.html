@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Home</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Home</h1>
+
+    
+
+
+
+    
+
+
+    <h3> </h3>
+
+
+
+
+
+
+
+
+
+
+    
+
+
+
+
+    <section>
+        <article><h1>AppVeyor Status</h1><p><a href="https://travis-ci.org/kevinoid/appveyor-status"><img src="https://img.shields.io/travis/kevinoid/appveyor-status.svg?style=flat&amp;label=build+on+linux" alt="Build Status: Linux"></a>
+<a href="https://ci.appveyor.com/project/kevinoid/appveyor-status"><img src="https://img.shields.io/appveyor/ci/kevinoid/appveyor-status.svg?style=flat&amp;label=build+on+windows" alt="Build Status: Windows"></a>
+<a href="https://codecov.io/github/kevinoid/appveyor-status?branch=master"><img src="https://img.shields.io/codecov/c/github/kevinoid/appveyor-status.svg?style=flat" alt="Coverage"></a>
+<a href="https://david-dm.org/kevinoid/appveyor-status"><img src="https://img.shields.io/david/kevinoid/appveyor-status.svg?style=flat" alt="Dependency Status"></a>
+<a href="https://www.npmjs.com/package/appveyor-status"><img src="https://img.shields.io/node/v/appveyor-status.svg?style=flat" alt="Supported Node Version"></a>
+<a href="https://www.npmjs.com/package/appveyor-status"><img src="https://img.shields.io/npm/v/appveyor-status.svg?style=flat" alt="Version on NPM"></a></p>
+<p>A command-line tool and library for querying the
+<a href="https://www.appveyor.com/">AppVeyor</a> build status of a project using the
+AppVeyor REST API.  It does for AppVeyor what
+<a href="https://github.com/kevinoid/travis-status">travis-status</a> does for <a href="https://travis-ci.org/">Travis
+CI</a>.</p>
+<h2>Introductory Example</h2><h3>Command-Line Use</h3><pre class="prettyprint source"><code>$ npm install -g appveyor-status
+$ appveyor-status
+AppVeyor build status: success</code></pre><h3>JavaScript Use</h3><pre class="prettyprint source lang-js"><code>const appveyorStatus = require('appveyor-status');
+// See https://kevinoid.github.io/appveyor-status/api/module-appveyor-status.html#.AppveyorStatusOptions
+const options = {
+  // By AppVeyor project name
+  // project: 'kevinoid/appveyor-status',
+  // By repository path or URL
+  // repo: 'https://github.com/kevinoid/appveyor-status.git',
+  // By webhookId (from badge URL)
+  // webhookId: '2fi78evfynm3wfog',
+};
+appveyorStatus.getStatus(options).then(function(status) {
+  console.log('Status of project matching git repo in cwd: ' + status);
+});</code></pre><h2>Features</h2><ul>
+<li>Can query by AppVeyor project name, webhook ID, or repository URL or path.</li>
+<li>Can detect the AppVeyor project from the repository in which it is run when
+project is not specified.</li>
+<li>Can query using status badge API or project build API, minimizing latency and
+avoiding authentication in most cases.</li>
+<li>Can query most recent build for project or specific branch.</li>
+<li>Can compare build commit against a named or current commit.</li>
+<li>Can wait for queued build to finish, with configurable timeout, before
+reporting status.</li>
+</ul>
+<h2>Installation</h2><p><a href="https://www.npmjs.com/package/appveyor-status">This package</a> can be
+installed using <a href="https://www.npmjs.com/">npm</a>, either globally or locally, by
+running:</p>
+<pre class="prettyprint source lang-sh"><code>npm install appveyor-status</code></pre><h2>Recipes</h2><h3>Check status before release</h3><p>To check that the build for the current commit is successful before releasing
+it as a new version, add the following to <code>package.json</code>:</p>
+<pre class="prettyprint source lang-json"><code>{
+  &quot;scripts&quot;: {
+    &quot;preversion&quot;: &quot;appveyor-status -c -w&quot;
+  }
+}</code></pre><p>This will check that the AppVeyor status for the current repository is &quot;success&quot;
+(and will wait if queued) and that it matches the current commit.  It will
+print the build status (which can be suppressed with <code>-q</code>) and exit with code
+0 if &quot;success&quot; and a non-zero code otherwise, which will stop the version task.</p>
+<p>API examples can be found in the <a href="https://kevinoid.github.io/appveyor-status/spec">test
+specifications</a>.</p>
+<h2>API Docs</h2><p>To use this module as a library, see the <a href="https://kevinoid.github.io/appveyor-status/api">API
+Documentation</a>.</p>
+<p>Command-line usage information is available via <code>--help</code>:</p>
+<pre class="prettyprint source lang-sh"><code>appveyor-status --help</code></pre><h2>Contributing</h2><p>Contributions are welcome and very much appreciated!  Please add tests to
+cover any changes and ensure <code>npm test</code> passes.</p>
+<p>If the desired change is large, complex, backwards-incompatible, can have
+significantly differing implementations, or may not be in scope for this
+project, opening an issue before writing the code can avoid frustration and
+save a lot of time and effort.</p>
+<h2>License</h2><p>This package is available under the terms of the
+<a href="https://opensource.org/licenses/MIT">MIT License</a>.</p></article>
+    </section>
+
+
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-appveyor-status.html">appveyor-status</a></li><li><a href="module-appveyor-status_bin_appveyor-status.html">appveyor-status/bin/appveyor-status</a></li></ul><h3>Classes</h3><ul><li><a href="module-appveyor-status.AmbiguousProjectError.html">AmbiguousProjectError</a></li><li><a href="module-appveyor-status.CommitMismatchError.html">CommitMismatchError</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.3</a> on Fri Feb 17 2017 03:36:33 GMT-0700 (MST)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

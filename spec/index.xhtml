@@ -1,0 +1,2977 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-US" lang="en-US">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Specifications in Mocha</title>
+  <meta name="generator" content="Mocha &lt;https://mochajs.org/&gt;" />
+  <meta name="license" content="MIT" />
+  <meta name="copyright" content="&#169; 2016 Kevin Locke &lt;kevin@kevinlocke.name&gt;" />
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous" />
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css" integrity="sha384-fLW2N01lMqjakBkx3l/M9EahuwpSfeNvV63J5ezn3uZzapT0u7EYsXMjQV+0En5r" crossorigin="anonymous" />
+  <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/highlight.js/9.1.0/styles/github.min.css" />
+  <style type="text/css">
+section section {
+  margin-left: 1em;
+}
+section section section section {
+  margin-left: 0;
+}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <section class="suite">
+      <h1>appveyorStatus</h1>
+      <dl>
+        <section class="suite">
+          <h1>.getLastBuild</h1>
+          <dl>
+            <dt>queries last build for options.project</dt>
+            <dd><pre><code>var testProject = 'foo/bar';
+var testStatus = 'success';
+gitUtilsMock.expects('getBranch').never();
+gitUtilsMock.expects('getRemote').never();
+gitUtilsMock.expects('getRemoteUrl').never();
+gitUtilsMock.expects('resolveCommit').never();
+var ne = nock(apiUrl)
+  .get('/api/projects/' + testProject)
+  .query(true)
+  .reply(200, apiResponses.getProjectBuild({status: testStatus}));
+options.project = testProject;
+return appveyorStatus.getLastBuild(options)
+  .then(function(projectBuild) {
+    assert.strictEqual(projectBuildToStatus(projectBuild), testStatus);
+    ne.done();
+  });</code></pre></dd>
+            <dt>queries last build for project with named branch</dt>
+            <dd><pre><code>var testBranch = 'testb';
+var testProject = 'foo/bar';
+var testStatus = 'success';
+gitUtilsMock.expects('getBranch').never();
+gitUtilsMock.expects('getRemote').never();
+gitUtilsMock.expects('getRemoteUrl').never();
+gitUtilsMock.expects('resolveCommit').never();
+var ne = nock(apiUrl)
+  .get('/api/projects/' + testProject + '/branch/' + testBranch)
+  .query(true)
+  .reply(200, apiResponses.getProjectBuild({status: testStatus}));
+options.branch = testBranch;
+options.project = testProject;
+return appveyorStatus.getLastBuild(options)
+  .then(function(projectBuild) {
+    assert.strictEqual(projectBuildToStatus(projectBuild), testStatus);
+    ne.done();
+  });</code></pre></dd>
+            <dt>queries last build for named branch by remote</dt>
+            <dd><pre><code>var testBranch = 'testb';
+var testRemote = 'testr';
+var testRemoteUrl = 'git://foo.bar/baz';
+var testStatus = 'success';
+gitUtilsMock.expects('getBranch').never();
+gitUtilsMock.expects('getRemote')
+  .once().withArgs(testBranch, matchOptionsCwd).resolves(testRemote);
+gitUtilsMock.expects('getRemoteUrl')
+  .once().withArgs(testRemote, matchOptionsCwd).resolves(testRemoteUrl);
+gitUtilsMock.expects('resolveCommit').never();
+var ne = nock(apiUrl)
+  .get('/api/projects')
+  .query(true)
+  .reply(200, [
+    apiResponses.getProject({
+      branch: testBranch,
+      repositoryType: 'git',
+      repositoryName: testRemoteUrl,
+      status: testStatus
+    })
+  ]);
+options.branch = testBranch;
+return appveyorStatus.getLastBuild(options)
+  .then(function(projectBuild) {
+    assert.strictEqual(projectBuildToStatus(projectBuild), testStatus);
+    ne.done();
+  });</code></pre></dd>
+            <dt>queries non-last build for named branch by remote</dt>
+            <dd><pre><code>var testBranch = 'testb';
+var testProject = ['foo', 'bar'];
+var testRemote = 'testr';
+var testRemoteUrl = 'git://foo.bar/baz';
+var testStatus = 'success';
+gitUtilsMock.expects('getBranch').never();
+gitUtilsMock.expects('getRemote')
+  .once().withArgs(testBranch, matchOptionsCwd).resolves(testRemote);
+gitUtilsMock.expects('getRemoteUrl')
+  .once().withArgs(testRemote, matchOptionsCwd).resolves(testRemoteUrl);
+gitUtilsMock.expects('resolveCommit').never();
+var ne = nock(apiUrl)
+  .get('/api/projects')
+  .query(true)
+  .reply(200, [
+    apiResponses.getProject({
+      accountName: testProject[0],
+      branch: testBranch + '5',
+      repositoryType: 'git',
+      repositoryName: testRemoteUrl,
+      slug: testProject[1],
+      status: testStatus
+    })
+  ])
+  .get('/api/projects/' + testProject.join('/') + '/branch/' + testBranch)
+  .query(true)
+  .reply(200, apiResponses.getProjectBuild({
+    branch: testBranch,
+    repositoryType: 'git',
+    repositoryName: testRemoteUrl,
+    status: testStatus
+  }));
+options.branch = testBranch;
+return appveyorStatus.getLastBuild(options)
+  .then(function(projectBuild) {
+    assert.strictEqual(projectBuildToStatus(projectBuild), testStatus);
+    ne.done();
+  });</code></pre></dd>
+            <dt>uses commit hash without resolving</dt>
+            <dd><pre><code>var testCommit = 'adc83b19e793491b1c6ea0fd8b46cd9f32e592a1';
+var testProject = 'foo/bar';
+var testStatus = 'success';
+gitUtilsMock.expects('getBranch').never();
+gitUtilsMock.expects('getRemote').never();
+gitUtilsMock.expects('getRemoteUrl').never();
+gitUtilsMock.expects('resolveCommit').never();
+var ne = nock(apiUrl)
+  .get('/api/projects/' + testProject)
+  .query(true)
+  .reply(200, apiResponses.getProjectBuild({
+    commitId: testCommit,
+    status: testStatus
+  }));
+options.commit = testCommit;
+options.project = testProject;
+return appveyorStatus.getLastBuild(options)
+  .then(function(projectBuild) {
+    assert.strictEqual(projectBuildToStatus(projectBuild), testStatus);
+    ne.done();
+  });</code></pre></dd>
+            <dt>rejects with CommitMismatchError if commit does not match</dt>
+            <dd><pre><code>var testCommit = 'testtag';
+var testProject = 'foo/bar';
+var testStatus = 'success';
+gitUtilsMock.expects('getBranch').never();
+gitUtilsMock.expects('getRemote').never();
+gitUtilsMock.expects('getRemoteUrl').never();
+gitUtilsMock.expects('resolveCommit')
+  .once().withArgs(testCommit, matchOptionsCwd).resolves('abcde');
+var ne = nock(apiUrl)
+  .get('/api/projects/' + testProject)
+  .query(true)
+  .reply(200, apiResponses.getProjectBuild({
+    commitId: '12345',
+    status: testStatus
+  }));
+options.commit = testCommit;
+options.project = testProject;
+return appveyorStatus.getLastBuild(options).then(
+  sinon.mock().never(),
+  function(err) {
+    assert.strictEqual(err.name, 'CommitMismatchError');
+    ne.done();
+  });</code></pre></dd>
+            <dt>returns queued status as-is without wait</dt>
+            <dd><pre><code>var testProject = 'foo/bar';
+var testStatus = 'queued';
+var ne = nock(apiUrl)
+  .get('/api/projects/' + testProject)
+  .query(true)
+  .reply(200, apiResponses.getProjectBuild({status: testStatus}));
+options.project = testProject;
+return appveyorStatus.getLastBuild(options)
+  .then(function(projectBuild) {
+    assert.strictEqual(projectBuildToStatus(projectBuild), testStatus);
+    ne.done();
+  });</code></pre></dd>
+            <dt>queries repo in cwd by default</dt>
+            <dd><pre><code>var testBranch = 'testb';
+var testRemote = 'testr';
+var testRemoteUrl = 'git://foo.bar/baz';
+var testStatus = 'success';
+gitUtilsMock.expects('getBranch')
+  .once().withArgs(matchOptionsCwd).resolves(testBranch);
+gitUtilsMock.expects('getRemote')
+  .once().withArgs(testBranch, matchOptionsCwd).resolves(testRemote);
+gitUtilsMock.expects('getRemoteUrl')
+  .once().withArgs(testRemote, matchOptionsCwd).resolves(testRemoteUrl);
+var ne = nock(apiUrl)
+  .get('/api/projects')
+  .reply(200, [
+    apiResponses.getProject({
+      repositoryType: 'git',
+      repositoryName: testRemoteUrl,
+      status: testStatus
+    })
+  ]);
+return appveyorStatus.getLastBuild(options)
+  .then(function(projectBuild) {
+    assert.strictEqual(projectBuildToStatus(projectBuild), testStatus);
+    ne.done();
+  });</code></pre></dd>
+            <dt>resolves branch, commit, and remote URL in local repo</dt>
+            <dd><pre><code>var testBranch = 'testb';
+var testCommit = 'testtag';
+var testCommitHash = '4b482f89ef23e06ad6a9c01adaece30943bf434c';
+var testRemote = 'testr';
+var testRemoteUrl = 'git://foo.bar/baz';
+var testRepo = 'foo/bar';
+var testStatus = 'success';
+var matchRepoCwd = match({cwd: testRepo});
+gitUtilsMock.expects('getBranch')
+  .once().withArgs(matchRepoCwd).resolves(testBranch);
+gitUtilsMock.expects('getRemote')
+  .once().withArgs(testBranch, matchRepoCwd).resolves(testRemote);
+gitUtilsMock.expects('getRemoteUrl')
+  .once().withArgs(testRemote, matchRepoCwd).resolves(testRemoteUrl);
+gitUtilsMock.expects('resolveCommit')
+  .once().withArgs(testCommit, matchRepoCwd).resolves(testCommitHash);
+var ne = nock(apiUrl)
+  .get('/api/projects')
+  .reply(200, [
+    apiResponses.getProject({
+      branch: testBranch,
+      commitId: testCommitHash,
+      repositoryType: 'git',
+      repositoryName: testRemoteUrl,
+      status: testStatus
+    })
+  ]);
+options.branch = true;
+options.commit = testCommit;
+options.repo = testRepo;
+return appveyorStatus.getLastBuild(options)
+  .then(function(projectBuild) {
+    assert.strictEqual(projectBuildToStatus(projectBuild), testStatus);
+    ne.done();
+  });</code></pre></dd>
+            <dt>falls back to origin if not on a branch</dt>
+            <dd><pre><code>var testRemoteUrl = 'git://foo.bar/baz';
+var testStatus = 'success';
+gitUtilsMock.expects('getBranch')
+  .once().withArgs(matchOptionsCwd).rejects(new Error());
+gitUtilsMock.expects('getRemote').never();
+gitUtilsMock.expects('getRemoteUrl')
+  .once().withArgs('origin', matchOptionsCwd).resolves(testRemoteUrl);
+gitUtilsMock.expects('resolveCommit').never();
+var ne = nock(apiUrl)
+  .get('/api/projects')
+  .reply(200, [
+    apiResponses.getProject({
+      repositoryType: 'git',
+      repositoryName: testRemoteUrl,
+      status: testStatus
+    })
+  ]);
+return appveyorStatus.getLastBuild(options)
+  .then(function(projectBuild) {
+    assert.strictEqual(options.err.read(), null);
+    assert.strictEqual(projectBuildToStatus(projectBuild), testStatus);
+    ne.done();
+  });</code></pre></dd>
+            <dt>falls back to origin if branch has no remote</dt>
+            <dd><pre><code>var testBranch = 'testb';
+var testRemoteUrl = 'git://foo.bar/baz';
+var testStatus = 'success';
+gitUtilsMock.expects('getBranch')
+  .once().withArgs(matchOptionsCwd).resolves(testBranch);
+gitUtilsMock.expects('getRemote')
+  .once().withArgs(testBranch, matchOptionsCwd).rejects(new Error());
+gitUtilsMock.expects('getRemoteUrl')
+  .once().withArgs('origin', matchOptionsCwd).resolves(testRemoteUrl);
+gitUtilsMock.expects('resolveCommit').never();
+var ne = nock(apiUrl)
+  .get('/api/projects')
+  .reply(200, [
+    apiResponses.getProject({
+      repositoryType: 'git',
+      repositoryName: testRemoteUrl,
+      status: testStatus
+    })
+  ]);
+options.verbosity = 1;
+return appveyorStatus.getLastBuild(options)
+  .then(function(projectBuild) {
+    var errStr = String(options.err.read());
+    assert.match(errStr, /\bremote\b/i);
+    assert.match(errStr, /\borigin\b/i);
+    assert.strictEqual(projectBuildToStatus(projectBuild), testStatus);
+    ne.done();
+  });</code></pre></dd>
+            <dt>rejects with Error if no project matches repo</dt>
+            <dd><pre><code>var testRepo = 'git://foo.bar/baz';
+var testStatus = 'success';
+gitUtilsMock.expects('getBranch').never();
+gitUtilsMock.expects('getRemote').never();
+gitUtilsMock.expects('getRemoteUrl').never();
+gitUtilsMock.expects('resolveCommit').never();
+var ne = nock(apiUrl)
+  .get('/api/projects')
+  .query(true)
+  .reply(200, [
+    apiResponses.getProject({
+      repositoryType: 'git',
+      repositoryName: testRepo + '/quux',
+      status: testStatus
+    })
+  ]);
+options.repo = testRepo;
+return appveyorStatus.getLastBuild(options).then(
+  sinon.mock().never(),
+  function(err) {
+    assert.instanceOf(err, Error);
+    assert.include(err.message, testRepo);
+    ne.done();
+  }
+);</code></pre></dd>
+            <dt>AmbiguousProjectError if multiple projects match repo</dt>
+            <dd><pre><code>var testProject1 = ['myacct', 'proj1'];
+var testProject2 = ['youracct', 'proj2'];
+var testRepo = 'git://foo.bar/baz';
+var testStatus = 'success';
+gitUtilsMock.expects('getBranch').never();
+gitUtilsMock.expects('getRemote').never();
+gitUtilsMock.expects('getRemoteUrl').never();
+gitUtilsMock.expects('resolveCommit').never();
+var ne = nock(apiUrl)
+  .get('/api/projects')
+  .query(true)
+  .reply(200, [
+    apiResponses.getProject({
+      accountName: testProject1[0],
+      repositoryType: 'git',
+      repositoryName: testRepo,
+      slug: testProject1[1],
+      status: testStatus
+    }),
+    apiResponses.getProject({
+      accountName: testProject2[0],
+      repositoryType: 'git',
+      repositoryName: testRepo,
+      slug: testProject2[1],
+      status: testStatus
+    })
+  ]);
+options.repo = testRepo;
+return appveyorStatus.getLastBuild(options).then(
+  sinon.mock().never(),
+  function(err) {
+    assert.instanceOf(err, AmbiguousProjectError);
+    assert.deepEqual(
+      err.projects,
+      [testProject1.join('/'), testProject2.join('/')]
+    );
+    ne.done();
+  }
+);</code></pre></dd>
+            <dt>rejects with Error for non-200 responses</dt>
+            <dd><pre><code>var testErrMsg = 'bad dead bodies';
+var testProject = 'foo/bar';
+gitUtilsMock.expects('getBranch').never();
+gitUtilsMock.expects('getRemote').never();
+gitUtilsMock.expects('getRemoteUrl').never();
+gitUtilsMock.expects('resolveCommit').never();
+var ne = nock(apiUrl)
+  .get('/api/projects/' + testProject)
+  .query(true)
+  .reply(400, {message: testErrMsg});
+options.project = testProject;
+return appveyorStatus.getLastBuild(options).then(
+  sinon.mock().never(),
+  function(err) {
+    assert.include(err.message, '400');
+    assert.include(err.message, testErrMsg);
+    ne.done();
+  }
+);</code></pre></dd>
+            <dt>rejects with Error for non-JSON responses</dt>
+            <dd><pre><code>var testProject = 'foo/bar';
+gitUtilsMock.expects('getBranch').never();
+gitUtilsMock.expects('getRemote').never();
+gitUtilsMock.expects('getRemoteUrl').never();
+gitUtilsMock.expects('resolveCommit').never();
+var ne = nock(apiUrl)
+  .get('/api/projects/' + testProject)
+  .query(true)
+  .reply(200, 'invalid', {'Content-Type': 'text/plain'});
+options.project = testProject;
+return appveyorStatus.getLastBuild(options).then(
+  sinon.mock().never(),
+  function(err) {
+    assert.include(err.message, 'JSON');
+    ne.done();
+  }
+);</code></pre></dd>
+            <dt>rejects with Error for request error</dt>
+            <dd><pre><code>var testErrMsg = 'something bad happened';
+var testProject = 'foo/bar';
+gitUtilsMock.expects('getBranch').never();
+gitUtilsMock.expects('getRemote').never();
+gitUtilsMock.expects('getRemoteUrl').never();
+gitUtilsMock.expects('resolveCommit').never();
+var ne = nock(apiUrl)
+  .get('/api/projects/' + testProject)
+  .query(true)
+  .replyWithError(testErrMsg);
+options.project = testProject;
+return appveyorStatus.getLastBuild(options).then(
+  sinon.mock().never(),
+  function(err) {
+    assert.include(err.message, testErrMsg);
+    ne.done();
+  }
+);</code></pre></dd>
+            <dt>passes options.token as bearer token</dt>
+            <dd><pre><code>var testRepo = 'git://foo.bar/baz';
+var testStatus = 'success';
+var testToken = 'testtoken';
+gitUtilsMock.expects('getBranch').never();
+gitUtilsMock.expects('getRemote').never();
+gitUtilsMock.expects('getRemoteUrl').never();
+gitUtilsMock.expects('resolveCommit').never();
+var ne = nock(apiUrl)
+  .matchHeader('Authorization', 'Bearer ' + testToken)
+  // IMPORTANT: Must be path which requires auth
+  .get('/api/projects')
+  .query(true)
+  .reply(200, [
+    apiResponses.getProject({
+      repositoryType: 'git',
+      repositoryName: testRepo,
+      status: testStatus
+    })
+  ]);
+options.repo = testRepo;
+options.token = testToken;
+return appveyorStatus.getLastBuild(options)
+  .then(function(projectBuild) {
+    assert.strictEqual(projectBuildToStatus(projectBuild), testStatus);
+    ne.done();
+  });</code></pre></dd>
+            <dt>ignores options.token when appveyorClient is given</dt>
+            <dd><pre><code>var testRepo = 'git://foo.bar/baz';
+var testStatus = 'success';
+var testToken1 = 'testtoken1';
+var testToken2 = 'testtoken2';
+gitUtilsMock.expects('getBranch').never();
+gitUtilsMock.expects('getRemote').never();
+gitUtilsMock.expects('getRemoteUrl').never();
+gitUtilsMock.expects('resolveCommit').never();
+var ne = nock(apiUrl)
+  .matchHeader('Authorization', 'Bearer ' + testToken2)
+  // IMPORTANT: Must be path which requires auth
+  .get('/api/projects')
+  .query(true)
+  .reply(200, [
+    apiResponses.getProject({
+      repositoryType: 'git',
+      repositoryName: testRepo,
+      status: testStatus
+    })
+  ]);
+options.appveyorClient = new SwaggerClient({
+  authorizations: {
+    apiToken: new SwaggerClient.ApiKeyAuthorization(
+      'Authorization',
+      'Bearer ' + testToken2,
+      'header'
+    )
+  },
+  spec: appveyorSwagger,
+  usePromise: true
+});
+options.repo = testRepo;
+options.token = testToken1;
+return appveyorStatus.getLastBuild(options)
+  .then(function(projectBuild) {
+    assert.strictEqual(projectBuildToStatus(projectBuild), testStatus);
+    ne.done();
+  });</code></pre></dd>
+            <dt>rejects with Error for webhookId</dt>
+            <dd><pre><code>gitUtilsMock.expects('getBranch').never();
+gitUtilsMock.expects('getRemote').never();
+gitUtilsMock.expects('getRemoteUrl').never();
+gitUtilsMock.expects('resolveCommit').never();
+options.webhookId = 'abcde';
+return appveyorStatus.getLastBuild(options).then(
+  sinon.mock().never(),
+  function(err) {
+    assert.match(err.message, /required|supported/i);
+  }
+);</code></pre></dd>
+            <section class="suite">
+              <h1>with wait</h1>
+              <dl>
+                <dt>true retries queued status</dt>
+                <dd><pre><code>var testProject = 'foo/bar';
+var testStatus = 'success';
+var expectQueued = nock(apiUrl)
+  .get('/api/projects/' + testProject)
+  .query(true)
+  .reply(200, apiResponses.getProjectBuild({status: 'queued'}));
+var expectSuccess = nock(apiUrl)
+  .get('/api/projects/' + testProject)
+  .query(true)
+  .reply(200, apiResponses.getProjectBuild({status: testStatus}));
+var retriesDone = false;
+afterFirstRequest(function() {
+  assert(expectQueued.isDone(), 'First call is made immediately.');
+  assert(!expectSuccess.isDone(), 'Retry is not done immediately.');
+  clock.tick(900);
+  assert(!expectSuccess.isDone(), 'Retry is not done less than 1 sec.');
+  clock.tick(60000);
+  assert(expectSuccess.isDone(), 'Retry is done less than 1 minute.');
+  retriesDone = true;
+});
+options.project = testProject;
+options.wait = true;
+return appveyorStatus.getLastBuild(options)
+  .then(function(projectBuild) {
+    assert.strictEqual(projectBuildToStatus(projectBuild), testStatus);
+    assert(retriesDone, 'Retries completed');
+    assert.strictEqual(
+      options.err.read(),
+      null,
+      'does not print wait messages by default'
+    );
+  });</code></pre></dd>
+                <dt>true retries queued status from project</dt>
+                <dd><pre><code>var testProjectParts = ['foo', 'bar'];
+var testRepoUrl = 'git://foo.bar/baz';
+var testStatus = 'success';
+var expectQueued = nock(apiUrl)
+  .get('/api/projects')
+  .query(true)
+  .reply(200, [
+    apiResponses.getProject({
+      accountName: testProjectParts[0],
+      repositoryType: 'git',
+      repositoryName: testRepoUrl,
+      slug: testProjectParts[1],
+      status: 'queued'
+    })
+  ]);
+var expectSuccess = nock(apiUrl)
+  .get('/api/projects/' + testProjectParts.join('/'))
+  .query(true)
+  .reply(200, apiResponses.getProjectBuild({status: testStatus}));
+var retriesDone = false;
+afterFirstRequest(function() {
+  assert(expectQueued.isDone(), 'First call is made immediately.');
+  assert(!expectSuccess.isDone(), 'Retry is not done immediately.');
+  clock.tick(900);
+  assert(!expectSuccess.isDone(), 'Retry is not done less than 1 sec.');
+  clock.tick(60000);
+  assert(expectSuccess.isDone(), 'Retry is done less than 1 minute.');
+  retriesDone = true;
+});
+options.repo = testRepoUrl;
+options.wait = true;
+options.verbosity = 1;
+return appveyorStatus.getLastBuild(options)
+  .then(function(projectBuild) {
+    assert.strictEqual(projectBuildToStatus(projectBuild), testStatus);
+    assert(retriesDone, 'Retries completed');
+    assert.match(
+      String(options.err.read()),
+      /\bwait/i,
+      'prints wait message when verbose'
+    );
+  });</code></pre></dd>
+                <dt>is stopped on error</dt>
+                <dd><pre><code>var testErrMsg = 'something bad';
+var testProject = 'foo/bar';
+var expectQueued = nock(apiUrl)
+  .get('/api/projects/' + testProject)
+  .query(true)
+  .reply(200, apiResponses.getProjectBuild({status: 'queued'}));
+var expectSuccess = nock(apiUrl)
+  .get('/api/projects/' + testProject)
+  .query(true)
+  .replyWithError(testErrMsg);
+var retriesDone = false;
+afterFirstRequest(function() {
+  assert(expectQueued.isDone(), 'First call is made immediately.');
+  assert(!expectSuccess.isDone(), 'Retry is not done immediately.');
+  clock.tick(900);
+  assert(!expectSuccess.isDone(), 'Retry is not done less than 1 sec.');
+  clock.tick(60000);
+  assert(expectSuccess.isDone(), 'Retry is done less than 1 minute.');
+  retriesDone = true;
+});
+options.project = testProject;
+options.wait = true;
+return appveyorStatus.getLastBuild(options).then(
+  sinon.mock().never(),
+  function(err) {
+    assert.include(err.message, testErrMsg);
+    assert(retriesDone, 'Retries completed');
+  }
+);</code></pre></dd>
+                <dt>returns queued status if wait elapses</dt>
+                <dd><pre><code>var testProject = 'foo/bar';
+var expectQueued1 = nock(apiUrl)
+  .get('/api/projects/' + testProject)
+  .query(true)
+  .reply(200, apiResponses.getProjectBuild({status: 'queued'}));
+var expectQueued2 = nock(apiUrl)
+  .get('/api/projects/' + testProject)
+  .query(true)
+  .reply(200, apiResponses.getProjectBuild({status: 'queued'}));
+// This test does not specify specifics of exponential backoff
+nock(apiUrl)
+  .persist()
+  .get('/api/projects/' + testProject)
+  .query(true)
+  .reply(200, apiResponses.getProjectBuild({status: 'queued'}));
+var retriesDone = false;
+afterFirstRequest(function() {
+  assert(expectQueued1.isDone(), 'First call is made immediately.');
+  assert(!expectQueued2.isDone(), 'Retry is not done immediately.');
+  clock.tick(900);
+  assert(!expectQueued2.isDone(), 'Retry is not done less than 1 sec.');
+  clock.tick(60000);
+  assert(expectQueued2.isDone(), 'Retry is done less than 1 minute.');
+  retriesDone = true;
+});
+options.project = testProject;
+options.wait = 8000;
+return appveyorStatus.getLastBuild(options)
+  .then(function(projectBuild) {
+    assert.strictEqual(projectBuildToStatus(projectBuild), 'queued');
+    assert(retriesDone, 'Retries completed');
+  });</code></pre></dd>
+              </dl>
+            </section>
+          </dl>
+        </section>
+        <section class="suite">
+          <h1>.getStatusBadge</h1>
+          <dl>
+            <dt>queries badge by repo URL</dt>
+            <dd><pre><code>var testBadgeUrlPath = 'gitHub/foo/bar';
+var testRepoUrl = 'git@github.com:foo/bar.git';
+var testStatus = 'success';
+gitUtilsMock.expects('getBranch').never();
+gitUtilsMock.expects('getRemote').never();
+gitUtilsMock.expects('getRemoteUrl').never();
+gitUtilsMock.expects('resolveCommit').never();
+var ne = nock(apiUrl)
+  .get('/api/projects/status/' + testBadgeUrlPath)
+  .query(true)
+  .reply(
+    200,
+    apiResponses.getStatusBadge(testStatus),
+    {'Content-Type': 'image/svg+xml'}
+  );
+options.repo = testRepoUrl;
+return appveyorStatus.getStatusBadge(options)
+  .then(function(badge) {
+    assert.strictEqual(badgeToStatus(badge), testStatus);
+    ne.done();
+  });</code></pre></dd>
+            <dt>queries badge by repo URL and branch</dt>
+            <dd><pre><code>var testBadgeUrlPath = 'gitHub/foo/bar';
+var testBranch = 'testb';
+var testRepoUrl = 'git@github.com:foo/bar.git';
+var testStatus = 'success';
+gitUtilsMock.expects('getBranch').never();
+gitUtilsMock.expects('getRemote').never();
+gitUtilsMock.expects('getRemoteUrl').never();
+gitUtilsMock.expects('resolveCommit').never();
+var ne = nock(apiUrl)
+  .get('/api/projects/status/' + testBadgeUrlPath)
+  .query(function(query) {
+    return query.branch === testBranch &amp;&amp; query.svg === 'true';
+  })
+  .reply(
+    200,
+    apiResponses.getStatusBadge(testStatus),
+    {'Content-Type': 'image/svg+xml'}
+  );
+options.branch = testBranch;
+options.repo = testRepoUrl;
+return appveyorStatus.getStatusBadge(options)
+  .then(function(badge) {
+    assert.strictEqual(badgeToStatus(badge), testStatus);
+    ne.done();
+  });</code></pre></dd>
+            <dt>queries badge by webhookId</dt>
+            <dd><pre><code>var testWebhookId = 'abcde';
+var testStatus = 'success';
+gitUtilsMock.expects('getBranch').never();
+gitUtilsMock.expects('getRemote').never();
+gitUtilsMock.expects('getRemoteUrl').never();
+gitUtilsMock.expects('resolveCommit').never();
+var ne = nock(apiUrl)
+  .get('/api/projects/status/' + testWebhookId)
+  .query(true)
+  .reply(
+    200,
+    apiResponses.getStatusBadge(testStatus),
+    {'Content-Type': 'image/svg+xml'}
+  );
+options.webhookId = testWebhookId;
+return appveyorStatus.getStatusBadge(options)
+  .then(function(badge) {
+    assert.strictEqual(badgeToStatus(badge), testStatus);
+    ne.done();
+  });</code></pre></dd>
+            <dt>queries badge by webhookId and branch</dt>
+            <dd><pre><code>var testBranch = 'testb';
+var testWebhookId = 'abcde';
+var testStatus = 'success';
+gitUtilsMock.expects('getBranch').never();
+gitUtilsMock.expects('getRemote').never();
+gitUtilsMock.expects('getRemoteUrl').never();
+gitUtilsMock.expects('resolveCommit').never();
+var ne = nock(apiUrl)
+  .get('/api/projects/status/' + testWebhookId + '/branch/' + testBranch)
+  .query(true)
+  .reply(
+    200,
+    apiResponses.getStatusBadge(testStatus),
+    {'Content-Type': 'image/svg+xml'}
+  );
+options.branch = testBranch;
+options.webhookId = testWebhookId;
+return appveyorStatus.getStatusBadge(options)
+  .then(function(badge) {
+    assert.strictEqual(badgeToStatus(badge), testStatus);
+    ne.done();
+  });</code></pre></dd>
+            <dt>rejects with Error for non-200 response</dt>
+            <dd><pre><code>var testWebhookId = 'abcde';
+var testStatus = 'success';
+gitUtilsMock.expects('getBranch').never();
+gitUtilsMock.expects('getRemote').never();
+gitUtilsMock.expects('getRemoteUrl').never();
+gitUtilsMock.expects('resolveCommit').never();
+var ne = nock(apiUrl)
+  .get('/api/projects/status/' + testWebhookId)
+  .query(true)
+  .reply(
+    400,
+    apiResponses.getStatusBadge(testStatus),
+    {'Content-Type': 'image/svg+xml'}
+  );
+options.webhookId = testWebhookId;
+return appveyorStatus.getStatusBadge(options).then(
+  sinon.mock().never(),
+  function(err) {
+    assert.include(err.message, '400');
+    ne.done();
+  }
+);</code></pre></dd>
+            <dt>rejects with Error for non-SVG response</dt>
+            <dd><pre><code>var testWebhookId = 'abcde';
+gitUtilsMock.expects('getBranch').never();
+gitUtilsMock.expects('getRemote').never();
+gitUtilsMock.expects('getRemoteUrl').never();
+gitUtilsMock.expects('resolveCommit').never();
+var ne = nock(apiUrl)
+  .get('/api/projects/status/' + testWebhookId)
+  .query(true)
+  .reply(200, 'invalid', {'Content-Type': 'text/plain'});
+options.webhookId = testWebhookId;
+return appveyorStatus.getStatusBadge(options).then(
+  sinon.mock().never(),
+  function(err) {
+    assert.match(err.message, /svg/i);
+    ne.done();
+  }
+);</code></pre></dd>
+            <dt>rejects with Error for response without Content-Type</dt>
+            <dd><pre><code>var testWebhookId = 'abcde';
+gitUtilsMock.expects('getBranch').never();
+gitUtilsMock.expects('getRemote').never();
+gitUtilsMock.expects('getRemoteUrl').never();
+gitUtilsMock.expects('resolveCommit').never();
+var ne = nock(apiUrl)
+  .get('/api/projects/status/' + testWebhookId)
+  .query(true)
+  .reply(200, 'invalid', {'Content-Type': undefined});
+options.webhookId = testWebhookId;
+return appveyorStatus.getStatusBadge(options).then(
+  sinon.mock().never(),
+  function(err) {
+    assert.match(err.message, /svg/i);
+    ne.done();
+  }
+);</code></pre></dd>
+            <dt>rejects with Error for options.project</dt>
+            <dd><pre><code>gitUtilsMock.expects('getBranch').never();
+gitUtilsMock.expects('getRemote').never();
+gitUtilsMock.expects('getRemoteUrl').never();
+gitUtilsMock.expects('resolveCommit').never();
+options.project = 'foo/bar';
+return appveyorStatus.getStatusBadge(options).then(
+  sinon.mock().never(),
+  function(err) {
+    assert.match(err.message, /required|supported/i);
+  }
+);</code></pre></dd>
+          </dl>
+        </section>
+        <section class="suite">
+          <h1>.getStatus</h1>
+          <dl>
+            <dt>returns status from last build for project</dt>
+            <dd><pre><code>var testProject = 'foo/bar';
+var testStatus = 'success';
+gitUtilsMock.expects('getBranch').never();
+gitUtilsMock.expects('getRemote').never();
+gitUtilsMock.expects('getRemoteUrl').never();
+gitUtilsMock.expects('resolveCommit').never();
+var ne = nock(apiUrl)
+  .get('/api/projects/' + testProject)
+  .reply(200, apiResponses.getProjectBuild({status: testStatus}));
+options.project = testProject;
+return appveyorStatus.getStatus(options)
+  .then(function(status) {
+    assert.strictEqual(status, testStatus);
+    ne.done();
+  });</code></pre></dd>
+            <dt>returns status from badge for GitHub repo</dt>
+            <dd><pre><code>var testProject = 'foo/bar';
+var testRepo = 'https://github.com/' + testProject + '.git';
+var testStatus = 'success';
+gitUtilsMock.expects('getBranch').never();
+gitUtilsMock.expects('getRemote').never();
+gitUtilsMock.expects('getRemoteUrl').never();
+gitUtilsMock.expects('resolveCommit').never();
+var ne = nock(apiUrl)
+  .get('/api/projects/status/gitHub/' + testProject)
+  .query(true)
+  .reply(
+    200,
+    apiResponses.getStatusBadge(testStatus),
+    {'Content-Type': 'image/svg+xml'}
+  );
+options.repo = testRepo;
+return appveyorStatus.getStatus(options)
+  .then(function(status) {
+    assert.strictEqual(status, testStatus);
+    ne.done();
+  });</code></pre></dd>
+            <dt>can be called with callback without options</dt>
+            <dd><pre><code>var testBranch = 'testb';
+var testProject = 'foo/bar';
+var testRemote = 'testr';
+var testRemoteUrl = 'https://github.com/' + testProject + '.git';
+var testStatus = 'success';
+gitUtilsMock.expects('getBranch')
+  .once().withArgs(matchOptionsCwd).resolves(testBranch);
+gitUtilsMock.expects('getRemote')
+  .once().withArgs(testBranch, matchOptionsCwd).resolves(testRemote);
+gitUtilsMock.expects('getRemoteUrl')
+  .once().withArgs(testRemote, matchOptionsCwd).resolves(testRemoteUrl);
+gitUtilsMock.expects('resolveCommit').never();
+var ne = nock(apiUrl)
+  .get('/api/projects/status/gitHub/' + testProject)
+  .query(true)
+  .reply(
+    200,
+    apiResponses.getStatusBadge(testStatus),
+    {'Content-Type': 'image/svg+xml'}
+  );
+appveyorStatus.getStatus(function(err, status) {
+  assert.ifError(err);
+  assert.strictEqual(status, testStatus);
+  ne.done();
+  done();
+});</code></pre></dd>
+            <dt>throws TypeError for non-function callback</dt>
+            <dd><pre><code>assert.throws(
+  function() { appveyorStatus.getStatus(options, true); },
+  TypeError
+);</code></pre></dd>
+            <dt>rejects non-object options with TypeError</dt>
+            <dd><pre><code>return appveyorStatus.getStatus(true).then(
+  sinon.mock().never(),
+  function(err) {
+    assert.instanceOf(err, TypeError);
+    assert.match(err.message, /\boptions\b/);
+  }
+);</code></pre></dd>
+            <dt>rejects project and repo with Error</dt>
+            <dd><pre><code>options.project = 'foo/bar';
+options.repo = '.';
+return appveyorStatus.getStatus(options).then(
+  sinon.mock().never(),
+  function(err) {
+    assert.instanceOf(err, Error);
+    assert.match(err.message, /\bproject\b/);
+    assert.match(err.message, /\brepo\b/);
+  }
+);</code></pre></dd>
+            <dt>rejects project and webhookId with Error</dt>
+            <dd><pre><code>options.project = 'foo/bar';
+options.webhookId = 'abcde';
+return appveyorStatus.getStatus(options).then(
+  sinon.mock().never(),
+  function(err) {
+    assert.instanceOf(err, Error);
+    assert.match(err.message, /\bproject\b/);
+    assert.match(err.message, /\bwebhookId\b/);
+  }
+);</code></pre></dd>
+            <dt>rejects repo and webhookId with Error</dt>
+            <dd><pre><code>options.repo = '.';
+options.webhookId = 'abcde';
+return appveyorStatus.getStatus(options).then(
+  sinon.mock().never(),
+  function(err) {
+    assert.instanceOf(err, Error);
+    assert.match(err.message, /\brepo\b/);
+    assert.match(err.message, /\bwebhookId\b/);
+  }
+);</code></pre></dd>
+            <dt>rejects non-Writable err with TypeError</dt>
+            <dd><pre><code>return appveyorStatus.getStatus({err: new stream.Readable()}).then(
+  sinon.mock().never(),
+  function(err) {
+    assert.instanceOf(err, TypeError);
+    assert.match(err.message, /\berr\b/);
+  }
+);</code></pre></dd>
+            <dt>rejects non-numeric wait with TypeError</dt>
+            <dd><pre><code>options.wait = 'forever';
+return appveyorStatus.getStatus(options).then(
+  sinon.mock().never(),
+  function(err) {
+    assert.instanceOf(err, TypeError);
+    assert.match(err.message, /\bwait\b/);
+  }
+);</code></pre></dd>
+            <dt>rejects negative wait with RangeError</dt>
+            <dd><pre><code>options.wait = -1;
+return appveyorStatus.getStatus(options).then(
+  sinon.mock().never(),
+  function(err) {
+    assert.instanceOf(err, RangeError);
+    assert.match(err.message, /\bwait\b/);
+  }
+);</code></pre></dd>
+            <dt>rejects project without accountName with Error</dt>
+            <dd><pre><code>options.project = {
+  slug: 'foo'
+};
+return appveyorStatus.getStatus(options).then(
+  sinon.mock().never(),
+  function(err) {
+    assert.instanceOf(err, Error);
+    assert.match(err.message, /\bproject\b/);
+    assert.match(err.message, /\baccountName\b/);
+  }
+);</code></pre></dd>
+            <dt>rejects project without slug with Error</dt>
+            <dd><pre><code>options.project = {
+  accountName: 'foo'
+};
+return appveyorStatus.getStatus(options).then(
+  sinon.mock().never(),
+  function(err) {
+    assert.instanceOf(err, Error);
+    assert.match(err.message, /\bproject\b/);
+    assert.match(err.message, /\bslug\b/);
+  }
+);</code></pre></dd>
+          </dl>
+        </section>
+      </dl>
+    </section>
+    <section class="suite">
+      <h1>appveyor-status command</h1>
+      <dl>
+        <dt>returns undefined when called with a function</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus')
+  .once()
+  .withArgs(
+    match.object,
+    match.func
+  );
+var result = appveyorStatusCmd(RUNTIME_ARGS, sinon.mock().never());
+appveyorStatusMock.verify();
+assert.strictEqual(result, undefined);</code></pre></dd>
+        <dt>interprets --branch as match(branch: true)</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').once()
+  .withArgs(
+    expectObj,
+    match.func
+  )
+  .yields(null, 'success');
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err) {
+  assert.ifError(err);
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>interprets -b as match(branch: true)</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').once()
+  .withArgs(
+    expectObj,
+    match.func
+  )
+  .yields(null, 'success');
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err) {
+  assert.ifError(err);
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>interprets --branch foo as match(branch: foo)</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').once()
+  .withArgs(
+    expectObj,
+    match.func
+  )
+  .yields(null, 'success');
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err) {
+  assert.ifError(err);
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>interprets -b foo as match(branch: foo)</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').once()
+  .withArgs(
+    expectObj,
+    match.func
+  )
+  .yields(null, 'success');
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err) {
+  assert.ifError(err);
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>interprets  as match(color: false)</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').once()
+  .withArgs(
+    expectObj,
+    match.func
+  )
+  .yields(null, 'success');
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err) {
+  assert.ifError(err);
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>interprets --color as match(color: true)</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').once()
+  .withArgs(
+    expectObj,
+    match.func
+  )
+  .yields(null, 'success');
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err) {
+  assert.ifError(err);
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>interprets --no-color as match(color: false)</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').once()
+  .withArgs(
+    expectObj,
+    match.func
+  )
+  .yields(null, 'success');
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err) {
+  assert.ifError(err);
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>interprets --commit as match(commit: HEAD)</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').once()
+  .withArgs(
+    expectObj,
+    match.func
+  )
+  .yields(null, 'success');
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err) {
+  assert.ifError(err);
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>interprets -c as match(commit: HEAD)</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').once()
+  .withArgs(
+    expectObj,
+    match.func
+  )
+  .yields(null, 'success');
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err) {
+  assert.ifError(err);
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>interprets --commit foo as match(commit: foo)</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').once()
+  .withArgs(
+    expectObj,
+    match.func
+  )
+  .yields(null, 'success');
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err) {
+  assert.ifError(err);
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>interprets --commit 123 as match(commit: 123)</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').once()
+  .withArgs(
+    expectObj,
+    match.func
+  )
+  .yields(null, 'success');
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err) {
+  assert.ifError(err);
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>interprets -c foo as match(commit: foo)</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').once()
+  .withArgs(
+    expectObj,
+    match.func
+  )
+  .yields(null, 'success');
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err) {
+  assert.ifError(err);
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>prints error and exits for --help</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').never();
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err, code) {
+  assert.ifError(err);
+  assert.strictEqual(code, expectCode);
+  if (expectOutMsg instanceof RegExp) {
+    assert.match(String(options.out.read()), expectOutMsg);
+  } else {
+    assert.strictEqual(options.out.read(), expectOutMsg);
+  }
+  if (expectErrMsg instanceof RegExp) {
+    assert.match(String(options.err.read()), expectErrMsg);
+  } else {
+    assert.strictEqual(options.err.read(), expectErrMsg);
+  }
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>prints error and exits for -h</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').never();
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err, code) {
+  assert.ifError(err);
+  assert.strictEqual(code, expectCode);
+  if (expectOutMsg instanceof RegExp) {
+    assert.match(String(options.out.read()), expectOutMsg);
+  } else {
+    assert.strictEqual(options.out.read(), expectOutMsg);
+  }
+  if (expectErrMsg instanceof RegExp) {
+    assert.match(String(options.err.read()), expectErrMsg);
+  } else {
+    assert.strictEqual(options.err.read(), expectErrMsg);
+  }
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>prints error and exits for -?</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').never();
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err, code) {
+  assert.ifError(err);
+  assert.strictEqual(code, expectCode);
+  if (expectOutMsg instanceof RegExp) {
+    assert.match(String(options.out.read()), expectOutMsg);
+  } else {
+    assert.strictEqual(options.out.read(), expectOutMsg);
+  }
+  if (expectErrMsg instanceof RegExp) {
+    assert.match(String(options.err.read()), expectErrMsg);
+  } else {
+    assert.strictEqual(options.err.read(), expectErrMsg);
+  }
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>prints error and exits for --project</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').never();
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err, code) {
+  assert.ifError(err);
+  assert.strictEqual(code, expectCode);
+  if (expectOutMsg instanceof RegExp) {
+    assert.match(String(options.out.read()), expectOutMsg);
+  } else {
+    assert.strictEqual(options.out.read(), expectOutMsg);
+  }
+  if (expectErrMsg instanceof RegExp) {
+    assert.match(String(options.err.read()), expectErrMsg);
+  } else {
+    assert.strictEqual(options.err.read(), expectErrMsg);
+  }
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>prints error and exits for -p</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').never();
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err, code) {
+  assert.ifError(err);
+  assert.strictEqual(code, expectCode);
+  if (expectOutMsg instanceof RegExp) {
+    assert.match(String(options.out.read()), expectOutMsg);
+  } else {
+    assert.strictEqual(options.out.read(), expectOutMsg);
+  }
+  if (expectErrMsg instanceof RegExp) {
+    assert.match(String(options.err.read()), expectErrMsg);
+  } else {
+    assert.strictEqual(options.err.read(), expectErrMsg);
+  }
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>interprets --project foo as match(project: foo)</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').once()
+  .withArgs(
+    expectObj,
+    match.func
+  )
+  .yields(null, 'success');
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err) {
+  assert.ifError(err);
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>interprets -p foo as match(project: foo)</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').once()
+  .withArgs(
+    expectObj,
+    match.func
+  )
+  .yields(null, 'success');
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err) {
+  assert.ifError(err);
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>interprets --quiet as match(verbosity: -1)</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').once()
+  .withArgs(
+    expectObj,
+    match.func
+  )
+  .yields(null, 'success');
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err) {
+  assert.ifError(err);
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>interprets -q as match(verbosity: -1)</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').once()
+  .withArgs(
+    expectObj,
+    match.func
+  )
+  .yields(null, 'success');
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err) {
+  assert.ifError(err);
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>interprets -qq as match(verbosity: -2)</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').once()
+  .withArgs(
+    expectObj,
+    match.func
+  )
+  .yields(null, 'success');
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err) {
+  assert.ifError(err);
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>interprets --quiet -q as match(verbosity: -2)</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').once()
+  .withArgs(
+    expectObj,
+    match.func
+  )
+  .yields(null, 'success');
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err) {
+  assert.ifError(err);
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>prints error and exits for --repo</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').never();
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err, code) {
+  assert.ifError(err);
+  assert.strictEqual(code, expectCode);
+  if (expectOutMsg instanceof RegExp) {
+    assert.match(String(options.out.read()), expectOutMsg);
+  } else {
+    assert.strictEqual(options.out.read(), expectOutMsg);
+  }
+  if (expectErrMsg instanceof RegExp) {
+    assert.match(String(options.err.read()), expectErrMsg);
+  } else {
+    assert.strictEqual(options.err.read(), expectErrMsg);
+  }
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>prints error and exits for -r</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').never();
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err, code) {
+  assert.ifError(err);
+  assert.strictEqual(code, expectCode);
+  if (expectOutMsg instanceof RegExp) {
+    assert.match(String(options.out.read()), expectOutMsg);
+  } else {
+    assert.strictEqual(options.out.read(), expectOutMsg);
+  }
+  if (expectErrMsg instanceof RegExp) {
+    assert.match(String(options.err.read()), expectErrMsg);
+  } else {
+    assert.strictEqual(options.err.read(), expectErrMsg);
+  }
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>interprets --repo foo as match(repo: foo)</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').once()
+  .withArgs(
+    expectObj,
+    match.func
+  )
+  .yields(null, 'success');
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err) {
+  assert.ifError(err);
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>interprets -r foo as match(repo: foo)</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').once()
+  .withArgs(
+    expectObj,
+    match.func
+  )
+  .yields(null, 'success');
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err) {
+  assert.ifError(err);
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>prints error and exits for --token</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').never();
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err, code) {
+  assert.ifError(err);
+  assert.strictEqual(code, expectCode);
+  if (expectOutMsg instanceof RegExp) {
+    assert.match(String(options.out.read()), expectOutMsg);
+  } else {
+    assert.strictEqual(options.out.read(), expectOutMsg);
+  }
+  if (expectErrMsg instanceof RegExp) {
+    assert.match(String(options.err.read()), expectErrMsg);
+  } else {
+    assert.strictEqual(options.err.read(), expectErrMsg);
+  }
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>prints error and exits for -t</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').never();
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err, code) {
+  assert.ifError(err);
+  assert.strictEqual(code, expectCode);
+  if (expectOutMsg instanceof RegExp) {
+    assert.match(String(options.out.read()), expectOutMsg);
+  } else {
+    assert.strictEqual(options.out.read(), expectOutMsg);
+  }
+  if (expectErrMsg instanceof RegExp) {
+    assert.match(String(options.err.read()), expectErrMsg);
+  } else {
+    assert.strictEqual(options.err.read(), expectErrMsg);
+  }
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>interprets  as match(token: env-token)</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').once()
+  .withArgs(
+    expectObj,
+    match.func
+  )
+  .yields(null, 'success');
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err) {
+  assert.ifError(err);
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>interprets --token foo as match(token: foo)</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').once()
+  .withArgs(
+    expectObj,
+    match.func
+  )
+  .yields(null, 'success');
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err) {
+  assert.ifError(err);
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>interprets -t foo as match(token: foo)</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').once()
+  .withArgs(
+    expectObj,
+    match.func
+  )
+  .yields(null, 'success');
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err) {
+  assert.ifError(err);
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>prints error and exits for --token-file</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').never();
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err, code) {
+  assert.ifError(err);
+  assert.strictEqual(code, expectCode);
+  if (expectOutMsg instanceof RegExp) {
+    assert.match(String(options.out.read()), expectOutMsg);
+  } else {
+    assert.strictEqual(options.out.read(), expectOutMsg);
+  }
+  if (expectErrMsg instanceof RegExp) {
+    assert.match(String(options.err.read()), expectErrMsg);
+  } else {
+    assert.strictEqual(options.err.read(), expectErrMsg);
+  }
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>prints error and exits for -T</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').never();
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err, code) {
+  assert.ifError(err);
+  assert.strictEqual(code, expectCode);
+  if (expectOutMsg instanceof RegExp) {
+    assert.match(String(options.out.read()), expectOutMsg);
+  } else {
+    assert.strictEqual(options.out.read(), expectOutMsg);
+  }
+  if (expectErrMsg instanceof RegExp) {
+    assert.match(String(options.err.read()), expectErrMsg);
+  } else {
+    assert.strictEqual(options.err.read(), expectErrMsg);
+  }
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>interprets --token-file /home/kevin/src/node-projects/appveyor-status/test-data/token.txt as match(token: file-token)</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').once()
+  .withArgs(
+    expectObj,
+    match.func
+  )
+  .yields(null, 'success');
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err) {
+  assert.ifError(err);
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>interprets -T /home/kevin/src/node-projects/appveyor-status/test-data/token.txt as match(token: file-token)</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').once()
+  .withArgs(
+    expectObj,
+    match.func
+  )
+  .yields(null, 'success');
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err) {
+  assert.ifError(err);
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>prints error and exits for --token-file badfile</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').never();
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err, code) {
+  assert.ifError(err);
+  assert.strictEqual(code, expectCode);
+  if (expectOutMsg instanceof RegExp) {
+    assert.match(String(options.out.read()), expectOutMsg);
+  } else {
+    assert.strictEqual(options.out.read(), expectOutMsg);
+  }
+  if (expectErrMsg instanceof RegExp) {
+    assert.match(String(options.err.read()), expectErrMsg);
+  } else {
+    assert.strictEqual(options.err.read(), expectErrMsg);
+  }
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>prints error and exits for -T badfile</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').never();
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err, code) {
+  assert.ifError(err);
+  assert.strictEqual(code, expectCode);
+  if (expectOutMsg instanceof RegExp) {
+    assert.match(String(options.out.read()), expectOutMsg);
+  } else {
+    assert.strictEqual(options.out.read(), expectOutMsg);
+  }
+  if (expectErrMsg instanceof RegExp) {
+    assert.match(String(options.err.read()), expectErrMsg);
+  } else {
+    assert.strictEqual(options.err.read(), expectErrMsg);
+  }
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>interprets --verbose as match(verbosity: 1)</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').once()
+  .withArgs(
+    expectObj,
+    match.func
+  )
+  .yields(null, 'success');
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err) {
+  assert.ifError(err);
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>interprets -v as match(verbosity: 1)</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').once()
+  .withArgs(
+    expectObj,
+    match.func
+  )
+  .yields(null, 'success');
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err) {
+  assert.ifError(err);
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>interprets -vv as match(verbosity: 2)</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').once()
+  .withArgs(
+    expectObj,
+    match.func
+  )
+  .yields(null, 'success');
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err) {
+  assert.ifError(err);
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>interprets --verbose -v as match(verbosity: 2)</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').once()
+  .withArgs(
+    expectObj,
+    match.func
+  )
+  .yields(null, 'success');
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err) {
+  assert.ifError(err);
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>interprets --wait as match(wait: Infinity)</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').once()
+  .withArgs(
+    expectObj,
+    match.func
+  )
+  .yields(null, 'success');
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err) {
+  assert.ifError(err);
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>interprets -w as match(wait: Infinity)</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').once()
+  .withArgs(
+    expectObj,
+    match.func
+  )
+  .yields(null, 'success');
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err) {
+  assert.ifError(err);
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>interprets --wait 10 as match(wait: 10000)</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').once()
+  .withArgs(
+    expectObj,
+    match.func
+  )
+  .yields(null, 'success');
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err) {
+  assert.ifError(err);
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>interprets -w 10 as match(wait: 10000)</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').once()
+  .withArgs(
+    expectObj,
+    match.func
+  )
+  .yields(null, 'success');
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err) {
+  assert.ifError(err);
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>prints error and exits for --wait foo</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').never();
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err, code) {
+  assert.ifError(err);
+  assert.strictEqual(code, expectCode);
+  if (expectOutMsg instanceof RegExp) {
+    assert.match(String(options.out.read()), expectOutMsg);
+  } else {
+    assert.strictEqual(options.out.read(), expectOutMsg);
+  }
+  if (expectErrMsg instanceof RegExp) {
+    assert.match(String(options.err.read()), expectErrMsg);
+  } else {
+    assert.strictEqual(options.err.read(), expectErrMsg);
+  }
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>prints error and exits for -w foo</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').never();
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err, code) {
+  assert.ifError(err);
+  assert.strictEqual(code, expectCode);
+  if (expectOutMsg instanceof RegExp) {
+    assert.match(String(options.out.read()), expectOutMsg);
+  } else {
+    assert.strictEqual(options.out.read(), expectOutMsg);
+  }
+  if (expectErrMsg instanceof RegExp) {
+    assert.match(String(options.err.read()), expectErrMsg);
+  } else {
+    assert.strictEqual(options.err.read(), expectErrMsg);
+  }
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>prints error and exits for --webhook</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').never();
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err, code) {
+  assert.ifError(err);
+  assert.strictEqual(code, expectCode);
+  if (expectOutMsg instanceof RegExp) {
+    assert.match(String(options.out.read()), expectOutMsg);
+  } else {
+    assert.strictEqual(options.out.read(), expectOutMsg);
+  }
+  if (expectErrMsg instanceof RegExp) {
+    assert.match(String(options.err.read()), expectErrMsg);
+  } else {
+    assert.strictEqual(options.err.read(), expectErrMsg);
+  }
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>prints error and exits for -W</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').never();
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err, code) {
+  assert.ifError(err);
+  assert.strictEqual(code, expectCode);
+  if (expectOutMsg instanceof RegExp) {
+    assert.match(String(options.out.read()), expectOutMsg);
+  } else {
+    assert.strictEqual(options.out.read(), expectOutMsg);
+  }
+  if (expectErrMsg instanceof RegExp) {
+    assert.match(String(options.err.read()), expectErrMsg);
+  } else {
+    assert.strictEqual(options.err.read(), expectErrMsg);
+  }
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>interprets --webhook foo as match(webhookId: foo)</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').once()
+  .withArgs(
+    expectObj,
+    match.func
+  )
+  .yields(null, 'success');
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err) {
+  assert.ifError(err);
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>interprets -W foo as match(webhookId: foo)</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').once()
+  .withArgs(
+    expectObj,
+    match.func
+  )
+  .yields(null, 'success');
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err) {
+  assert.ifError(err);
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>prints error and exits for -t foo -T bar</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').never();
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err, code) {
+  assert.ifError(err);
+  assert.strictEqual(code, expectCode);
+  if (expectOutMsg instanceof RegExp) {
+    assert.match(String(options.out.read()), expectOutMsg);
+  } else {
+    assert.strictEqual(options.out.read(), expectOutMsg);
+  }
+  if (expectErrMsg instanceof RegExp) {
+    assert.match(String(options.err.read()), expectErrMsg);
+  } else {
+    assert.strictEqual(options.err.read(), expectErrMsg);
+  }
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>interprets -q -v as match(verbosity: 0)</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').once()
+  .withArgs(
+    expectObj,
+    match.func
+  )
+  .yields(null, 'success');
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err) {
+  assert.ifError(err);
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>interprets -v -q as match(verbosity: 0)</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').once()
+  .withArgs(
+    expectObj,
+    match.func
+  )
+  .yields(null, 'success');
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err) {
+  assert.ifError(err);
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>interprets -v -q -v as match(verbosity: 1)</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').once()
+  .withArgs(
+    expectObj,
+    match.func
+  )
+  .yields(null, 'success');
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err) {
+  assert.ifError(err);
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>prints error and exits for --version</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').never();
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err, code) {
+  assert.ifError(err);
+  assert.strictEqual(code, expectCode);
+  if (expectOutMsg instanceof RegExp) {
+    assert.match(String(options.out.read()), expectOutMsg);
+  } else {
+    assert.strictEqual(options.out.read(), expectOutMsg);
+  }
+  if (expectErrMsg instanceof RegExp) {
+    assert.match(String(options.err.read()), expectErrMsg);
+  } else {
+    assert.strictEqual(options.err.read(), expectErrMsg);
+  }
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>prints error and exits for -V</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').never();
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err, code) {
+  assert.ifError(err);
+  assert.strictEqual(code, expectCode);
+  if (expectOutMsg instanceof RegExp) {
+    assert.match(String(options.out.read()), expectOutMsg);
+  } else {
+    assert.strictEqual(options.out.read(), expectOutMsg);
+  }
+  if (expectErrMsg instanceof RegExp) {
+    assert.match(String(options.err.read()), expectErrMsg);
+  } else {
+    assert.strictEqual(options.err.read(), expectErrMsg);
+  }
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>prints error and exits for foo</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').never();
+var allArgs = RUNTIME_ARGS.concat(args);
+appveyorStatusCmd(allArgs, options, function(err, code) {
+  assert.ifError(err);
+  assert.strictEqual(code, expectCode);
+  if (expectOutMsg instanceof RegExp) {
+    assert.match(String(options.out.read()), expectOutMsg);
+  } else {
+    assert.strictEqual(options.out.read(), expectOutMsg);
+  }
+  if (expectErrMsg instanceof RegExp) {
+    assert.match(String(options.err.read()), expectErrMsg);
+  } else {
+    assert.strictEqual(options.err.read(), expectErrMsg);
+  }
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>interprets -T - as reading token from stdin</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').once()
+  .withArgs(
+    match({token: 'file-token'}),
+    match.func
+  )
+  .yields(null, 'success');
+var allArgs = RUNTIME_ARGS.concat('-T', '-');
+options.in = fs.createReadStream(TEST_TOKEN_PATH);
+appveyorStatusCmd(allArgs, options, function(err) {
+  assert.ifError(err);
+  appveyorStatusMock.verify();
+  done();
+});</code></pre></dd>
+        <dt>exits with code 2 for build cancelled</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus')
+  .once().withArgs(match.object, match.func).yields(null, status);
+appveyorStatusCmd(RUNTIME_ARGS, options, function(err, code) {
+  assert.ifError(err);
+  assert.strictEqual(code, expectCode);
+  done();
+});</code></pre></dd>
+        <dt>exits with code 2 for build cancelling</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus')
+  .once().withArgs(match.object, match.func).yields(null, status);
+appveyorStatusCmd(RUNTIME_ARGS, options, function(err, code) {
+  assert.ifError(err);
+  assert.strictEqual(code, expectCode);
+  done();
+});</code></pre></dd>
+        <dt>exits with code 2 for build failed</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus')
+  .once().withArgs(match.object, match.func).yields(null, status);
+appveyorStatusCmd(RUNTIME_ARGS, options, function(err, code) {
+  assert.ifError(err);
+  assert.strictEqual(code, expectCode);
+  done();
+});</code></pre></dd>
+        <dt>exits with code 2 for build queued</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus')
+  .once().withArgs(match.object, match.func).yields(null, status);
+appveyorStatusCmd(RUNTIME_ARGS, options, function(err, code) {
+  assert.ifError(err);
+  assert.strictEqual(code, expectCode);
+  done();
+});</code></pre></dd>
+        <dt>exits with code 2 for build running</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus')
+  .once().withArgs(match.object, match.func).yields(null, status);
+appveyorStatusCmd(RUNTIME_ARGS, options, function(err, code) {
+  assert.ifError(err);
+  assert.strictEqual(code, expectCode);
+  done();
+});</code></pre></dd>
+        <dt>exits with code 0 for build success</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus')
+  .once().withArgs(match.object, match.func).yields(null, status);
+appveyorStatusCmd(RUNTIME_ARGS, options, function(err, code) {
+  assert.ifError(err);
+  assert.strictEqual(code, expectCode);
+  done();
+});</code></pre></dd>
+        <dt>exits with code 2 for build unrecognized</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus')
+  .once().withArgs(match.object, match.func).yields(null, status);
+appveyorStatusCmd(RUNTIME_ARGS, options, function(err, code) {
+  assert.ifError(err);
+  assert.strictEqual(code, expectCode);
+  done();
+});</code></pre></dd>
+        <dt>prints status to stdout by default</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus')
+  .once().withArgs(match.object, match.func).yields(null, 'success');
+appveyorStatusCmd(RUNTIME_ARGS, options, function(err, code) {
+  assert.ifError(err);
+  assert.strictEqual(code, 0);
+  assert.strictEqual(
+    String(options.out.read()),
+    // Be strict about this format since other programs may use it
+    'AppVeyor build status: success\n'
+  );
+  assert.strictEqual(options.err.read(), null);
+  done();
+});</code></pre></dd>
+        <dt>prints cancelled in gray to TTY</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus')
+  .once().withArgs(match.object, match.func).yields(null, status);
+options.out.isTTY = true;
+appveyorStatusCmd(RUNTIME_ARGS, options, function(err, code) {
+  assert.ifError(err);
+  assert.strictEqual(code, status === 'success' ? 0 : 2);
+  var outString = String(options.out.read());
+  assert.include(
+    outString,
+    chalk[colorName](status)
+  );
+  assert.strictEqual(options.err.read(), null);
+  done();
+});</code></pre></dd>
+        <dt>prints cancelling in gray to TTY</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus')
+  .once().withArgs(match.object, match.func).yields(null, status);
+options.out.isTTY = true;
+appveyorStatusCmd(RUNTIME_ARGS, options, function(err, code) {
+  assert.ifError(err);
+  assert.strictEqual(code, status === 'success' ? 0 : 2);
+  var outString = String(options.out.read());
+  assert.include(
+    outString,
+    chalk[colorName](status)
+  );
+  assert.strictEqual(options.err.read(), null);
+  done();
+});</code></pre></dd>
+        <dt>prints failed in red to TTY</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus')
+  .once().withArgs(match.object, match.func).yields(null, status);
+options.out.isTTY = true;
+appveyorStatusCmd(RUNTIME_ARGS, options, function(err, code) {
+  assert.ifError(err);
+  assert.strictEqual(code, status === 'success' ? 0 : 2);
+  var outString = String(options.out.read());
+  assert.include(
+    outString,
+    chalk[colorName](status)
+  );
+  assert.strictEqual(options.err.read(), null);
+  done();
+});</code></pre></dd>
+        <dt>prints queued in gray to TTY</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus')
+  .once().withArgs(match.object, match.func).yields(null, status);
+options.out.isTTY = true;
+appveyorStatusCmd(RUNTIME_ARGS, options, function(err, code) {
+  assert.ifError(err);
+  assert.strictEqual(code, status === 'success' ? 0 : 2);
+  var outString = String(options.out.read());
+  assert.include(
+    outString,
+    chalk[colorName](status)
+  );
+  assert.strictEqual(options.err.read(), null);
+  done();
+});</code></pre></dd>
+        <dt>prints running in gray to TTY</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus')
+  .once().withArgs(match.object, match.func).yields(null, status);
+options.out.isTTY = true;
+appveyorStatusCmd(RUNTIME_ARGS, options, function(err, code) {
+  assert.ifError(err);
+  assert.strictEqual(code, status === 'success' ? 0 : 2);
+  var outString = String(options.out.read());
+  assert.include(
+    outString,
+    chalk[colorName](status)
+  );
+  assert.strictEqual(options.err.read(), null);
+  done();
+});</code></pre></dd>
+        <dt>prints success in green to TTY</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus')
+  .once().withArgs(match.object, match.func).yields(null, status);
+options.out.isTTY = true;
+appveyorStatusCmd(RUNTIME_ARGS, options, function(err, code) {
+  assert.ifError(err);
+  assert.strictEqual(code, status === 'success' ? 0 : 2);
+  var outString = String(options.out.read());
+  assert.include(
+    outString,
+    chalk[colorName](status)
+  );
+  assert.strictEqual(options.err.read(), null);
+  done();
+});</code></pre></dd>
+        <dt>-q exits without printing status</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus')
+  .once().withArgs(match.object, match.func).yields(null, 'failed');
+var allArgs = RUNTIME_ARGS.concat(arg);
+appveyorStatusCmd(allArgs, options, function(err, code) {
+  assert.ifError(err);
+  assert.strictEqual(code, 2);
+  assert.strictEqual(options.out.read(), null);
+  assert.strictEqual(options.err.read(), null);
+  done();
+});</code></pre></dd>
+        <dt>--quiet exits without printing status</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus')
+  .once().withArgs(match.object, match.func).yields(null, 'failed');
+var allArgs = RUNTIME_ARGS.concat(arg);
+appveyorStatusCmd(allArgs, options, function(err, code) {
+  assert.ifError(err);
+  assert.strictEqual(code, 2);
+  assert.strictEqual(options.out.read(), null);
+  assert.strictEqual(options.err.read(), null);
+  done();
+});</code></pre></dd>
+        <dt>allows callback errors to propagate</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').never();
+var errTest = new Error('test');
+var caughtError = false;
+var called = false;
+// Note:  Chai assert.throws does not accept comparison function like node
+try {
+  var allArgs = RUNTIME_ARGS.concat(['foo']);
+  appveyorStatusCmd(allArgs, options, function() {
+    assert(!called, 'callback called exactly once');
+    called = true;
+    throw errTest;
+  });
+} catch (err) {
+  caughtError = true;
+  assert.strictEqual(err, errTest);
+}
+assert(caughtError, 'Missing expected exception.');</code></pre></dd>
+        <dt>throws for non-function callback</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').never();
+assert.throws(
+  function() { appveyorStatusCmd(RUNTIME_ARGS, {}, true); },
+  TypeError,
+  /\bcallback\b/
+);</code></pre></dd>
+        <dt>can be called without arguments</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus')
+  .once()
+  .withArgs(
+    match.object,
+    match.func
+  );
+appveyorStatusCmd(null, sinon.mock().never());
+appveyorStatusMock.verify();</code></pre></dd>
+        <dt>yields TypeError for non-Array-like args</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').never();
+appveyorStatusCmd(true, options, function(err) {
+  assert.instanceOf(err, TypeError);
+  assert.match(err.message, /\bArray\b/);
+  done();
+});</code></pre></dd>
+        <dt>yields RangeError for less than 2 args</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').never();
+appveyorStatusCmd([], options, function(err) {
+  assert.instanceOf(err, RangeError);
+  assert.match(err.message, /\bargs\b/);
+  done();
+});</code></pre></dd>
+        <dt>yields Error for non-object options</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').never();
+appveyorStatusCmd(RUNTIME_ARGS, true, function(err) {
+  assert.instanceOf(err, TypeError);
+  assert.match(err.message, /\boptions\b/);
+  done();
+});</code></pre></dd>
+        <dt>yields Error for non-Readable in</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').never();
+appveyorStatusCmd(RUNTIME_ARGS, {in: true}, function(err) {
+  assert.instanceOf(err, TypeError);
+  assert.match(err.message, /\boptions.in\b/);
+  done();
+});</code></pre></dd>
+        <dt>yields Error for non-Writable out</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').never();
+var badOptions = {out: new stream.Readable()};
+appveyorStatusCmd(RUNTIME_ARGS, badOptions, function(err) {
+  assert.instanceOf(err, TypeError);
+  assert.match(err.message, /\boptions.out\b/);
+  done();
+});</code></pre></dd>
+        <dt>yields Error for non-Writable err</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').never();
+var badOptions = {err: new stream.Readable()};
+appveyorStatusCmd(RUNTIME_ARGS, badOptions, function(err) {
+  assert.instanceOf(err, TypeError);
+  assert.match(err.message, /\boptions.err\b/);
+  done();
+});</code></pre></dd>
+        <dt>exit code 1 and prints message on Error</dt>
+        <dd><pre><code>var errMsg = 'super duper test error';
+appveyorStatusMock.expects('getStatus')
+  .once().withArgs(match.object, match.func).yields(new Error(errMsg));
+appveyorStatusCmd(RUNTIME_ARGS, options, function(err, code) {
+  assert.ifError(err);
+  assert.strictEqual(code, 1);
+  assert.strictEqual(options.out.read(), null);
+  var errString = String(options.err.read());
+  assert.include(errString, errMsg);
+  done();
+});</code></pre></dd>
+        <dt>exit code 3 and prints message on CommitMismatchError</dt>
+        <dd><pre><code>var testCommit = '123';
+var errTest = new CommitMismatchError({
+  actual: 'foo',
+  expected: testCommit
+});
+appveyorStatusMock.expects('getStatus')
+  .once().withArgs(match.object, match.func).yields(errTest);
+var allArgs = RUNTIME_ARGS.concat(['-c', testCommit]);
+appveyorStatusCmd(allArgs, options, function(err, code) {
+  assert.ifError(err);
+  assert.strictEqual(code, 3);
+  assert.strictEqual(options.out.read(), null);
+  var errString = String(options.err.read());
+  assert.include(errString, errTest.actual);
+  assert.include(errString, errTest.expected);
+  done();
+});</code></pre></dd>
+        <dt>CommitMismatchError prints both given and resolved</dt>
+        <dd><pre><code>var testCommit = '123';
+var testTag = 'tagname';
+var errTest = new CommitMismatchError({
+  actual: 'abc',
+  expected: testCommit
+});
+appveyorStatusMock.expects('getStatus')
+  .once().withArgs(match.object, match.func).yields(errTest);
+var allArgs = RUNTIME_ARGS.concat(['-c', testTag]);
+appveyorStatusCmd(allArgs, options, function(err, code) {
+  assert.ifError(err);
+  assert.strictEqual(code, 3);
+  assert.strictEqual(options.out.read(), null);
+  var errString = String(options.err.read());
+  assert.include(errString, errTest.actual);
+  assert.include(errString, errTest.expected);
+  assert.include(errString, testTag);
+  done();
+});</code></pre></dd>
+        <dt>returns a Promise when called without a function</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus')
+  .once().withArgs(match.object, match.func);
+var result = appveyorStatusCmd(RUNTIME_ARGS);
+assert(result instanceof Promise);</code></pre></dd>
+        <dt>returned Promise is resolved with exit code</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus')
+  .once().withArgs(match.object, match.func).yields(null, 'success');
+var result = appveyorStatusCmd(RUNTIME_ARGS, options);
+return result.then(function(code) {
+  assert.strictEqual(code, 0);
+});</code></pre></dd>
+        <dt>returned Promise is rejected with Error</dt>
+        <dd><pre><code>appveyorStatusMock.expects('getStatus').never();
+var result = appveyorStatusCmd(RUNTIME_ARGS, true);
+return result.then(
+  sinon.mock().never(),
+  function(err) { assert.instanceOf(err, TypeError); }
+);</code></pre></dd>
+      </dl>
+    </section>
+    <section class="suite">
+      <h1>AmbiguousProjectError</h1>
+      <dl>
+        <dt>sets .message and .projects from arguments</dt>
+        <dd><pre><code>var testMsg = 'test message';
+var testProjects = [];
+var a = new AmbiguousProjectError(testMsg, testProjects);
+assert.strictEqual(a.message, testMsg);
+assert.strictEqual(a.projects, testProjects);</code></pre></dd>
+        <dt>can be instantiated without arguments</dt>
+        <dd><pre><code>var a = new AmbiguousProjectError();
+assert(a.message, 'has default message');
+assert.strictEqual(a.projects, undefined);</code></pre></dd>
+        <dt>can be instantiated without new</dt>
+        <dd><pre><code>var testMsg = 'test message';
+var testProjects = [];
+var a = AmbiguousProjectError(testMsg, testProjects);
+assert(a instanceof AmbiguousProjectError);
+assert.strictEqual(a.message, testMsg);
+assert.strictEqual(a.projects, testProjects);</code></pre></dd>
+        <dt>inherits from Error</dt>
+        <dd><pre><code>var testMsg = 'test message';
+var testProjects = [];
+var a = new AmbiguousProjectError(testMsg, testProjects);
+assert(a instanceof Error);</code></pre></dd>
+      </dl>
+    </section>
+    <section class="suite">
+      <h1>appveyorUtils</h1>
+      <dl>
+        <section class="suite">
+          <h1>.badgeToStatus</h1>
+          <dl>
+            <dt>extracts success status</dt>
+            <dd><pre><code>var badge = apiResponses.getStatusBadge(status);
+var result = appveyorUtils.badgeToStatus(badge);
+assert.strictEqual(result, status);</code></pre></dd>
+            <dt>extracts failed status</dt>
+            <dd><pre><code>var badge = apiResponses.getStatusBadge(status);
+var result = appveyorUtils.badgeToStatus(badge);
+assert.strictEqual(result, status);</code></pre></dd>
+            <dt>throws for unrecognized status</dt>
+            <dd><pre><code>var badge = apiResponses.getStatusBadge('whatever');
+assert.throws(
+  function() { appveyorUtils.badgeToStatus(badge); },
+  Error
+);</code></pre></dd>
+            <dt>throws for ambiguous status</dt>
+            <dd><pre><code>var badge = apiResponses.getStatusBadge('success failed');
+assert.throws(
+  function() { appveyorUtils.badgeToStatus(badge); },
+  Error
+);</code></pre></dd>
+            <dt>throws for non-string</dt>
+            <dd><pre><code>assert.throws(
+  function() { appveyorUtils.badgeToStatus(null); },
+  Error
+);</code></pre></dd>
+          </dl>
+        </section>
+        <section class="suite">
+          <h1>.projectBuildToStatus</h1>
+          <dl>
+            <dt>returns any status of ProjectBuild</dt>
+            <dd><pre><code>var testStatus = 'foo';
+var projectBuild = apiResponses.getProjectBuild({status: testStatus});
+var result = appveyorUtils.projectBuildToStatus(projectBuild);
+assert.strictEqual(result, testStatus);</code></pre></dd>
+          </dl>
+        </section>
+        <section class="suite">
+          <h1>.parseAppveyorRepoUrl</h1>
+          <dl>
+            <dt>parses bitBucket HTTPS URL</dt>
+            <dd><pre><code>var testProject = 'foo/bar';
+var testUrl = 'https://bitbucket.org/' + testProject + '.git';
+deepStrictEqual(
+  appveyorUtils.parseAppveyorRepoUrl(testUrl),
+  {
+    repositoryType: 'bitBucket',
+    repositoryName: testProject
+  }
+);</code></pre></dd>
+            <dt>parses bitBucket SSH URL</dt>
+            <dd><pre><code>var testProject = 'foo/bar';
+var testUrl = 'git@bitbucket.org:' + testProject + '.git';
+deepStrictEqual(
+  appveyorUtils.parseAppveyorRepoUrl(testUrl),
+  {
+    repositoryType: 'bitBucket',
+    repositoryName: testProject
+  }
+);</code></pre></dd>
+            <dt>parses gitHub HTTPS URL</dt>
+            <dd><pre><code>var testProject = 'foo/bar';
+var testUrl = 'https://github.com/' + testProject + '.git';
+deepStrictEqual(
+  appveyorUtils.parseAppveyorRepoUrl(testUrl),
+  {
+    repositoryType: 'gitHub',
+    repositoryName: testProject
+  }
+);</code></pre></dd>
+            <dt>parses gitHub SSH URL</dt>
+            <dd><pre><code>var testProject = 'foo/bar';
+var testUrl = 'git@github.com:' + testProject + '.git';
+deepStrictEqual(
+  appveyorUtils.parseAppveyorRepoUrl(testUrl),
+  {
+    repositoryType: 'gitHub',
+    repositoryName: testProject
+  }
+);</code></pre></dd>
+            <dt>parses gitLab HTTPS URL</dt>
+            <dd><pre><code>var testProject = 'foo/bar';
+var testUrl = 'https://gitlab.com/' + testProject + '.git';
+deepStrictEqual(
+  appveyorUtils.parseAppveyorRepoUrl(testUrl),
+  {
+    repositoryType: 'gitLab',
+    repositoryName: testProject
+  }
+);</code></pre></dd>
+            <dt>parses gitLab SSH URL</dt>
+            <dd><pre><code>var testProject = 'foo/bar';
+var testUrl = 'git@gitlab.com:' + testProject + '.git';
+deepStrictEqual(
+  appveyorUtils.parseAppveyorRepoUrl(testUrl),
+  {
+    repositoryType: 'gitLab',
+    repositoryName: testProject
+  }
+);</code></pre></dd>
+            <dt>parses vso project git HTTPS URL</dt>
+            <dd><pre><code>var testUrl = 'https://kevinoid.visualstudio.com/_git/TestProj';
+deepStrictEqual(
+  appveyorUtils.parseAppveyorRepoUrl(testUrl),
+  {
+    repositoryType: 'vso',
+    repositoryName: 'git/kevinoid/TestProj/TestProj'
+  }
+);</code></pre></dd>
+            <dt>parses vso project git SSH URL</dt>
+            <dd><pre><code>var testUrl = 'ssh://kevinoid@kevinoid.visualstudio.com:22/_git/TestProj';
+deepStrictEqual(
+  appveyorUtils.parseAppveyorRepoUrl(testUrl),
+  {
+    repositoryType: 'vso',
+    repositoryName: 'git/kevinoid/TestProj/TestProj'
+  }
+);</code></pre></dd>
+            <dt>parses vso sub-project git HTTPS URL</dt>
+            <dd><pre><code>var testUrl = 'https://kevinoid.visualstudio.com/TestProj/_git/repo2';
+deepStrictEqual(
+  appveyorUtils.parseAppveyorRepoUrl(testUrl),
+  {
+    repositoryType: 'vso',
+    repositoryName: 'git/kevinoid/TestProj/repo2'
+  }
+);</code></pre></dd>
+            <dt>parses vso sub-project git SSH URL</dt>
+            <dd><pre><code>var testUrl =
+  'ssh://kevinoid@kevinoid.visualstudio.com:22/TestProj/_git/repo2';
+deepStrictEqual(
+  appveyorUtils.parseAppveyorRepoUrl(testUrl),
+  {
+    repositoryType: 'vso',
+    repositoryName: 'git/kevinoid/TestProj/repo2'
+  }
+);</code></pre></dd>
+            <dt>returns unknown HTTPS URL</dt>
+            <dd><pre><code>var testUrl = 'https://example.com/foo.git';
+deepStrictEqual(
+  appveyorUtils.parseAppveyorRepoUrl(testUrl),
+  {repositoryName: testUrl}
+);</code></pre></dd>
+            <dt>returns unknown SCP-like URL</dt>
+            <dd><pre><code>var testUrl = 'user@example.com:foo.git';
+deepStrictEqual(
+  appveyorUtils.parseAppveyorRepoUrl(testUrl),
+  {repositoryName: testUrl}
+);</code></pre></dd>
+          </dl>
+        </section>
+        <section class="suite">
+          <h1>.repoUrlToBadgeParams</h1>
+          <dl>
+            <dt>parses bitBucket HTTPS URL</dt>
+            <dd><pre><code>var testAccount = 'foo';
+var testProject = 'bar';
+var testUrl =
+  'https://bitbucket.org/' + testAccount + '/' + testProject + '.git';
+deepStrictEqual(
+  appveyorUtils.repoUrlToBadgeParams(testUrl),
+  {
+    badgeRepoProvider: 'bitBucket',
+    repoAccountName: testAccount,
+    repoSlug: testProject
+  }
+);</code></pre></dd>
+            <dt>parses bitBucket SSH URL</dt>
+            <dd><pre><code>var testAccount = 'foo';
+var testProject = 'bar';
+var testUrl =
+  'git@bitbucket.org:' + testAccount + '/' + testProject + '.git';
+deepStrictEqual(
+  appveyorUtils.repoUrlToBadgeParams(testUrl),
+  {
+    badgeRepoProvider: 'bitBucket',
+    repoAccountName: testAccount,
+    repoSlug: testProject
+  }
+);</code></pre></dd>
+            <dt>throws for bitBucket URL with 3 path parts</dt>
+            <dd><pre><code>var testUrl = 'https://bitbucket.org/foo/bar/baz.git';
+assert.throws(
+  function() { appveyorUtils.repoUrlToBadgeParams(testUrl); },
+  Error
+);</code></pre></dd>
+            <dt>parses gitHub HTTPS URL</dt>
+            <dd><pre><code>var testAccount = 'foo';
+var testProject = 'bar';
+var testUrl =
+  'https://github.com/' + testAccount + '/' + testProject + '.git';
+deepStrictEqual(
+  appveyorUtils.repoUrlToBadgeParams(testUrl),
+  {
+    badgeRepoProvider: 'gitHub',
+    repoAccountName: testAccount,
+    repoSlug: testProject
+  }
+);</code></pre></dd>
+            <dt>parses gitHub SSH URL</dt>
+            <dd><pre><code>var testAccount = 'foo';
+var testProject = 'bar';
+var testUrl =
+  'git@github.com:' + testAccount + '/' + testProject + '.git';
+deepStrictEqual(
+  appveyorUtils.repoUrlToBadgeParams(testUrl),
+  {
+    badgeRepoProvider: 'gitHub',
+    repoAccountName: testAccount,
+    repoSlug: testProject
+  }
+);</code></pre></dd>
+            <dt>throws for gitLab HTTPS URL</dt>
+            <dd><pre><code>var testUrl = 'https://gitlab.com/foo/bar.git';
+assert.throws(
+  function() { appveyorUtils.repoUrlToBadgeParams(testUrl); },
+  Error
+);</code></pre></dd>
+            <dt>throws for gitLab HTTPS URL</dt>
+            <dd><pre><code>var testUrl = 'git@gitlab.com:foo/bar.git';
+assert.throws(
+  function() { appveyorUtils.repoUrlToBadgeParams(testUrl); },
+  Error
+);</code></pre></dd>
+            <dt>throws for vso HTTPS URL</dt>
+            <dd><pre><code>var testUrl = 'https://kevinoid.visualstudio.com/_git/TestProj';
+assert.throws(
+  function() { appveyorUtils.repoUrlToBadgeParams(testUrl); },
+  Error
+);</code></pre></dd>
+            <dt>throws for vso SSH URL</dt>
+            <dd><pre><code>var testUrl = 'ssh://kevinoid@kevinoid.visualstudio.com:22/_git/TestProj';
+assert.throws(
+  function() { appveyorUtils.repoUrlToBadgeParams(testUrl); },
+  Error
+);</code></pre></dd>
+            <dt>throws for other git HTTPS URLs</dt>
+            <dd><pre><code>var testUrl = 'https://example.com/foo.git';
+assert.throws(
+  function() { appveyorUtils.repoUrlToBadgeParams(testUrl); },
+  Error
+);</code></pre></dd>
+            <dt>returns unknown git SSH URL</dt>
+            <dd><pre><code>var testUrl = 'user@example.com:foo.git';
+assert.throws(
+  function() { appveyorUtils.repoUrlToBadgeParams(testUrl); },
+  Error
+);</code></pre></dd>
+          </dl>
+        </section>
+        <section class="suite">
+          <h1>.projectFromString</h1>
+          <dl>
+            <dt>splits account name and slug to object</dt>
+            <dd><pre><code>var accountName = 'foo';
+var slug = 'bar';
+deepStrictEqual(
+  appveyorUtils.projectFromString(accountName + '/' + slug),
+  {
+    accountName: accountName,
+    slug: slug
+  }
+);</code></pre></dd>
+            <dt>throws for string with 1 path part</dt>
+            <dd><pre><code>assert.throws(
+  function() { appveyorUtils.projectFromString('foo'); },
+  Error
+);</code></pre></dd>
+            <dt>throws for string with 3 path part</dt>
+            <dd><pre><code>assert.throws(
+  function() { appveyorUtils.projectFromString('foo/bar/baz'); },
+  Error
+);</code></pre></dd>
+            <dt>throws for non-string</dt>
+            <dd><pre><code>assert.throws(
+  function() { appveyorUtils.projectFromString(null); },
+  Error
+);</code></pre></dd>
+          </dl>
+        </section>
+        <section class="suite">
+          <h1>.projectToString</h1>
+          <dl>
+            <dt>joins account name and slug</dt>
+            <dd><pre><code>var testProj = {
+  accountName: 'foo',
+  slug: 'bar'
+};
+deepStrictEqual(
+  appveyorUtils.projectToString(testProj),
+  'foo/bar'
+);</code></pre></dd>
+          </dl>
+        </section>
+      </dl>
+    </section>
+    <section class="suite">
+      <h1>CommitMismatchError</h1>
+      <dl>
+        <dt>sets .actual and .expected from arguments</dt>
+        <dd><pre><code>var testOptions = {
+  actual: 'abc',
+  expected: '123'
+};
+var err = new CommitMismatchError(testOptions);
+assert.strictEqual(err.actual, testOptions.actual);
+assert.strictEqual(err.expected, testOptions.expected);
+assert.strictEqual(err.operator, '===');
+assert(
+  err.message.indexOf(testOptions.actual) &gt;= 0,
+  'constructs message with actual'
+);
+assert(
+  err.message.indexOf(testOptions.expected) &gt;= 0,
+  'constructs message with expected'
+);</code></pre></dd>
+        <dt>can set .message from arguments</dt>
+        <dd><pre><code>var testOptions = {
+  actual: 'abc',
+  expected: '123',
+  message: 'test'
+};
+var err = new CommitMismatchError(testOptions);
+assert.strictEqual(err.actual, testOptions.actual);
+assert.strictEqual(err.expected, testOptions.expected);
+assert.strictEqual(err.operator, '===');
+assert.strictEqual(err.message, testOptions.message);</code></pre></dd>
+        <dt>can be instantiated without new</dt>
+        <dd><pre><code>var testOptions = {
+  actual: 'abc',
+  expected: '123'
+};
+var err = CommitMismatchError(testOptions);
+assert.strictEqual(err.actual, testOptions.actual);
+assert.strictEqual(err.expected, testOptions.expected);
+assert.strictEqual(err.operator, '===');
+assert(
+  err.message.indexOf(testOptions.actual) &gt;= 0,
+  'constructs message with actual'
+);
+assert(
+  err.message.indexOf(testOptions.expected) &gt;= 0,
+  'constructs message with expected'
+);</code></pre></dd>
+        <dt>inherits from Error</dt>
+        <dd><pre><code>var testOptions = {
+  actual: 'abc',
+  expected: '123'
+};
+var err = new CommitMismatchError(testOptions);
+assert(err instanceof Error);</code></pre></dd>
+      </dl>
+    </section>
+    <section class="suite">
+      <h1>execFileOut</h1>
+      <dl>
+        <dt>returns a Promise with stdout</dt>
+        <dd><pre><code>var testOut = 'stdout content';
+var testArgs = ['-e', makeScript(testOut)];
+return execFileOut(process.execPath, testArgs)
+  .then(function(stdout) {
+    assert.strictEqual(stdout, testOut);
+  });</code></pre></dd>
+        <dt>returns a Promise with stdout as Buffer</dt>
+        <dd><pre><code>var testOut = 'stdout content';
+var testArgs = ['-e', makeScript(testOut)];
+var options = {encoding: 'buffer'};
+return execFileOut(process.execPath, testArgs, options)
+  .then(function(stdout) {
+    deepStrictEqual(stdout, new Buffer(testOut));
+  });</code></pre></dd>
+        <dt>rejects Promise with Error for non-0 exit code</dt>
+        <dd><pre><code>var testOut = 'stdout content';
+var testCode = 2;
+var testArgs = ['-e', makeScript(testOut, null, testCode)];
+return execFileOut(process.execPath, testArgs).then(
+  neverCalled,
+  function(err) {
+    assert.strictEqual(err.cmd, [process.execPath].concat(testArgs).join(' '));
+    assert.strictEqual(err.code, testCode);
+    assert.strictEqual(err.stderr, '');
+    assert.strictEqual(err.stdout, testOut);
+  });</code></pre></dd>
+        <dt>rejects Promise with Error for non-empty stderr</dt>
+        <dd><pre><code>var testOut = 'stdout content';
+var testErr = 'stderr content';
+var testArgs = ['-e', makeScript(testOut, testErr)];
+return execFileOut(process.execPath, testArgs).then(
+  neverCalled,
+  function(err) {
+    assert(err.message.indexOf(testErr) &gt;= 0, 'stderr is in message');
+    assert.strictEqual(err.cmd, [process.execPath].concat(testArgs).join(' '));
+    assert.strictEqual(err.code, 0);
+    assert.strictEqual(err.stderr, testErr);
+    assert.strictEqual(err.stdout, testOut);
+  });</code></pre></dd>
+        <dt>rejects Promise with Error for non-empty stderr Buffer</dt>
+        <dd><pre><code>var testOut = 'stdout content';
+var testErr = 'stderr content';
+var testArgs = ['-e', makeScript(testOut, testErr)];
+var options = {encoding: 'buffer'};
+return execFileOut(process.execPath, testArgs, options).then(
+  neverCalled,
+  function(err) {
+    assert(err.message.indexOf(testErr) &gt;= 0, 'stderr is in message');
+    assert.strictEqual(err.cmd, [process.execPath].concat(testArgs).join(' '));
+    assert.strictEqual(err.code, 0);
+    deepStrictEqual(err.stderr, new Buffer(testErr));
+    deepStrictEqual(err.stdout, new Buffer(testOut));
+  });</code></pre></dd>
+        <dt>does not reject stderr with only whitespace</dt>
+        <dd><pre><code>var testOut = 'stdout content';
+var testErr = '\n\t\t  \n';
+var testArgs = ['-e', makeScript(testOut, testErr)];
+return execFileOut(process.execPath, testArgs)
+  .then(function(stdout) {
+    assert.strictEqual(stdout, testOut);
+  });</code></pre></dd>
+        <dt>closes stdin to prevent hanging</dt>
+        <dd><pre><code>// Test will timeout if stdin is not closed
+return execFileOut(process.execPath);</code></pre></dd>
+      </dl>
+    </section>
+    <section class="suite">
+      <h1>gitUtils</h1>
+      <dl>
+        <section class="suite">
+          <h1>.getBranch</h1>
+          <dl>
+            <dt>resolves master on master</dt>
+            <dd><pre><code>return gitUtils.getBranch(options).then(function(branch) {
+  assert.strictEqual(branch, 'master');
+});</code></pre></dd>
+            <dt>resolves branch1 on branch1</dt>
+            <dd><pre><code>return execFileOut('git', ['checkout', '-q', 'branch1'], options)
+  .then(function() {
+    return gitUtils.getBranch(options);
+  })
+  .then(function(branch) {
+    assert.strictEqual(branch, 'branch1');
+  });</code></pre></dd>
+            <dt>rejects with Error not on branch</dt>
+            <dd><pre><code>return execFileOut('git', ['checkout', '-q', 'HEAD^'], options)
+  .then(function runDetect() {
+    return gitUtils.getBranch(options);
+  })
+  .then(
+    neverCalled,
+    function checkErr(err) {
+      assert.instanceOf(err, Error);
+      assert.match(err.message, /branch/i);
+    }
+  );</code></pre></dd>
+          </dl>
+        </section>
+        <section class="suite">
+          <h1>.getRemote</h1>
+          <dl>
+            <dt>resolves master to origin</dt>
+            <dd><pre><code>return gitUtils.getRemote(branch, options).then(function(result) {
+  assert.strictEqual(result, remote);
+});</code></pre></dd>
+            <dt>resolves branch1 to remote1</dt>
+            <dd><pre><code>return gitUtils.getRemote(branch, options).then(function(result) {
+  assert.strictEqual(result, remote);
+});</code></pre></dd>
+            <dt>resolves branch2 to remote2</dt>
+            <dd><pre><code>return gitUtils.getRemote(branch, options).then(function(result) {
+  assert.strictEqual(result, remote);
+});</code></pre></dd>
+            <dt>resolves branchnourl to nourl</dt>
+            <dd><pre><code>return gitUtils.getRemote(branch, options).then(function(result) {
+  assert.strictEqual(result, remote);
+});</code></pre></dd>
+            <dt>resolves branchnotslug to notslug</dt>
+            <dd><pre><code>return gitUtils.getRemote(branch, options).then(function(result) {
+  assert.strictEqual(result, remote);
+});</code></pre></dd>
+            <dt>rejects branch without remote with Error</dt>
+            <dd><pre><code>return gitUtils.getRemote('branchnoremote', options).then(
+  neverCalled,
+  function(err) {
+    assert.instanceOf(err, Error);
+  }
+);</code></pre></dd>
+          </dl>
+        </section>
+        <section class="suite">
+          <h1>.getRemoteUrl</h1>
+          <dl>
+            <dt>resolves notslug to foo</dt>
+            <dd><pre><code>return gitUtils.getRemoteUrl(remoteName, options)
+  .then(function(resultUrl) {
+    assert.strictEqual(resultUrl, remoteUrl);
+  });</code></pre></dd>
+            <dt>resolves origin to https://github.com/owner/repo</dt>
+            <dd><pre><code>return gitUtils.getRemoteUrl(remoteName, options)
+  .then(function(resultUrl) {
+    assert.strictEqual(resultUrl, remoteUrl);
+  });</code></pre></dd>
+            <dt>resolves remote1 to git@github.com:owner1/repo1.git</dt>
+            <dd><pre><code>return gitUtils.getRemoteUrl(remoteName, options)
+  .then(function(resultUrl) {
+    assert.strictEqual(resultUrl, remoteUrl);
+  });</code></pre></dd>
+            <dt>resolves remote2 to https://github.com/owner2/repo2.git</dt>
+            <dd><pre><code>return gitUtils.getRemoteUrl(remoteName, options)
+  .then(function(resultUrl) {
+    assert.strictEqual(resultUrl, remoteUrl);
+  });</code></pre></dd>
+            <dt>rejects invalid remote with Error</dt>
+            <dd><pre><code>return gitUtils.getRemoteUrl('invalidremote', options).then(
+  neverCalled,
+  function(err) {
+    assert.instanceOf(err, Error);
+  }
+);</code></pre></dd>
+            <dt>uses ls-remote default for unspecified remote</dt>
+            <dd><pre><code>return gitUtils.getRemoteUrl(null, options)
+  .then(function(resultUrl) {
+    assert.strictEqual(resultUrl, REMOTES.origin);
+  });</code></pre></dd>
+          </dl>
+        </section>
+        <section class="suite">
+          <h1>.gitUrlIsLocalNotSsh</h1>
+          <dl>
+            <dt>. is true</dt>
+            <dd><pre><code>assert.strictEqual(
+  gitUtils.gitUrlIsLocalNotSsh(testCase.url),
+  testCase.result
+);</code></pre></dd>
+            <dt>/foo/bar is true</dt>
+            <dd><pre><code>assert.strictEqual(
+  gitUtils.gitUrlIsLocalNotSsh(testCase.url),
+  testCase.result
+);</code></pre></dd>
+            <dt>http://example.com is false</dt>
+            <dd><pre><code>assert.strictEqual(
+  gitUtils.gitUrlIsLocalNotSsh(testCase.url),
+  testCase.result
+);</code></pre></dd>
+            <dt>git://example.com is false</dt>
+            <dd><pre><code>assert.strictEqual(
+  gitUtils.gitUrlIsLocalNotSsh(testCase.url),
+  testCase.result
+);</code></pre></dd>
+            <dt>git@example.com:foo is false</dt>
+            <dd><pre><code>assert.strictEqual(
+  gitUtils.gitUrlIsLocalNotSsh(testCase.url),
+  testCase.result
+);</code></pre></dd>
+            <dt>file:///foo/bar is false</dt>
+            <dd><pre><code>assert.strictEqual(
+  gitUtils.gitUrlIsLocalNotSsh(testCase.url),
+  testCase.result
+);</code></pre></dd>
+            <dt>/foo:bar is true</dt>
+            <dd><pre><code>assert.strictEqual(
+  gitUtils.gitUrlIsLocalNotSsh(testCase.url),
+  testCase.result
+);</code></pre></dd>
+            <dt>foo:bar is false</dt>
+            <dd><pre><code>assert.strictEqual(
+  gitUtils.gitUrlIsLocalNotSsh(testCase.url),
+  testCase.result
+);</code></pre></dd>
+            <dt>C:/foo is false on non-Windows</dt>
+            <dd><pre><code>assert.strictEqual(
+  gitUtils.gitUrlIsLocalNotSsh(drivePath),
+  false
+);</code></pre></dd>
+          </dl>
+        </section>
+        <section class="suite">
+          <h1>.parseGitUrl</h1>
+          <dl>
+            <dt>parses http: like url module</dt>
+            <dd><pre><code>var testUrl = 'http://user@example.com/foo/bar';
+deepStrictEqual(
+  gitUtils.parseGitUrl(testUrl),
+  assign(url.parse(testUrl), {helper: undefined})
+);</code></pre></dd>
+            <dt>parses git: like url module</dt>
+            <dd><pre><code>var testUrl = 'git://user@example.com/foo/bar';
+deepStrictEqual(
+  gitUtils.parseGitUrl(testUrl),
+  assign(url.parse(testUrl), {helper: undefined})
+);</code></pre></dd>
+            <dt>parses SCP-like URL like ssh: URL</dt>
+            <dd><pre><code>var testUrl = 'user@example.com:foo/bar.git';
+deepStrictEqual(
+  gitUtils.parseGitUrl(testUrl),
+  assign(
+    url.parse('ssh://user@example.com/foo/bar.git'),
+    {helper: undefined}
+  )
+);</code></pre></dd>
+            <dt>parses absolute path like file:// URL</dt>
+            <dd><pre><code>var testPath = path.resolve(path.join('foo', 'bar'));
+deepStrictEqual(
+  gitUtils.parseGitUrl(testPath),
+  assign(url.parse(fileUrl(testPath)), {helper: undefined})
+);</code></pre></dd>
+            <dt>parses relative path like file:// URL</dt>
+            <dd><pre><code>var testPath = path.join('foo', 'bar');
+deepStrictEqual(
+  gitUtils.parseGitUrl(testPath),
+  assign(url.parse(fileUrl(testPath)), {helper: undefined})
+);</code></pre></dd>
+            <dt>parses Windows path like URL on non-Windows</dt>
+            <dd><pre><code>var testPath = 'C:\\foo\\bar';
+deepStrictEqual(
+  gitUtils.parseGitUrl(testPath),
+  assign(url.parse(testPath), {helper: undefined})
+);</code></pre></dd>
+            <dt>adds helper property for transport helper</dt>
+            <dd><pre><code>var testUrl = 'myhelper::user@example.com:foo/bar.git';
+deepStrictEqual(
+  gitUtils.parseGitUrl(testUrl),
+  assign(
+    url.parse('ssh://user@example.com/foo/bar.git'),
+    {helper: 'myhelper'}
+  )
+);</code></pre></dd>
+          </dl>
+        </section>
+        <section class="suite">
+          <h1>.resolveCommit</h1>
+          <dl>
+            <dt>can resolve the hash of HEAD</dt>
+            <dd><pre><code>return gitUtils.resolveCommit('HEAD', options).then(function(hash) {
+  assert.match(hash, /^[a-fA-F0-9]{40}$/);
+  headHash = hash;
+});</code></pre></dd>
+            <dt>can resolve a hash to itself</dt>
+            <dd><pre><code>return gitUtils.resolveCommit(headHash, options).then(function(hash) {
+  assert.strictEqual(hash, headHash);
+});</code></pre></dd>
+            <dt>can resolve branch name to commit hash</dt>
+            <dd><pre><code>var branchName = Object.keys(BRANCH_REMOTES)[0];
+return gitUtils.resolveCommit(branchName, options).then(function(hash) {
+  assert.match(hash, /^[a-fA-F0-9]{40}$/);
+});</code></pre></dd>
+            <dt>can resolve tag name to commit hash</dt>
+            <dd><pre><code>return gitUtils.resolveCommit(TAGS[0], options).then(function(hash) {
+  assert.match(hash, /^[a-fA-F0-9]{40}$/);
+});</code></pre></dd>
+            <dt>rejects with Error for unresolvable name</dt>
+            <dd><pre><code>return gitUtils.resolveCommit('notabranch', options).then(
+  neverCalled,
+  function(err) {
+    assert(err instanceof Error);
+  }
+);</code></pre></dd>
+          </dl>
+        </section>
+      </dl>
+    </section>
+  </div><!-- .container -->
+
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/jquery/2.2.1/jquery.min.js"></script>
+  <script type="text/javascript" src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/highlight.js/9.1.0/highlight.min.js"></script>
+  <script type="text/javascript">//<![CDATA[
+'use strict';
+// Adjust the nested heading level to match depth
+$('section section h1').each(function() {
+  var $this = $(this);
+  var depth = Math.min($this.parents('section').length, 6);
+  // http://stackoverflow.com/a/30059450/503410
+  $this.wrapInner(document.createElement('h' + depth)).children().unwrap();
+});
+
+// Make the tests collapsible
+var testNum = 0;
+$('dt + dd')
+  .addClass('collapse')
+  .attr('role', 'tabpanel')
+  .attr('aria-expanded', 'false')
+  .each(function() {
+    var $this = $(this);
+    var $dt = $this.prev();
+
+    ++testNum;
+    var id = 'test' + testNum;
+    var idDt = id + '-title';
+    var idDd = id + '-desc';
+
+    $dt.attr('id', idDt);
+    $this.attr('id', idDd);
+
+    $dt.wrapInner('<a role="button" data-toggle="collapse" href="#' + idDd +
+        '" aria-expanded="false" aria-controls="' + idDd + '"></a>')
+      .children()
+      .collapse();
+  });
+
+// Enable syntax highlighting for the code (which is all JavaScript)
+hljs.configure({languages: ['javascript']});
+hljs.initHighlighting();
+//]]></script>
+</body>
+</html>
