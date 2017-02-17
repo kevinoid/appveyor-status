@@ -6,14 +6,14 @@
 'use strict';
 
 var Chalk = require('chalk').constructor;
-var CommitMismatchError = require('../lib/commit-mismatch-error');
-var appveyorStatusCmd = require('../bin/appveyor-status');
-var appveyorStatus = require('..');
+var CommitMismatchError = require('../../lib/commit-mismatch-error');
+var appveyorStatusCmd = require('../../bin/appveyor-status');
+var appveyorStatus = require('../..');
 var appveyorSwagger = require('appveyor-swagger');
 var assert = require('chai').assert;
 var escapeStringRegexp = require('escape-string-regexp');
 var fs = require('fs');
-var packageJson = require('../package.json');
+var packageJson = require('../../package.json');
 var path = require('path');
 var sinon = require('sinon');
 var stream = require('stream');
@@ -24,7 +24,8 @@ var statusValues = appveyorSwagger.definitions.Status.enum;
 
 // Simulate arguments passed by the node runtime
 var RUNTIME_ARGS = ['node', 'appveyor-status'];
-var TEST_TOKEN_PATH = path.join(__dirname, '..', 'test-data', 'token.txt');
+var TEST_TOKEN_PATH =
+  path.join(__dirname, '..', '..', 'test-data', 'token.txt');
 
 process.env.APPVEYOR_API_TOKEN = 'env-token';
 
