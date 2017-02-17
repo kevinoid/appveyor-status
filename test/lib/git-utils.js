@@ -45,6 +45,9 @@ function neverCalled() {
 }
 
 before('setup test repository', function() {
+  // Some git versions can run quite slowly on Windows
+  this.timeout(isWindows ? 8000 : 4000);
+
   return rimrafP(TEST_REPO_PATH)
     .then(function createTestRepo() {
       return execFileOut('git', ['init', '-q', TEST_REPO_PATH]);
