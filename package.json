@@ -18,7 +18,7 @@
   },
   "main": "index.js",
   "bin": {
-    "index": "bin/appveyor-status.js"
+    "appveyor-status": "bin/appveyor-status.js"
   },
   "//": "All scripts should run in POSIX sh and Windows cmd.exe",
   "scripts": {
