@@ -321,7 +321,7 @@ describe('appveyorStatus', function() {
           });
       });
 
-      it('true retries queued status from project', function() {
+      it('true retries running status from project', function() {
         var testProjectParts = ['foo', 'bar'];
         var testRepoUrl = 'git://foo.bar/baz';
         var testStatus = 'success';
@@ -334,7 +334,7 @@ describe('appveyorStatus', function() {
               repositoryType: 'git',
               repositoryName: testRepoUrl,
               slug: testProjectParts[1],
-              status: 'queued'
+              status: 'running'
             })
           ]);
         var expectSuccess = nock(apiUrl)

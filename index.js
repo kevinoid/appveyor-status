@@ -17,19 +17,19 @@ var https = require('https');
 var nodeify = require('promise-nodeify');
 var promiseFinally = require('promise-finally').default;
 
-/** Multiplicative increase in delay between retries for queued status.
+/** Multiplicative increase in delay between retries.
  * @const
  * @private
  */
 var RETRY_DELAY_FACTOR_MS = 2;
 
-/** Minimum/Initial delay between retries for queued status (in milliseconds).
+/** Minimum/Initial delay between retries (in milliseconds).
  * @const
  * @private
  */
 var RETRY_DELAY_MIN_MS = 4000;
 
-/** Maximum delay between retries for queued status (in milliseconds).
+/** Maximum delay between retries (in milliseconds).
  * @const
  * @private
  */
@@ -158,8 +158,8 @@ function makeClientErrorHandler(opDesc) {
  * @property {string=} token AppVeyor API access token.
  * @property {number=} verbosity Amount of diagnostic information to print
  * (0 is default, larger yields more output).
- * @property {number=} wait Poll build status when status is "queued".  If wait
- * time (in milliseconds) is reached, last queued status is returned.
+ * @property {number=} wait Length of time to wait (in milliseconds) for build
+ * to complete.  If wait time is reached, incomplete build is returned.
  * (default: no polling)
  * @property {string=} webhookId webhook ID to query (default: auto-detect)
  * (exclusive with project and repo)
@@ -422,7 +422,8 @@ function getLastBuildForProject(options) {
   var deadline = Date.now() + options.wait;
 
   function checkRetry(projectBuild, prevDelay) {
-    if (appveyorUtils.projectBuildToStatus(projectBuild) !== 'queued') {
+    var buildStatus = appveyorUtils.projectBuildToStatus(projectBuild);
+    if (['cancelling', 'queued', 'running'].indexOf(buildStatus) < 0) {
       return projectBuild;
     }
 
