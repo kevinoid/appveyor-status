@@ -541,7 +541,7 @@ return appveyorStatus.getLastBuild(options)
       'does not print wait messages by default'
     );
   });</code></pre></dd>
-                <dt>true retries queued status from project</dt>
+                <dt>true retries running status from project</dt>
                 <dd><pre><code>var testProjectParts = ['foo', 'bar'];
 var testRepoUrl = 'git://foo.bar/baz';
 var testStatus = 'success';
@@ -554,7 +554,7 @@ var expectQueued = nock(apiUrl)
       repositoryType: 'git',
       repositoryName: testRepoUrl,
       slug: testProjectParts[1],
-      status: 'queued'
+      status: 'running'
     })
   ]);
 var expectSuccess = nock(apiUrl)
