@@ -1,8 +1,8 @@
 AppVeyor Status
 ===============
 
-[![Build Status: Linux](https://img.shields.io/travis/kevinoid/appveyor-status.svg?style=flat&label=build+on+linux)](https://travis-ci.org/kevinoid/appveyor-status)
-[![Build Status: Windows](https://img.shields.io/appveyor/ci/kevinoid/appveyor-status.svg?style=flat&label=build+on+windows)](https://ci.appveyor.com/project/kevinoid/appveyor-status)
+[![Build Status: Linux](https://img.shields.io/travis/kevinoid/appveyor-status/master.svg?style=flat&label=build+on+linux)](https://travis-ci.org/kevinoid/appveyor-status)
+[![Build Status: Windows](https://img.shields.io/appveyor/ci/kevinoid/appveyor-status/master.svg?style=flat&label=build+on+windows)](https://ci.appveyor.com/project/kevinoid/appveyor-status)
 [![Coverage](https://img.shields.io/codecov/c/github/kevinoid/appveyor-status.svg?style=flat)](https://codecov.io/github/kevinoid/appveyor-status?branch=master)
 [![Dependency Status](https://img.shields.io/david/kevinoid/appveyor-status.svg?style=flat)](https://david-dm.org/kevinoid/appveyor-status)
 [![Supported Node Version](https://img.shields.io/node/v/appveyor-status.svg?style=flat)](https://www.npmjs.com/package/appveyor-status)
