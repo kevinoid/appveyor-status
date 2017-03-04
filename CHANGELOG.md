@@ -1,9 +1,12 @@
 # Change Log
 
-## [v1.0.1](https://github.com/kevinoid/appveyor-swagger/tree/v1.0.1) (2017-02-24)
+## [1.0.2](https://github.com/kevinoid/appveyor-status/tree/1.0.2) (2017-03-03)
+[Full Changelog](https://github.com/kevinoid/appveyor-status/compare/v1.0.1...1.0.2)
 
-- Fix waiting for "running" and "cancelling" status.
-- Fix name of bin executable.
+- Update dependency versions.
+
+## [v1.0.1](https://github.com/kevinoid/appveyor-status/tree/v1.0.1) (2017-02-24)
+[Full Changelog](https://github.com/kevinoid/appveyor-status/compare/v1.0.0...v1.0.1)
 
 ## [v1.0.0](https://github.com/kevinoid/appveyor-status/tree/v1.0.0) (2017-02-17)
 
