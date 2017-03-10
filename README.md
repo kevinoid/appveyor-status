@@ -1,6 +1,8 @@
 AppVeyor Status
 ===============
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/kevinoid/appveyor-status.svg)](https://greenkeeper.io/)
+
 [![Build Status: Linux](https://img.shields.io/travis/kevinoid/appveyor-status/master.svg?style=flat&label=build+on+linux)](https://travis-ci.org/kevinoid/appveyor-status)
 [![Build Status: Windows](https://img.shields.io/appveyor/ci/kevinoid/appveyor-status/master.svg?style=flat&label=build+on+windows)](https://ci.appveyor.com/project/kevinoid/appveyor-status)
 [![Coverage](https://img.shields.io/codecov/c/github/kevinoid/appveyor-status.svg?style=flat)](https://codecov.io/github/kevinoid/appveyor-status?branch=master)
