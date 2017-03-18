@@ -70,8 +70,7 @@
     "nodecat": "^1.0.0",
     "pify": "^2.3.0",
     "rimraf": "^2.2.0",
-    "sinon": "^2.0.0",
-    "sinon-as-promised": "^4.0.2"
+    "sinon": "^2.0.0"
   },
   "engines": {
     "node": ">=0.12",

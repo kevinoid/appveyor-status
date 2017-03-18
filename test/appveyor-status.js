@@ -18,8 +18,6 @@ var sinon = require('sinon');
 var stream = require('stream');
 var url = require('url');
 
-require('sinon-as-promised');
-
 var apiUrl = url.format({
   protocol: appveyorSwagger.schemes[0],
   host: appveyorSwagger.host
