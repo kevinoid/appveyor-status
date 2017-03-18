@@ -52,7 +52,7 @@
     "promise-finally": "^3.0.0",
     "promise-nodeify": "^1.0.0",
     "read-all-stream": "^3.1.0",
-    "swagger-client": "^2.1.32",
+    "swagger-client": "^3.0.1",
     "yargs": "^8.0.1"
   },
   "devDependencies": {
