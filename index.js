@@ -142,7 +142,7 @@ function makeClientErrorHandler(opDesc) {
  * inter-call keep-alive and request sharing) (ignored if appveyorClient is
  * set).
  * @property {(SwaggerClient|Promise<SwaggerClient>)=} appveyorClient client
- * used to query the AppVeyor API.  Must be constructed with usePromise: true.
+ * used to query the AppVeyor API.
  * @property {(string|boolean)=} branch query latest build for named branch,
  * or the current branch
  * @property {string=} commit require build to be for a specific commit.
@@ -259,8 +259,7 @@ function canonicalizeOptions(options, apiFunc) {
   if (!appveyorClientP) {
     const appveyorClientOptions = {
       connectionAgent: options.agent,
-      spec: appveyorSwagger,
-      usePromise: true
+      spec: appveyorSwagger
     };
 
     // If unspecified by caller, use an HTTP Agent with keep-alive enabled for
@@ -280,8 +279,8 @@ function canonicalizeOptions(options, apiFunc) {
         )
       };
     }
-    // Note: With usePromise: true the constructor returns a Promise for the
-    // SwaggerClient rather than the SwaggerClient instance.
+    // Note: The constructor returns a Promise for the SwaggerClient rather
+    // than the SwaggerClient instance.
     appveyorClientP = new SwaggerClient(appveyorClientOptions);
   }
 

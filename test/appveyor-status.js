@@ -757,8 +757,7 @@ describe('appveyorStatus', () => {
             'header'
           )
         },
-        spec: appveyorSwagger,
-        usePromise: true
+        spec: appveyorSwagger
       });
       options.repo = testRepo;
       options.token = testToken1;
