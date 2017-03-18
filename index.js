@@ -16,6 +16,7 @@ const gitUtils = require('./lib/git-utils');
 const https = require('https');
 const nodeify = require('promise-nodeify');
 const promiseFinally = require('promise-finally').default;
+const url = require('url');
 
 /** Multiplicative increase in delay between retries.
  * @const
@@ -88,35 +89,52 @@ function getResponseSvg(response) {
   return response.data.toString();
 }
 
-/** Makes a function to handle SwaggerClient error responses for an operation.
- * @param {string} opDesc Description of the operation which caused the error.
- * @return {function(Object): Promise} Function which creates an Error from the
- * SwaggerClient result object and returns a rejected Promise with the error.
+/** Checks the HTTP status code of a response and throws an Error if the
+ * code is not 2XX.
+ * @param {!http.IncomingMessage|!fetch.Response} res HTTP response object.
+ * @return {!http.IncomingMessage|!fetch.Response} <code>res</code>.
+ * @throws {Error} If the HTTP status code is < 200 or >= 300.
  * @private
  */
-function makeClientErrorHandler(opDesc) {
-  return function responseToClientError(result) {
-    let message = `Unable to ${opDesc}`;
+function checkResponseCode(res) {
+  const statusCode = res.statusCode || res.status;
+  if (statusCode >= 200 && statusCode < 300) {
+    return res;
+  }
 
-    // SuperAgent Error object
-    const errHttp =
-      result.errObj && result.errObj.response && result.errObj.response.error;
-    if (errHttp && errHttp.message) {
-      message += `: ${errHttp.message}`;
-    } else if (result.errObj && result.errObj.message) {
-      // Node http Error object
-      message += `: ${result.errObj.message}`;
-    }
+  let message = statusCode;
+  const statusText = res.statusMessage || res.statusText;
+  if (statusText) {
+    message += ` ${statusText}`;
+  }
+  if (res.obj && res.obj.message) {
+    message += `: ${res.obj.message}`;
+  }
 
-    // Parsed JSON response body
-    if (result.obj && result.obj.message) {
-      message += `: ${result.obj.message}`;
-    }
+  // Set SuperAgent-like Error properties for API compatibility
+  const err = new Error(message);
+  err.body = res.obj;
+  err.status = statusCode;
+  err.text = res.text;
+  err.method = 'GET';
+  err.path = url.parse(res.url).path;
+  return Promise.reject(err);
+}
 
-    const err = new Error(message);
-    err.body = result.obj;
-    assign(err, errHttp);
-    return Promise.reject(err);
+/** Creates a function which will prepend a string to the message property of
+ * its argument then throw it.
+ * @param {string} msgPrefix String to be prepended.
+ * @return {function(!{message: string})} Function which prepends
+ * <code>msgPrefix</code> to the message property of its argument then throws
+ * it.
+ */
+function errorMessagePrepender(msgPrefix) {
+  return function prependErrorMessage(err) {
+    // Set using property descriptor so enumerability is preserved
+    const messageDesc = Object.getOwnPropertyDescriptor(err, 'message');
+    messageDesc.value = msgPrefix + messageDesc.value;
+    Object.defineProperty(err, 'message', messageDesc);
+    throw err;
   };
 }
 
@@ -384,7 +402,9 @@ function getLastBuildNoWait(options) {
     }
 
     lastBuildP = responseP
-      .then(getResponseJson, makeClientErrorHandler('get last project build'));
+      .then(checkResponseCode)
+      .catch(errorMessagePrepender('Unable to get last project build: '))
+      .then(getResponseJson);
   }
 
   let checkedLastBuildP;
@@ -476,10 +496,13 @@ function getMatchingProject(options) {
   const avRepo = appveyorUtils.parseAppveyorRepoUrl(options.repo);
 
   return options.appveyorClient.apis.Project.getProjects()
-    .then(getResponseJson, makeClientErrorHandler('get projects'))
+    .then(checkResponseCode)
+    .catch(errorMessagePrepender('Unable to get projects: '))
+    .then(getResponseJson)
     .then((projects) => {
-      const repoProjects =
-        projects.filter((project) => shallowStrictCommonEqual(avRepo, project));
+      const repoProjects = projects.filter((project) =>
+        shallowStrictCommonEqual(avRepo, project)
+      );
 
       if (repoProjects.length === 0) {
         throw new Error(`No AppVeyor projects matching ${
@@ -582,10 +605,10 @@ function getStatusBadgeInternal(options) {
     responseP = client.apis.Project.getPublicProjectStatusBadge(params);
   }
 
-  return responseP.then(
-    getResponseSvg,
-    makeClientErrorHandler('get project status badge')
-  );
+  return responseP
+    .then(checkResponseCode)
+    .catch(errorMessagePrepender('Unable to get project status badge: '))
+    .then(getResponseSvg);
 }
 
 /** Gets the AppVeyor status badge for a repo/branch.
