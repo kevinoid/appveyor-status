@@ -378,9 +378,9 @@ function getLastBuildNoWait(options) {
     let responseP;
     if (options.branch) {
       params.buildBranch = options.branch;
-      responseP = client.Project.getProjectLastBuildBranch(params);
+      responseP = client.apis.Project.getProjectLastBuildBranch(params);
     } else {
-      responseP = client.Project.getProjectLastBuild(params);
+      responseP = client.apis.Project.getProjectLastBuild(params);
     }
 
     lastBuildP = responseP
@@ -475,7 +475,7 @@ function getMatchingProject(options) {
   // Parse early to avoid delay on error
   const avRepo = appveyorUtils.parseAppveyorRepoUrl(options.repo);
 
-  return options.appveyorClient.Project.getProjects()
+  return options.appveyorClient.apis.Project.getProjects()
     .then(getResponseJson, makeClientErrorHandler('get projects'))
     .then((projects) => {
       const repoProjects =
@@ -570,16 +570,16 @@ function getStatusBadgeInternal(options) {
 
     if (options.branch) {
       params.buildBranch = options.branch;
-      responseP = client.Project.getProjectBranchStatusBadge(params);
+      responseP = client.apis.Project.getProjectBranchStatusBadge(params);
     } else {
-      responseP = client.Project.getProjectStatusBadge(params);
+      responseP = client.apis.Project.getProjectStatusBadge(params);
     }
   } else {
     assign(params, appveyorUtils.repoUrlToBadgeParams(options.repo));
     if (options.branch) {
       params.branch = options.branch;
     }
-    responseP = client.Project.getPublicProjectStatusBadge(params);
+    responseP = client.apis.Project.getPublicProjectStatusBadge(params);
   }
 
   return responseP.then(
