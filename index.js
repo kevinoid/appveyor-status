@@ -292,11 +292,7 @@ function canonicalizeOptions(options, apiFunc) {
 
     if (options.token) {
       appveyorClientOptions.authorizations = {
-        apiToken: new SwaggerClient.ApiKeyAuthorization(
-          'Authorization',
-          `Bearer ${options.token}`,
-          'header'
-        )
+        apiToken: `Bearer ${options.token}`
       };
     }
     // Note: The constructor returns a Promise for the SwaggerClient rather

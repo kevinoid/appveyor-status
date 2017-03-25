@@ -708,17 +708,22 @@ describe('appveyorStatus', () => {
       gitUtilsMock.expects('getRemoteUrl').never();
       gitUtilsMock.expects('resolveCommit').never();
       const ne = nock(apiUrl)
-        .matchHeader('Authorization', `Bearer ${testToken}`)
         // IMPORTANT: Must be path which requires auth
         .get('/api/projects')
         .query(true)
-        .reply(200, [
-          apiResponses.getProject({
-            repositoryType: 'git',
-            repositoryName: testRepo,
-            status: testStatus
-          })
-        ]);
+        .reply(200, function(uri, requestBody) {
+          assert.deepEqual(
+            this.req.headers.authorization,
+            [`Bearer ${testToken}`]
+          );
+          return [
+            apiResponses.getProject({
+              repositoryType: 'git',
+              repositoryName: testRepo,
+              status: testStatus
+            })
+          ];
+        });
       options.repo = testRepo;
       options.token = testToken;
       return appveyorStatus.getLastBuild(options)
@@ -738,24 +743,25 @@ describe('appveyorStatus', () => {
       gitUtilsMock.expects('getRemoteUrl').never();
       gitUtilsMock.expects('resolveCommit').never();
       const ne = nock(apiUrl)
-        .matchHeader('Authorization', `Bearer ${testToken2}`)
         // IMPORTANT: Must be path which requires auth
         .get('/api/projects')
         .query(true)
-        .reply(200, [
-          apiResponses.getProject({
-            repositoryType: 'git',
-            repositoryName: testRepo,
-            status: testStatus
-          })
-        ]);
+        .reply(200, function(uri, requestBody) {
+          assert.deepEqual(
+            this.req.headers.authorization,
+            [`Bearer ${testToken2}`]
+          );
+          return [
+            apiResponses.getProject({
+              repositoryType: 'git',
+              repositoryName: testRepo,
+              status: testStatus
+            })
+          ];
+        });
       options.appveyorClient = new SwaggerClient({
         authorizations: {
-          apiToken: new SwaggerClient.ApiKeyAuthorization(
-            'Authorization',
-            `Bearer ${testToken2}`,
-            'header'
-          )
+          apiToken: `Bearer ${testToken2}`
         },
         spec: appveyorSwagger
       });
