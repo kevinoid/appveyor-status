@@ -56,7 +56,9 @@ function shallowStrictCommonEqual(obj1, obj2) {
  * @private
  */
 function getResponseJson(response) {
-  if (response.obj === null || response.obj === undefined) {
+  if (response.obj === null ||
+      response.obj === undefined ||
+      response.obj === response.data) {
     try {
       response.obj = JSON.parse(response.data);
     } catch (errJson) {
