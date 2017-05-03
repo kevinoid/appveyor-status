@@ -651,8 +651,9 @@ describe('appveyorStatus', () => {
       return appveyorStatus.getLastBuild(options).then(
         sinon.mock().never(),
         (err) => {
-          assert.include(err.message, '400');
+          assert.match(err.message, /400|Bad Request/i);
           assert.include(err.message, testErrMsg);
+          assert.strictEqual(err.status, 400);
           ne.done();
         }
       );
@@ -969,7 +970,8 @@ describe('appveyorStatus', () => {
       return appveyorStatus.getStatusBadge(options).then(
         sinon.mock().never(),
         (err) => {
-          assert.include(err.message, '400');
+          assert.match(err.message, /400|Bad Request/i);
+          assert.strictEqual(err.status, 400);
           ne.done();
         }
       );
