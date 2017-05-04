@@ -5,44 +5,44 @@
 
 'use strict';
 
-var Chalk = require('chalk').constructor;
-var CommitMismatchError = require('../../lib/commit-mismatch-error');
-var appveyorStatusCmd = require('../../bin/appveyor-status');
-var appveyorStatus = require('../..');
-var appveyorSwagger = require('appveyor-swagger');
-var assert = require('chai').assert;
-var escapeStringRegexp = require('escape-string-regexp');
-var fs = require('fs');
-var packageJson = require('../../package.json');
-var path = require('path');
-var sinon = require('sinon');
-var stream = require('stream');
+const Chalk = require('chalk').constructor;
+const CommitMismatchError = require('../../lib/commit-mismatch-error');
+const appveyorStatusCmd = require('../../bin/appveyor-status');
+const appveyorStatus = require('../..');
+const appveyorSwagger = require('appveyor-swagger');
+const assert = require('chai').assert;
+const escapeStringRegexp = require('escape-string-regexp');
+const fs = require('fs');
+const packageJson = require('../../package.json');
+const path = require('path');
+const sinon = require('sinon');
+const stream = require('stream');
 
-var chalk = new Chalk({enabled: true});
-var match = sinon.match;
-var statusValues = appveyorSwagger.definitions.Status.enum;
+const chalk = new Chalk({enabled: true});
+const match = sinon.match;
+const statusValues = appveyorSwagger.definitions.Status.enum;
 
 // Simulate arguments passed by the node runtime
-var RUNTIME_ARGS = ['node', 'appveyor-status'];
-var TEST_TOKEN_PATH =
+const RUNTIME_ARGS = ['node', 'appveyor-status'];
+const TEST_TOKEN_PATH =
   path.join(__dirname, '..', '..', 'test-data', 'token.txt');
 
 process.env.APPVEYOR_API_TOKEN = 'env-token';
 
-describe('appveyor-status command', function() {
+describe('appveyor-status command', () => {
   // Ensure that expectations are not carried over between tests
-  var appveyorStatusMock;
-  beforeEach(function() {
+  let appveyorStatusMock;
+  beforeEach(() => {
     appveyorStatusMock = sinon.mock(appveyorStatus);
   });
-  afterEach(function() {
+  afterEach(() => {
     appveyorStatusMock.restore();
     appveyorStatusMock = null;
   });
 
   // Test options object with standard streams for convenience
-  var options;
-  beforeEach(function() {
+  let options;
+  beforeEach(() => {
     options = {
       in: new stream.PassThrough(),
       out: new stream.PassThrough(),
@@ -50,28 +50,28 @@ describe('appveyor-status command', function() {
     };
   });
 
-  it('returns undefined when called with a function', function() {
+  it('returns undefined when called with a function', () => {
     appveyorStatusMock.expects('getStatus')
       .once()
       .withArgs(
         match.object,
         match.func
       );
-    var result = appveyorStatusCmd(RUNTIME_ARGS, sinon.mock().never());
+    const result = appveyorStatusCmd(RUNTIME_ARGS, sinon.mock().never());
     appveyorStatusMock.verify();
     assert.strictEqual(result, undefined);
   });
 
   function expectArgsAs(args, expectObj) {
-    it('interprets ' + args.join(' ') + ' as ' + expectObj, function(done) {
+    it(`interprets ${args.join(' ')} as ${expectObj}`, (done) => {
       appveyorStatusMock.expects('getStatus').once()
         .withArgs(
           expectObj,
           match.func
         )
         .yields(null, 'success');
-      var allArgs = RUNTIME_ARGS.concat(args);
-      appveyorStatusCmd(allArgs, options, function(err) {
+      const allArgs = RUNTIME_ARGS.concat(args);
+      appveyorStatusCmd(allArgs, options, (err) => {
         assert.ifError(err);
         appveyorStatusMock.verify();
         done();
@@ -80,10 +80,10 @@ describe('appveyor-status command', function() {
   }
 
   function expectArgsResult(args, expectCode, expectOutMsg, expectErrMsg) {
-    it('prints error and exits for ' + args.join(' '), function(done) {
+    it(`prints error and exits for ${args.join(' ')}`, (done) => {
       appveyorStatusMock.expects('getStatus').never();
-      var allArgs = RUNTIME_ARGS.concat(args);
-      appveyorStatusCmd(allArgs, options, function(err, code) {
+      const allArgs = RUNTIME_ARGS.concat(args);
+      appveyorStatusCmd(allArgs, options, (err, code) => {
         assert.ifError(err);
         assert.strictEqual(code, expectCode);
 
@@ -175,9 +175,9 @@ describe('appveyor-status command', function() {
 
   // Satisfy GNU Coding Standards --version convention:
   // https://www.gnu.org/prep/standards/html_node/_002d_002dversion.html
-  var versionRE = new RegExp(
-    '^' + escapeStringRegexp(packageJson.name + ' ' + packageJson.version) +
-      '\n'
+  const versionRE = new RegExp(
+    `^${escapeStringRegexp(`${packageJson.name} ${packageJson.version}`)
+      }\n`
   );
   expectArgsResult(['--version'], 0, versionRE, null);
   expectArgsResult(['-V'], 0, versionRE, null);
@@ -185,16 +185,16 @@ describe('appveyor-status command', function() {
   // Unexpected arguments
   expectArgsResult(['foo'], 4, null, /\barguments?\b/i);
 
-  it('interprets -T - as reading token from stdin', function(done) {
+  it('interprets -T - as reading token from stdin', (done) => {
     appveyorStatusMock.expects('getStatus').once()
       .withArgs(
         match({token: 'file-token'}),
         match.func
       )
       .yields(null, 'success');
-    var allArgs = RUNTIME_ARGS.concat('-T', '-');
+    const allArgs = RUNTIME_ARGS.concat('-T', '-');
     options.in = fs.createReadStream(TEST_TOKEN_PATH);
-    appveyorStatusCmd(allArgs, options, function(err) {
+    appveyorStatusCmd(allArgs, options, (err) => {
       assert.ifError(err);
       appveyorStatusMock.verify();
       done();
@@ -202,26 +202,26 @@ describe('appveyor-status command', function() {
   });
 
   function expectCodeForStatusCode(expectCode, status) {
-    var desc = 'exits with code ' + expectCode + ' for build ' + status;
-    it(desc, function(done) {
+    const desc = `exits with code ${expectCode} for build ${status}`;
+    it(desc, (done) => {
       appveyorStatusMock.expects('getStatus')
         .once().withArgs(match.object, match.func).yields(null, status);
-      appveyorStatusCmd(RUNTIME_ARGS, options, function(err, code) {
+      appveyorStatusCmd(RUNTIME_ARGS, options, (err, code) => {
         assert.ifError(err);
         assert.strictEqual(code, expectCode);
         done();
       });
     });
   }
-  statusValues.forEach(function(status) {
+  statusValues.forEach((status) => {
     expectCodeForStatusCode(status === 'success' ? 0 : 2, status);
   });
   expectCodeForStatusCode(2, 'unrecognized');
 
-  it('prints status to stdout by default', function(done) {
+  it('prints status to stdout by default', (done) => {
     appveyorStatusMock.expects('getStatus')
       .once().withArgs(match.object, match.func).yields(null, 'success');
-    appveyorStatusCmd(RUNTIME_ARGS, options, function(err, code) {
+    appveyorStatusCmd(RUNTIME_ARGS, options, (err, code) => {
       assert.ifError(err);
       assert.strictEqual(code, 0);
       assert.strictEqual(
@@ -234,18 +234,18 @@ describe('appveyor-status command', function() {
     });
   });
 
-  statusValues.forEach(function(status) {
-    var colorName = status === 'success' ? 'green' :
+  statusValues.forEach((status) => {
+    const colorName = status === 'success' ? 'green' :
       status === 'failed' ? 'red' :
       'gray';
-    it('prints ' + status + ' in ' + colorName + ' to TTY', function(done) {
+    it(`prints ${status} in ${colorName} to TTY`, (done) => {
       appveyorStatusMock.expects('getStatus')
         .once().withArgs(match.object, match.func).yields(null, status);
       options.out.isTTY = true;
-      appveyorStatusCmd(RUNTIME_ARGS, options, function(err, code) {
+      appveyorStatusCmd(RUNTIME_ARGS, options, (err, code) => {
         assert.ifError(err);
         assert.strictEqual(code, status === 'success' ? 0 : 2);
-        var outString = String(options.out.read());
+        const outString = String(options.out.read());
         assert.include(
           outString,
           chalk[colorName](status)
@@ -256,12 +256,12 @@ describe('appveyor-status command', function() {
     });
   });
 
-  ['-q', '--quiet'].forEach(function(arg) {
-    it(arg + ' exits without printing status', function(done) {
+  ['-q', '--quiet'].forEach((arg) => {
+    it(`${arg} exits without printing status`, (done) => {
       appveyorStatusMock.expects('getStatus')
         .once().withArgs(match.object, match.func).yields(null, 'failed');
-      var allArgs = RUNTIME_ARGS.concat(arg);
-      appveyorStatusCmd(allArgs, options, function(err, code) {
+      const allArgs = RUNTIME_ARGS.concat(arg);
+      appveyorStatusCmd(allArgs, options, (err, code) => {
         assert.ifError(err);
         assert.strictEqual(code, 2);
         assert.strictEqual(options.out.read(), null);
@@ -272,15 +272,15 @@ describe('appveyor-status command', function() {
   });
 
   // This tests exception handling in the parseYargs wrapper
-  it('allows callback errors to propagate', function() {
+  it('allows callback errors to propagate', () => {
     appveyorStatusMock.expects('getStatus').never();
-    var errTest = new Error('test');
-    var caughtError = false;
-    var called = false;
+    const errTest = new Error('test');
+    let caughtError = false;
+    let called = false;
     // Note:  Chai assert.throws does not accept comparison function like node
     try {
-      var allArgs = RUNTIME_ARGS.concat(['foo']);
-      appveyorStatusCmd(allArgs, options, function() {
+      const allArgs = RUNTIME_ARGS.concat(['foo']);
+      appveyorStatusCmd(allArgs, options, () => {
         assert(!called, 'callback called exactly once');
         called = true;
         throw errTest;
@@ -292,16 +292,16 @@ describe('appveyor-status command', function() {
     assert(caughtError, 'Missing expected exception.');
   });
 
-  it('throws for non-function callback', function() {
+  it('throws for non-function callback', () => {
     appveyorStatusMock.expects('getStatus').never();
     assert.throws(
-      function() { appveyorStatusCmd(RUNTIME_ARGS, {}, true); },
+      () => { appveyorStatusCmd(RUNTIME_ARGS, {}, true); },
       TypeError,
       /\bcallback\b/
     );
   });
 
-  it('can be called without arguments', function() {
+  it('can be called without arguments', () => {
     appveyorStatusMock.expects('getStatus')
       .once()
       .withArgs(
@@ -312,111 +312,111 @@ describe('appveyor-status command', function() {
     appveyorStatusMock.verify();
   });
 
-  it('yields TypeError for non-Array-like args', function(done) {
+  it('yields TypeError for non-Array-like args', (done) => {
     appveyorStatusMock.expects('getStatus').never();
-    appveyorStatusCmd(true, options, function(err) {
+    appveyorStatusCmd(true, options, (err) => {
       assert.instanceOf(err, TypeError);
       assert.match(err.message, /\bArray\b/);
       done();
     });
   });
 
-  it('yields RangeError for less than 2 args', function(done) {
+  it('yields RangeError for less than 2 args', (done) => {
     appveyorStatusMock.expects('getStatus').never();
-    appveyorStatusCmd([], options, function(err) {
+    appveyorStatusCmd([], options, (err) => {
       assert.instanceOf(err, RangeError);
       assert.match(err.message, /\bargs\b/);
       done();
     });
   });
 
-  it('yields Error for non-object options', function(done) {
+  it('yields Error for non-object options', (done) => {
     appveyorStatusMock.expects('getStatus').never();
-    appveyorStatusCmd(RUNTIME_ARGS, true, function(err) {
+    appveyorStatusCmd(RUNTIME_ARGS, true, (err) => {
       assert.instanceOf(err, TypeError);
       assert.match(err.message, /\boptions\b/);
       done();
     });
   });
 
-  it('yields Error for non-Readable in', function(done) {
+  it('yields Error for non-Readable in', (done) => {
     appveyorStatusMock.expects('getStatus').never();
-    appveyorStatusCmd(RUNTIME_ARGS, {in: true}, function(err) {
+    appveyorStatusCmd(RUNTIME_ARGS, {in: true}, (err) => {
       assert.instanceOf(err, TypeError);
       assert.match(err.message, /\boptions.in\b/);
       done();
     });
   });
 
-  it('yields Error for non-Writable out', function(done) {
+  it('yields Error for non-Writable out', (done) => {
     appveyorStatusMock.expects('getStatus').never();
-    var badOptions = {out: new stream.Readable()};
-    appveyorStatusCmd(RUNTIME_ARGS, badOptions, function(err) {
+    const badOptions = {out: new stream.Readable()};
+    appveyorStatusCmd(RUNTIME_ARGS, badOptions, (err) => {
       assert.instanceOf(err, TypeError);
       assert.match(err.message, /\boptions.out\b/);
       done();
     });
   });
 
-  it('yields Error for non-Writable err', function(done) {
+  it('yields Error for non-Writable err', (done) => {
     appveyorStatusMock.expects('getStatus').never();
-    var badOptions = {err: new stream.Readable()};
-    appveyorStatusCmd(RUNTIME_ARGS, badOptions, function(err) {
+    const badOptions = {err: new stream.Readable()};
+    appveyorStatusCmd(RUNTIME_ARGS, badOptions, (err) => {
       assert.instanceOf(err, TypeError);
       assert.match(err.message, /\boptions.err\b/);
       done();
     });
   });
 
-  it('exit code 1 and prints message on Error', function(done) {
-    var errMsg = 'super duper test error';
+  it('exit code 1 and prints message on Error', (done) => {
+    const errMsg = 'super duper test error';
     appveyorStatusMock.expects('getStatus')
       .once().withArgs(match.object, match.func).yields(new Error(errMsg));
-    appveyorStatusCmd(RUNTIME_ARGS, options, function(err, code) {
+    appveyorStatusCmd(RUNTIME_ARGS, options, (err, code) => {
       assert.ifError(err);
       assert.strictEqual(code, 1);
       assert.strictEqual(options.out.read(), null);
-      var errString = String(options.err.read());
+      const errString = String(options.err.read());
       assert.include(errString, errMsg);
       done();
     });
   });
 
-  it('exit code 3 and prints message on CommitMismatchError', function(done) {
-    var testCommit = '123';
-    var errTest = new CommitMismatchError({
+  it('exit code 3 and prints message on CommitMismatchError', (done) => {
+    const testCommit = '123';
+    const errTest = new CommitMismatchError({
       actual: 'foo',
       expected: testCommit
     });
     appveyorStatusMock.expects('getStatus')
       .once().withArgs(match.object, match.func).yields(errTest);
-    var allArgs = RUNTIME_ARGS.concat(['-c', testCommit]);
-    appveyorStatusCmd(allArgs, options, function(err, code) {
+    const allArgs = RUNTIME_ARGS.concat(['-c', testCommit]);
+    appveyorStatusCmd(allArgs, options, (err, code) => {
       assert.ifError(err);
       assert.strictEqual(code, 3);
       assert.strictEqual(options.out.read(), null);
-      var errString = String(options.err.read());
+      const errString = String(options.err.read());
       assert.include(errString, errTest.actual);
       assert.include(errString, errTest.expected);
       done();
     });
   });
 
-  it('CommitMismatchError prints both given and resolved', function(done) {
-    var testCommit = '123';
-    var testTag = 'tagname';
-    var errTest = new CommitMismatchError({
+  it('CommitMismatchError prints both given and resolved', (done) => {
+    const testCommit = '123';
+    const testTag = 'tagname';
+    const errTest = new CommitMismatchError({
       actual: 'abc',
       expected: testCommit
     });
     appveyorStatusMock.expects('getStatus')
       .once().withArgs(match.object, match.func).yields(errTest);
-    var allArgs = RUNTIME_ARGS.concat(['-c', testTag]);
-    appveyorStatusCmd(allArgs, options, function(err, code) {
+    const allArgs = RUNTIME_ARGS.concat(['-c', testTag]);
+    appveyorStatusCmd(allArgs, options, (err, code) => {
       assert.ifError(err);
       assert.strictEqual(code, 3);
       assert.strictEqual(options.out.read(), null);
-      var errString = String(options.err.read());
+      const errString = String(options.err.read());
       assert.include(errString, errTest.actual);
       assert.include(errString, errTest.expected);
       assert.include(errString, testTag);
@@ -424,28 +424,28 @@ describe('appveyor-status command', function() {
     });
   });
 
-  it('returns a Promise when called without a function', function() {
+  it('returns a Promise when called without a function', () => {
     appveyorStatusMock.expects('getStatus')
       .once().withArgs(match.object, match.func);
-    var result = appveyorStatusCmd(RUNTIME_ARGS);
+    const result = appveyorStatusCmd(RUNTIME_ARGS);
     assert(result instanceof Promise);
   });
 
-  it('returned Promise is resolved with exit code', function() {
+  it('returned Promise is resolved with exit code', () => {
     appveyorStatusMock.expects('getStatus')
       .once().withArgs(match.object, match.func).yields(null, 'success');
-    var result = appveyorStatusCmd(RUNTIME_ARGS, options);
-    return result.then(function(code) {
+    const result = appveyorStatusCmd(RUNTIME_ARGS, options);
+    return result.then((code) => {
       assert.strictEqual(code, 0);
     });
   });
 
-  it('returned Promise is rejected with Error', function() {
+  it('returned Promise is rejected with Error', () => {
     appveyorStatusMock.expects('getStatus').never();
-    var result = appveyorStatusCmd(RUNTIME_ARGS, true);
+    const result = appveyorStatusCmd(RUNTIME_ARGS, true);
     return result.then(
       sinon.mock().never(),
-      function(err) { assert.instanceOf(err, TypeError); }
+      (err) => { assert.instanceOf(err, TypeError); }
     );
   });
 });

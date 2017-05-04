@@ -9,13 +9,13 @@
 
 'use strict';
 
-var Chalk = require('chalk').constructor;
-var Yargs = require('yargs/yargs');
-var appveyorStatus = require('..');
-var assign = require('object-assign');
-var fs = require('fs');
-var packageJson = require('../package.json');
-var readAllStream = require('read-all-stream');
+const Chalk = require('chalk').constructor;
+const Yargs = require('yargs/yargs');
+const appveyorStatus = require('..');
+const assign = require('object-assign');
+const fs = require('fs');
+const packageJson = require('../package.json');
+const readAllStream = require('read-all-stream');
 
 /** Exit codes returned by {@link module:appveyor-status/bin/appveyor-status}
  * (as a bi-directional map).
@@ -23,7 +23,7 @@ var readAllStream = require('read-all-stream');
  * @static
  * @enum {number}
  */
-var ExitCode = {
+const ExitCode = {
   /** Success. */
   SUCCESS: 0,
   /** Failed for an unspecified reason. */
@@ -37,8 +37,8 @@ var ExitCode = {
 };
 
 // Add mapping from code to name
-Object.keys(ExitCode).forEach(function(codeName) {
-  var code = ExitCode[codeName];
+Object.keys(ExitCode).forEach((codeName) => {
+  const code = ExitCode[codeName];
   ExitCode[code] = codeName;
 });
 
@@ -47,15 +47,15 @@ Object.keys(ExitCode).forEach(function(codeName) {
  * @type {Object<string, string>}
  * @private
  */
-var statusColor = {
+const statusColor = {
   failed: 'red',
   success: 'green'
 };
 
 function coerceWait(arg) {
-  var val = arg === true ? Infinity : Number(arg);
+  const val = arg === true ? Infinity : Number(arg);
   if (isNaN(val)) {
-    throw new Error('Invalid number "' + arg + '"');
+    throw new Error(`Invalid number "${arg}"`);
   }
   return val;
 }
@@ -68,7 +68,7 @@ function parseYargs(yargs, args, callback) {
   // Since yargs doesn't nextTick its callback, this function must be careful
   // that exceptions thrown from callback (which propagate through yargs.parse)
   // are not caught and passed to a second invocation of callback.
-  var called = false;
+  let called = false;
   try {
     yargs.parse(args, function() {
       called = true;
@@ -89,18 +89,18 @@ function parseYargs(yargs, args, callback) {
  * @private
  */
 function checkStatus(options, callback) {
-  appveyorStatus.getStatus(options, function(err, status) {
+  appveyorStatus.getStatus(options, (err, status) => {
     if (err) {
       if (err.name === 'CommitMismatchError') {
-        var expected = options.commit;
+        let expected = options.commit;
         if (options.commit !== err.expected) {
-          expected += ' (' + err.expected + ')';
+          expected += ` (${err.expected})`;
         }
-        options.err.write('Error: Last build commit ' + err.actual +
-                          ' did not match ' + expected + '\n');
+        options.err.write(`Error: Last build commit ${err.actual
+                          } did not match ${expected}\n`);
         callback(null, ExitCode.FAIL_COMMIT);
       } else {
-        options.err.write(err + '\n');
+        options.err.write(`${err}\n`);
         callback(null, ExitCode.FAIL_OTHER);
       }
 
@@ -108,10 +108,10 @@ function checkStatus(options, callback) {
     }
 
     if (options.verbosity >= 0) {
-      var chalk = new Chalk({enabled: options.color});
-      var colorName = statusColor[status] || 'gray';
-      var statusColored = chalk[colorName](status);
-      options.out.write('AppVeyor build status: ' + statusColored + '\n');
+      const chalk = new Chalk({enabled: options.color});
+      const colorName = statusColor[status] || 'gray';
+      const statusColored = chalk[colorName](status);
+      options.out.write(`AppVeyor build status: ${statusColored}\n`);
     }
     callback(
       null,
@@ -158,8 +158,8 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
 
   if (!callback && typeof Promise === 'function') {
     // eslint-disable-next-line no-undef
-    return new Promise(function(resolve, reject) {
-      appveyorStatusCmd(args, options, function(err, result) {
+    return new Promise((resolve, reject) => {
+      appveyorStatusCmd(args, options, (err, result) => {
         if (err) { reject(err); } else { resolve(result); }
       });
     });
@@ -204,7 +204,7 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
       throw new TypeError('options.err must be a stream.Writable');
     }
   } catch (err) {
-    process.nextTick(function() {
+    process.nextTick(() => {
       callback(err);
     });
     return undefined;
@@ -212,7 +212,7 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
 
   // Workaround for https://github.com/yargs/yargs/issues/783
   require.main = module;
-  var yargs = new Yargs(null, null, require)
+  const yargs = new Yargs(null, null, require)
     .usage('Usage: $0 [options]')
     .help()
     .alias('help', 'h')
@@ -284,20 +284,20 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
        * 'Webhook ID of project (from badge URL, exclusive with commit)' */
       nargs: 1
     })
-    .version(packageJson.name + ' ' + packageJson.version)
+    .version(`${packageJson.name} ${packageJson.version}`)
     .alias('version', 'V')
     .strict();
-  parseYargs(yargs, args, function(err, argOpts, output) {
+  parseYargs(yargs, args, (err, argOpts, output) => {
     if (err) {
       options.err.write(output ?
-                          output + '\n' :
-                          err.name + ': ' + err.message + '\n');
+                          `${output}\n` :
+                          `${err.name}: ${err.message}\n`);
       callback(null, ExitCode.FAIL_ARGUMENTS);
       return;
     }
 
     if (output) {
-      options.out.write(output + '\n');
+      options.out.write(`${output}\n`);
     }
 
     if (argOpts.help || argOpts.version) {
@@ -334,15 +334,15 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
     argOpts.webhookId = argOpts.webhook;
     delete argOpts.webhook;
 
-    var statusOpts = assign({}, options, argOpts);
+    const statusOpts = assign({}, options, argOpts);
 
     if (argOpts.tokenFile !== undefined) {
-      var tokenFileStream = argOpts.tokenFile === '-' ? options.in :
+      const tokenFileStream = argOpts.tokenFile === '-' ? options.in :
         fs.createReadStream(argOpts.tokenFile);
-      readAllStream(tokenFileStream, function(errRead, token) {
+      readAllStream(tokenFileStream, (errRead, token) => {
         if (errRead) {
-          options.err.write('Error: Unable to read API token file: ' +
-                            errRead.message + '\n');
+          options.err.write(`Error: Unable to read API token file: ${
+                            errRead.message}\n`);
           callback(null, ExitCode.FAIL_ARGUMENTS);
           return;
         }
@@ -366,14 +366,14 @@ module.exports.ExitCode = ExitCode;
 if (require.main === module) {
   // This file was invoked directly.
   /* eslint-disable no-process-exit */
-  var mainOptions = {
+  const mainOptions = {
     in: process.stdin,
     out: process.stdout,
     err: process.stderr
   };
-  module.exports(process.argv, mainOptions, function(err, exitCode) {
+  module.exports(process.argv, mainOptions, (err, exitCode) => {
     if (err) {
-      process.stderr.write(err.stack + '\n');
+      process.stderr.write(`${err.stack}\n`);
       exitCode = ExitCode.FAIL_OTHER;
     }
 

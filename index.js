@@ -6,34 +6,34 @@
 
 'use strict';
 
-var AmbiguousProjectError = require('./lib/ambiguous-project-error');
-var CommitMismatchError = require('./lib/commit-mismatch-error');
-var SwaggerClient = require('swagger-client');
-var appveyorSwagger = require('appveyor-swagger');
-var appveyorUtils = require('./lib/appveyor-utils');
-var assign = require('object-assign');
-var gitUtils = require('./lib/git-utils');
-var https = require('https');
-var nodeify = require('promise-nodeify');
-var promiseFinally = require('promise-finally').default;
+const AmbiguousProjectError = require('./lib/ambiguous-project-error');
+const CommitMismatchError = require('./lib/commit-mismatch-error');
+const SwaggerClient = require('swagger-client');
+const appveyorSwagger = require('appveyor-swagger');
+const appveyorUtils = require('./lib/appveyor-utils');
+const assign = require('object-assign');
+const gitUtils = require('./lib/git-utils');
+const https = require('https');
+const nodeify = require('promise-nodeify');
+const promiseFinally = require('promise-finally').default;
 
 /** Multiplicative increase in delay between retries.
  * @const
  * @private
  */
-var RETRY_DELAY_FACTOR_MS = 2;
+const RETRY_DELAY_FACTOR_MS = 2;
 
 /** Minimum/Initial delay between retries (in milliseconds).
  * @const
  * @private
  */
-var RETRY_DELAY_MIN_MS = 4000;
+const RETRY_DELAY_MIN_MS = 4000;
 
 /** Maximum delay between retries (in milliseconds).
  * @const
  * @private
  */
-var RETRY_DELAY_MAX_MS = 60000;
+const RETRY_DELAY_MAX_MS = 60000;
 
 /** Shallow, strict equality of properties in common between two objects.
  * @param {!Object} obj1 Object to compare.
@@ -43,9 +43,8 @@ var RETRY_DELAY_MAX_MS = 60000;
  * @private
  */
 function shallowStrictCommonEqual(obj1, obj2) {
-  return Object.keys(obj1).every(function(key) {
-    return !hasOwnProperty.call(obj2, key) || obj1[key] === obj2[key];
-  });
+  return Object.keys(obj1)
+    .every((key) => !hasOwnProperty.call(obj2, key) || obj1[key] === obj2[key]);
 }
 
 
@@ -60,10 +59,10 @@ function getResponseJson(response) {
     try {
       response.obj = JSON.parse(response.data);
     } catch (errJson) {
-      var err = new Error('Unable to parse JSON from ' + response.method + ' ' +
-                          response.url + ' with Content-Type ' +
-                          response.headers['content-type'] + ': ' +
-                          errJson.message);
+      const err = new Error(`Unable to parse JSON from ${response.method} ${
+                          response.url} with Content-Type ${
+                          response.headers['content-type']}: ${
+                          errJson.message}`);
       err.cause = errJson;
       throw err;
     }
@@ -79,11 +78,11 @@ function getResponseJson(response) {
  * @private
  */
 function getResponseSvg(response) {
-  var contentType =
+  const contentType =
     (response.headers['content-type'] || '(none)').toLowerCase();
-  var svgType = 'image/svg+xml';
+  const svgType = 'image/svg+xml';
   if (contentType.lastIndexOf(svgType, 0) !== 0) {
-    throw new Error('Expected ' + svgType + ' got ' + contentType);
+    throw new Error(`Expected ${svgType} got ${contentType}`);
   }
 
   return response.data.toString();
@@ -97,24 +96,24 @@ function getResponseSvg(response) {
  */
 function makeClientErrorHandler(opDesc) {
   return function responseToClientError(result) {
-    var message = 'Unable to ' + opDesc;
+    let message = `Unable to ${opDesc}`;
 
     // SuperAgent Error object
-    var errHttp =
+    const errHttp =
       result.errObj && result.errObj.response && result.errObj.response.error;
     if (errHttp && errHttp.message) {
-      message += ': ' + errHttp.message;
+      message += `: ${errHttp.message}`;
     } else if (result.errObj && result.errObj.message) {
       // Node http Error object
-      message += ': ' + result.errObj.message;
+      message += `: ${result.errObj.message}`;
     }
 
     // Parsed JSON response body
     if (result.obj && result.obj.message) {
-      message += ': ' + result.obj.message;
+      message += `: ${result.obj.message}`;
     }
 
-    var err = new Error(message);
+    const err = new Error(message);
     err.body = result.obj;
     assign(err, errHttp);
     return Promise.reject(err);
@@ -191,13 +190,11 @@ function canonicalizeOptions(options, apiFunc) {
   }
 
   if (options) {
-    var projectOpts = ['project', 'repo', 'statusBadgeId', 'webhookId']
-      .filter(function(propName) {
-        return options[propName];
-      });
+    const projectOpts = ['project', 'repo', 'statusBadgeId', 'webhookId']
+      .filter((propName) => options[propName]);
     if (projectOpts.length > 1) {
       throw new Error(
-        projectOpts.join(' and ') + ' can not be specified together'
+        `${projectOpts.join(' and ')} can not be specified together`
       );
     }
   }
@@ -224,7 +221,7 @@ function canonicalizeOptions(options, apiFunc) {
     throw new Error('options.project must have accountName and slug');
   }
 
-  var gitOptions = {};
+  const gitOptions = {};
   if (options.repo && gitUtils.gitUrlIsLocalNotSsh(options.repo)) {
     gitOptions.cwd = options.repo;
   }
@@ -237,34 +234,30 @@ function canonicalizeOptions(options, apiFunc) {
     options.repo = '.';
   }
 
-  var branchP = options.branch === true ? gitUtils.getBranch(gitOptions) :
+  const branchP = options.branch === true ? gitUtils.getBranch(gitOptions) :
     options.branch ? Promise.resolve(options.branch) :
     null;
 
-  var remoteUrlP;
+  let remoteUrlP;
   if (options.repo && gitUtils.gitUrlIsLocalNotSsh(options.repo)) {
     // Use user-requested branch with default of current branch
-    var branchForRemoteP = branchP || gitUtils.getBranch(gitOptions);
+    const branchForRemoteP = branchP || gitUtils.getBranch(gitOptions);
     remoteUrlP = branchForRemoteP
-      .then(function(branch) {
-        return gitUtils.getRemote(branch, gitOptions);
-      })
-      .catch(function(err) {
+      .then((branch) => gitUtils.getRemote(branch, gitOptions))
+      .catch((err) => {
         if (options.verbosity > 0) {
-          options.err.write('DEBUG: Unable to get remote: ' + err + '\n' +
+          options.err.write(`DEBUG: Unable to get remote: ${err}\n` +
                             'DEBUG: Will try to use origin remote.\n');
         }
         return 'origin';
       })
-      .then(function(remote) {
-        return gitUtils.getRemoteUrl(remote, gitOptions);
-      });
+      .then((remote) => gitUtils.getRemoteUrl(remote, gitOptions));
   }
 
-  var appveyorClientP = options.appveyorClient;
-  var newAgent;
+  let appveyorClientP = options.appveyorClient;
+  let newAgent;
   if (!appveyorClientP) {
-    var appveyorClientOptions = {
+    const appveyorClientOptions = {
       connectionAgent: options.agent,
       spec: appveyorSwagger,
       usePromise: true
@@ -282,7 +275,7 @@ function canonicalizeOptions(options, apiFunc) {
       appveyorClientOptions.authorizations = {
         apiToken: new SwaggerClient.ApiKeyAuthorization(
           'Authorization',
-          'Bearer ' + options.token,
+          `Bearer ${options.token}`,
           'header'
         )
       };
@@ -292,20 +285,20 @@ function canonicalizeOptions(options, apiFunc) {
     appveyorClientP = new SwaggerClient(appveyorClientOptions);
   }
 
-  var commitP;
+  let commitP;
   if (options.commit) {
     commitP = /^[0-9a-f]{40}$/i.test(options.commit) ?
       Promise.resolve(options.commit.toLowerCase()) :
       gitUtils.resolveCommit(options.commit, gitOptions);
   }
 
-  var resultP = Promise.all([
+  let resultP = Promise.all([
     appveyorClientP,
     branchP,
     commitP,
     remoteUrlP || options.repo
   ])
-    .then(function(results) {
+    .then((results) => {
       options.appveyorClient = results[0];
       options.branch = results[1];
       options.commit = results[2];
@@ -318,7 +311,7 @@ function canonicalizeOptions(options, apiFunc) {
     resultP = promiseFinally(
       resultP,
       // Avoid holding connections open when caller does not expect it.
-      function() { newAgent.destroy(); }
+      () => { newAgent.destroy(); }
     );
   }
 
@@ -349,7 +342,7 @@ function wrapApiFunc(apiFunc) {
       throw new TypeError('callback must be a function');
     }
 
-    var resultP;
+    let resultP;
     try {
       resultP = canonicalizeOptions(options, apiFunc);
     } catch (err) {
@@ -367,8 +360,8 @@ function wrapApiFunc(apiFunc) {
  * @private
  */
 function getLastBuildNoWait(options) {
-  var lastBuildP;
-  var buildFromProject = options.project.builds && options.project.builds[0];
+  let lastBuildP;
+  const buildFromProject = options.project.builds && options.project.builds[0];
   if (options.useProjectBuilds &&
       buildFromProject &&
       (!options.branch || options.branch === buildFromProject.branch)) {
@@ -377,13 +370,13 @@ function getLastBuildNoWait(options) {
       build: buildFromProject
     });
   } else {
-    var params = {
+    const params = {
       accountName: options.project.accountName,
       projectSlug: options.project.slug
     };
 
-    var client = options.appveyorClient;
-    var responseP;
+    const client = options.appveyorClient;
+    let responseP;
     if (options.branch) {
       params.buildBranch = options.branch;
       responseP = client.Project.getProjectLastBuildBranch(params);
@@ -395,11 +388,11 @@ function getLastBuildNoWait(options) {
       .then(getResponseJson, makeClientErrorHandler('get last project build'));
   }
 
-  var checkedLastBuildP;
+  let checkedLastBuildP;
   if (options.commit) {
-    checkedLastBuildP = lastBuildP.then(function(projectBuild) {
+    checkedLastBuildP = lastBuildP.then((projectBuild) => {
       if (projectBuild.build.commitId !== options.commit) {
-        var err = new CommitMismatchError({
+        const err = new CommitMismatchError({
           actual: projectBuild.build.commitId,
           expected: options.commit
         });
@@ -427,49 +420,47 @@ function getLastBuildForProject(options) {
     return getLastBuildNoWait(options);
   }
 
-  var deadline = Date.now() + options.wait;
+  const deadline = Date.now() + options.wait;
 
   function checkRetry(projectBuild, prevDelay) {
-    var buildStatus = appveyorUtils.projectBuildToStatus(projectBuild);
+    const buildStatus = appveyorUtils.projectBuildToStatus(projectBuild);
     if (['cancelling', 'queued', 'running'].indexOf(buildStatus) < 0) {
       return projectBuild;
     }
 
-    var remaining = deadline - Date.now();
+    const remaining = deadline - Date.now();
     // Note:  If options.wait < RETRY_DELAY_MIN_MS, honor it
     if (remaining < Math.min(RETRY_DELAY_MIN_MS, options.wait)) {
       return projectBuild;
     }
 
-    var delay = Math.min(
+    const delay = Math.min(
       prevDelay * RETRY_DELAY_FACTOR_MS,
       remaining,
       RETRY_DELAY_MAX_MS
     );
 
     if (options.verbosity > 0) {
-      options.err.write('DEBUG: AppVeyor build queued.  Waiting ' +
-                        (delay / 1000) + ' seconds before retrying...\n');
+      options.err.write(`DEBUG: AppVeyor build queued.  Waiting ${
+                        delay / 1000} seconds before retrying...\n`);
     }
 
-    return new Promise(function(resolve) {
-      setTimeout(function() {
+    return new Promise((resolve) => {
+      setTimeout(() => {
         // Do not use options.project.builds after waiting
         delete options.useProjectBuilds;
 
         resolve(
           getLastBuildNoWait(options)
-            .then(function(result) {
-              return checkRetry(result, delay);
-            })
+            .then((result) => checkRetry(result, delay))
         );
       }, delay);
     });
   }
 
   return getLastBuildNoWait(options)
-    .then(function(result) {
-      var seedDelay = RETRY_DELAY_MIN_MS / RETRY_DELAY_FACTOR_MS;
+    .then((result) => {
+      const seedDelay = RETRY_DELAY_MIN_MS / RETRY_DELAY_FACTOR_MS;
       return checkRetry(result, seedDelay);
     });
 }
@@ -483,24 +474,23 @@ function getLastBuildForProject(options) {
  */
 function getMatchingProject(options) {
   // Parse early to avoid delay on error
-  var avRepo = appveyorUtils.parseAppveyorRepoUrl(options.repo);
+  const avRepo = appveyorUtils.parseAppveyorRepoUrl(options.repo);
 
   return options.appveyorClient.Project.getProjects()
     .then(getResponseJson, makeClientErrorHandler('get projects'))
-    .then(function(projects) {
-      var repoProjects = projects.filter(function(project) {
-        return shallowStrictCommonEqual(avRepo, project);
-      });
+    .then((projects) => {
+      const repoProjects =
+        projects.filter((project) => shallowStrictCommonEqual(avRepo, project));
 
       if (repoProjects.length === 0) {
-        throw new Error('No AppVeyor projects matching ' +
-                        JSON.stringify(avRepo));
+        throw new Error(`No AppVeyor projects matching ${
+                        JSON.stringify(avRepo)}`);
       } else if (repoProjects.length > 1) {
         // Callers may want to handle this error specially, so make it usable
-        var repoProjectStrs = repoProjects.map(appveyorUtils.projectToString);
+        const repoProjectStrs = repoProjects.map(appveyorUtils.projectToString);
         throw new AmbiguousProjectError(
-          'Multiple AppVeyor projects matching ' + JSON.stringify(avRepo) +
-            ': ' + repoProjectStrs.join(', '),
+          `Multiple AppVeyor projects matching ${JSON.stringify(avRepo)
+            }: ${repoProjectStrs.join(', ')}`,
           repoProjectStrs
         );
       }
@@ -525,8 +515,8 @@ function getLastBuildInternal(options) {
   }
 
   return getMatchingProject(options)
-    .then(function(project) {
-      var optionsWithProject = assign({}, options);
+    .then((project) => {
+      const optionsWithProject = assign({}, options);
       optionsWithProject.project = project;
       optionsWithProject.useProjectBuilds = true;
       return getLastBuildForProject(optionsWithProject);
@@ -566,7 +556,7 @@ function getStatusBadgeInternal(options) {
     throw new Error('options.repo, statusBadgeId, or webhookId is required');
   }
 
-  var params = {
+  const params = {
     // Match badge labels to API Status enumeration
     failingText: 'failed',
     passingText: 'success',
@@ -574,8 +564,8 @@ function getStatusBadgeInternal(options) {
     svg: true
   };
 
-  var client = options.appveyorClient;
-  var responseP;
+  const client = options.appveyorClient;
+  let responseP;
   if (options.statusBadgeId || options.webhookId) {
     params.statusBadgeId = options.statusBadgeId || options.webhookId;
 

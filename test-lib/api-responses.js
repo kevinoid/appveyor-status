@@ -5,10 +5,10 @@
 
 'use strict';
 
-var fs = require('fs');
-var path = require('path');
+const fs = require('fs');
+const path = require('path');
 
-var badgeData;
+let badgeData;
 
 /** Copy the values of all enumerable own properties which exist on the target
  * object from one or more source objects. (Like Object.assign except no new
@@ -26,14 +26,14 @@ function assignUpdate(target, varArgs) { // .length of function is 2
     throw new TypeError('Cannot convert undefined or null to object');
   }
 
-  var to = Object(target);
+  const to = Object(target);
 
-  for (var index = 1; index < arguments.length; index += 1) {
-    var nextSource = arguments[index];
+  for (let index = 1; index < arguments.length; index += 1) {
+    const nextSource = arguments[index];
 
     if (nextSource) {
       // eslint-disable-next-line no-restricted-syntax
-      for (var nextKey in nextSource) {
+      for (const nextKey in nextSource) {
         if (hasOwnProperty.call(nextSource, nextKey) &&
             hasOwnProperty.call(to, nextKey)) {
           to[nextKey] = nextSource[nextKey];
@@ -48,7 +48,7 @@ function assignUpdate(target, varArgs) { // .length of function is 2
 /** Gets a Project API response.
  */
 exports.getProject = function getProject(options) {
-  var project = {
+  const project = {
     projectId: 12345,
     accountId: 6789,
     accountName: 'test-account-name',
@@ -166,7 +166,7 @@ exports.getProject = function getProject(options) {
     updated: '2016-09-21T00:29:31.1506705+00:00'
   };
   assignUpdate(project, options);
-  project.builds.forEach(function(build) {
+  project.builds.forEach((build) => {
     assignUpdate(build, options);
   });
   return project;
@@ -175,7 +175,7 @@ exports.getProject = function getProject(options) {
 /** Gets a ProjectBuild API response with a given status.
  */
 exports.getProjectBuild = function getLastBuild(options) {
-  var projectBuild = {
+  const projectBuild = {
     project: {
       projectId: 12345,
       accountId: 6789,
@@ -332,7 +332,7 @@ exports.getProjectBuild = function getLastBuild(options) {
   };
   assignUpdate(projectBuild.project, options);
   assignUpdate(projectBuild.build, options);
-  projectBuild.build.jobs.forEach(function(job) {
+  projectBuild.build.jobs.forEach((job) => {
     assignUpdate(job, options);
   });
   return projectBuild;
@@ -340,7 +340,7 @@ exports.getProjectBuild = function getLastBuild(options) {
 
 exports.getStatusBadge = function getStatusBadge(status) {
   if (!badgeData) {
-    var badgeDataPath = path.join(__dirname, '..', 'test-data', 'badge.svg');
+    const badgeDataPath = path.join(__dirname, '..', 'test-data', 'badge.svg');
     badgeData =
       fs.readFileSync(badgeDataPath, {encoding: 'utf-8'});
   }

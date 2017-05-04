@@ -5,67 +5,67 @@
 
 'use strict';
 
-var assert = require('assert');
-var execFileOut = require('../../lib/exec-file-out');
+const assert = require('assert');
+const execFileOut = require('../../lib/exec-file-out');
 
-var deepStrictEqual = assert.deepStrictEqual || assert.deepEqual;
+const deepStrictEqual = assert.deepStrictEqual || assert.deepEqual;
 
 function neverCalled() {
   throw new Error('Should not be called');
 }
 
 function quote(str) {
-  return "'" +
+  return `'${
     str.replace(/\\/g, '\\\\')
       .replace(/'/g, '\\\'')
       // Escape newline and tab for easier debugging
       .replace(/\t/g, '\\t')
-      .replace(/\n/g, '\\n') +
-    "'";
+      .replace(/\n/g, '\\n')
+    }'`;
 }
 
 /** Creates a JavaScript test script which prints the given strings to stdout
  * and stderr then exits with the given code.
  */
 function makeScript(outStr, errStr, exitCode) {
-  var script = '';
+  let script = '';
   if (outStr) {
-    script += 'process.stdout.write(' + quote(outStr) + ');';
+    script += `process.stdout.write(${quote(outStr)});`;
   }
   if (errStr) {
-    script += 'process.stderr.write(' + quote(errStr) + ');';
+    script += `process.stderr.write(${quote(errStr)});`;
   }
-  script += 'process.exit(' + (exitCode || '0') + ')';
+  script += `process.exit(${exitCode || '0'})`;
   return script;
 }
 
-describe('execFileOut', function() {
-  it('returns a Promise with stdout', function() {
-    var testOut = 'stdout content';
-    var testArgs = ['-e', makeScript(testOut)];
+describe('execFileOut', () => {
+  it('returns a Promise with stdout', () => {
+    const testOut = 'stdout content';
+    const testArgs = ['-e', makeScript(testOut)];
     return execFileOut(process.execPath, testArgs)
-      .then(function(stdout) {
+      .then((stdout) => {
         assert.strictEqual(stdout, testOut);
       });
   });
 
-  it('returns a Promise with stdout as Buffer', function() {
-    var testOut = 'stdout content';
-    var testArgs = ['-e', makeScript(testOut)];
-    var options = {encoding: 'buffer'};
+  it('returns a Promise with stdout as Buffer', () => {
+    const testOut = 'stdout content';
+    const testArgs = ['-e', makeScript(testOut)];
+    const options = {encoding: 'buffer'};
     return execFileOut(process.execPath, testArgs, options)
-      .then(function(stdout) {
+      .then((stdout) => {
         deepStrictEqual(stdout, new Buffer(testOut));
       });
   });
 
-  it('rejects Promise with Error for non-0 exit code', function() {
-    var testOut = 'stdout content';
-    var testCode = 2;
-    var testArgs = ['-e', makeScript(testOut, null, testCode)];
+  it('rejects Promise with Error for non-0 exit code', () => {
+    const testOut = 'stdout content';
+    const testCode = 2;
+    const testArgs = ['-e', makeScript(testOut, null, testCode)];
     return execFileOut(process.execPath, testArgs).then(
       neverCalled,
-      function(err) {
+      (err) => {
         assert.strictEqual(err.cmd, [process.execPath].concat(testArgs).join(' '));
         assert.strictEqual(err.code, testCode);
         assert.strictEqual(err.stderr, '');
@@ -73,13 +73,13 @@ describe('execFileOut', function() {
       });
   });
 
-  it('rejects Promise with Error for non-empty stderr', function() {
-    var testOut = 'stdout content';
-    var testErr = 'stderr content';
-    var testArgs = ['-e', makeScript(testOut, testErr)];
+  it('rejects Promise with Error for non-empty stderr', () => {
+    const testOut = 'stdout content';
+    const testErr = 'stderr content';
+    const testArgs = ['-e', makeScript(testOut, testErr)];
     return execFileOut(process.execPath, testArgs).then(
       neverCalled,
-      function(err) {
+      (err) => {
         assert(err.message.indexOf(testErr) >= 0, 'stderr is in message');
         assert.strictEqual(err.cmd, [process.execPath].concat(testArgs).join(' '));
         assert.strictEqual(err.code, 0);
@@ -88,14 +88,14 @@ describe('execFileOut', function() {
       });
   });
 
-  it('rejects Promise with Error for non-empty stderr Buffer', function() {
-    var testOut = 'stdout content';
-    var testErr = 'stderr content';
-    var testArgs = ['-e', makeScript(testOut, testErr)];
-    var options = {encoding: 'buffer'};
+  it('rejects Promise with Error for non-empty stderr Buffer', () => {
+    const testOut = 'stdout content';
+    const testErr = 'stderr content';
+    const testArgs = ['-e', makeScript(testOut, testErr)];
+    const options = {encoding: 'buffer'};
     return execFileOut(process.execPath, testArgs, options).then(
       neverCalled,
-      function(err) {
+      (err) => {
         assert(err.message.indexOf(testErr) >= 0, 'stderr is in message');
         assert.strictEqual(err.cmd, [process.execPath].concat(testArgs).join(' '));
         assert.strictEqual(err.code, 0);
@@ -104,18 +104,17 @@ describe('execFileOut', function() {
       });
   });
 
-  it('does not reject stderr with only whitespace', function() {
-    var testOut = 'stdout content';
-    var testErr = '\n\t\t  \n';
-    var testArgs = ['-e', makeScript(testOut, testErr)];
+  it('does not reject stderr with only whitespace', () => {
+    const testOut = 'stdout content';
+    const testErr = '\n\t\t  \n';
+    const testArgs = ['-e', makeScript(testOut, testErr)];
     return execFileOut(process.execPath, testArgs)
-      .then(function(stdout) {
+      .then((stdout) => {
         assert.strictEqual(stdout, testOut);
       });
   });
 
-  it('closes stdin to prevent hanging', function() {
+  it('closes stdin to prevent hanging', () =>
     // Test will timeout if stdin is not closed
-    return execFileOut(process.execPath);
-  });
+     execFileOut(process.execPath));
 });
