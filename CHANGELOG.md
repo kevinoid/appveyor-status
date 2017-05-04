@@ -1,5 +1,14 @@
 # Change Log
 
+## [2.0.0](https://github.com/kevinoid/appveyor-status/tree/2.0.0) (2017-05-04)
+[Full Changelog](https://github.com/kevinoid/appveyor-status/compare/v1.0.2...2.0.0)
+
+- **BREAKING** Drop support for Node v0.12.  Require Node v4, which is required
+  by several dependencies.
+- Deprecate `--webhook` and `webhookId` in favor of `--badge` and
+  `statusBadgeId` which are used in the current version of the AppVeyor API.
+- Update dependency versions.
+
 ## [1.0.2](https://github.com/kevinoid/appveyor-status/tree/1.0.2) (2017-03-03)
 [Full Changelog](https://github.com/kevinoid/appveyor-status/compare/v1.0.1...1.0.2)
 
