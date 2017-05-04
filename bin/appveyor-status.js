@@ -217,6 +217,12 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
     .help()
     .alias('help', 'h')
     .alias('help', '?')
+    .option('badge', {
+      alias: 'B',
+      describe:
+        'Status Badge ID of project (from badge URL, exclusive with commit)',
+      nargs: 1
+    })
     .option('branch', {
       alias: 'b',
       description: 'Query latest build for a branch',
@@ -274,7 +280,8 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
     })
     .option('webhook', {
       alias: 'W',
-      describe: 'Webhook ID of project (from badge URL, exclusive with commit)',
+      /* Undocumented.  Deprecated in favor of --badge
+       * 'Webhook ID of project (from badge URL, exclusive with commit)' */
       nargs: 1
     })
     .version(packageJson.name + ' ' + packageJson.version)
@@ -320,6 +327,9 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
     if (argOpts.wait) {
       argOpts.wait *= 1000;
     }
+
+    argOpts.statusBadgeId = argOpts.badge;
+    delete argOpts.badge;
 
     argOpts.webhookId = argOpts.webhook;
     delete argOpts.webhook;

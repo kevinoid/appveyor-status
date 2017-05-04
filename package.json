@@ -42,7 +42,7 @@
     "version-deps": "npm install david depcheck git-branch-is travis-status"
   },
   "dependencies": {
-    "appveyor-swagger": "^0.20170308.0",
+    "appveyor-swagger": "^0.20170503.0",
     "array-uniq": "^1.0.3",
     "chalk": "^1.1.0",
     "escape-string-regexp": "^1.0.0",

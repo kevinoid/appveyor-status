@@ -32,8 +32,8 @@ const options = {
   // project: 'kevinoid/appveyor-status',
   // By repository path or URL
   // repo: 'https://github.com/kevinoid/appveyor-status.git',
-  // By webhookId (from badge URL)
-  // webhookId: '2fi78evfynm3wfog',
+  // By statusBadgeId (from badge URL)
+  // statusBadgeId: '2fi78evfynm3wfog',
 };
 appveyorStatus.getStatus(options).then(function(status) {
   console.log('Status of project matching git repo in cwd: ' + status);

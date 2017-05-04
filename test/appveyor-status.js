@@ -769,6 +769,20 @@ describe('appveyorStatus', function() {
         });
     });
 
+    it('rejects with Error for statusBadgeId', function() {
+      gitUtilsMock.expects('getBranch').never();
+      gitUtilsMock.expects('getRemote').never();
+      gitUtilsMock.expects('getRemoteUrl').never();
+      gitUtilsMock.expects('resolveCommit').never();
+      options.statusBadgeId = 'abcde';
+      return appveyorStatus.getLastBuild(options).then(
+        sinon.mock().never(),
+        function(err) {
+          assert.match(err.message, /required|supported/i);
+        }
+      );
+    });
+
     it('rejects with Error for webhookId', function() {
       gitUtilsMock.expects('getBranch').never();
       gitUtilsMock.expects('getRemote').never();
@@ -837,6 +851,29 @@ describe('appveyorStatus', function() {
         });
     });
 
+    it('queries badge by statusBadgeId', function() {
+      var testStatusBadgeId = 'abcde';
+      var testStatus = 'success';
+      gitUtilsMock.expects('getBranch').never();
+      gitUtilsMock.expects('getRemote').never();
+      gitUtilsMock.expects('getRemoteUrl').never();
+      gitUtilsMock.expects('resolveCommit').never();
+      var ne = nock(apiUrl)
+        .get('/api/projects/status/' + testStatusBadgeId)
+        .query(true)
+        .reply(
+          200,
+          apiResponses.getStatusBadge(testStatus),
+          {'Content-Type': 'image/svg+xml'}
+        );
+      options.statusBadgeId = testStatusBadgeId;
+      return appveyorStatus.getStatusBadge(options)
+        .then(function(badge) {
+          assert.strictEqual(badgeToStatus(badge), testStatus);
+          ne.done();
+        });
+    });
+
     it('queries badge by webhookId', function() {
       var testWebhookId = 'abcde';
       var testStatus = 'success';
@@ -853,6 +890,31 @@ describe('appveyorStatus', function() {
           {'Content-Type': 'image/svg+xml'}
         );
       options.webhookId = testWebhookId;
+      return appveyorStatus.getStatusBadge(options)
+        .then(function(badge) {
+          assert.strictEqual(badgeToStatus(badge), testStatus);
+          ne.done();
+        });
+    });
+
+    it('queries badge by statusBadgeId and branch', function() {
+      var testBranch = 'testb';
+      var testStatusBadgeId = 'abcde';
+      var testStatus = 'success';
+      gitUtilsMock.expects('getBranch').never();
+      gitUtilsMock.expects('getRemote').never();
+      gitUtilsMock.expects('getRemoteUrl').never();
+      gitUtilsMock.expects('resolveCommit').never();
+      var ne = nock(apiUrl)
+        .get('/api/projects/status/' + testStatusBadgeId + '/branch/' + testBranch)
+        .query(true)
+        .reply(
+          200,
+          apiResponses.getStatusBadge(testStatus),
+          {'Content-Type': 'image/svg+xml'}
+        );
+      options.branch = testBranch;
+      options.statusBadgeId = testStatusBadgeId;
       return appveyorStatus.getStatusBadge(options)
         .then(function(badge) {
           assert.strictEqual(badgeToStatus(badge), testStatus);
@@ -900,7 +962,7 @@ describe('appveyorStatus', function() {
           apiResponses.getStatusBadge(testStatus),
           {'Content-Type': 'image/svg+xml'}
         );
-      options.webhookId = testWebhookId;
+      options.statusBadgeId = testWebhookId;
       return appveyorStatus.getStatusBadge(options).then(
         sinon.mock().never(),
         function(err) {
@@ -920,7 +982,7 @@ describe('appveyorStatus', function() {
         .get('/api/projects/status/' + testWebhookId)
         .query(true)
         .reply(200, 'invalid', {'Content-Type': 'text/plain'});
-      options.webhookId = testWebhookId;
+      options.statusBadgeId = testWebhookId;
       return appveyorStatus.getStatusBadge(options).then(
         sinon.mock().never(),
         function(err) {
@@ -931,16 +993,16 @@ describe('appveyorStatus', function() {
     });
 
     it('rejects with Error for response without Content-Type', function() {
-      var testWebhookId = 'abcde';
+      var testStatusBadgeId = 'abcde';
       gitUtilsMock.expects('getBranch').never();
       gitUtilsMock.expects('getRemote').never();
       gitUtilsMock.expects('getRemoteUrl').never();
       gitUtilsMock.expects('resolveCommit').never();
       var ne = nock(apiUrl)
-        .get('/api/projects/status/' + testWebhookId)
+        .get('/api/projects/status/' + testStatusBadgeId)
         .query(true)
         .reply(200, 'invalid', {'Content-Type': undefined});
-      options.webhookId = testWebhookId;
+      options.statusBadgeId = testStatusBadgeId;
       return appveyorStatus.getStatusBadge(options).then(
         sinon.mock().never(),
         function(err) {
@@ -1063,6 +1125,32 @@ describe('appveyorStatus', function() {
           assert.instanceOf(err, Error);
           assert.match(err.message, /\bproject\b/);
           assert.match(err.message, /\brepo\b/);
+        }
+      );
+    });
+
+    it('rejects project and statusBadgeId with Error', function() {
+      options.project = 'foo/bar';
+      options.statusBadgeId = 'abcde';
+      return appveyorStatus.getStatus(options).then(
+        sinon.mock().never(),
+        function(err) {
+          assert.instanceOf(err, Error);
+          assert.match(err.message, /\bproject\b/);
+          assert.match(err.message, /\bstatusBadgeId\b/);
+        }
+      );
+    });
+
+    it('rejects repo and statusBadgeId with Error', function() {
+      options.repo = '.';
+      options.statusBadgeId = 'abcde';
+      return appveyorStatus.getStatus(options).then(
+        sinon.mock().never(),
+        function(err) {
+          assert.instanceOf(err, Error);
+          assert.match(err.message, /\brepo\b/);
+          assert.match(err.message, /\bstatusBadgeId\b/);
         }
       );
     });

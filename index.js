@@ -133,6 +133,7 @@ function makeClientErrorHandler(opDesc) {
  *   out: stream.Writable|undefined,
  *   project: string|undefined,
  *   repo: string|undefined,
+ *   statusBadgeId: string|undefined,
  *   token: string|undefined,
  *   verbosity: number|undefined,
  *   wait: boolean|number|undefined,
@@ -151,18 +152,22 @@ function makeClientErrorHandler(opDesc) {
  * @property {stream.Writable=} err Stream to which errors (and non-output
  * status messages) are written. (default: <code>process.stderr</code>)
  * @property {(string|Project)=} project AppVeyor project to query (default:
- * auto-detect) (exclusive with repo and webhookId)
+ * auto-detect) (exclusive with repo, statusBadgeId, and webhookId)
  * @property {string=} repo repository to query (as
  * {bitbucket,github}/$user/$proj) (default: auto-detect)
- * (exclusive with project and webhookId)
+ * (exclusive with project, statusBadgeId, and webhookId)
+ * @property {string=} statusBadgeId Status badge ID to query
+ * (exclusive with project, repo, and webhookId)
  * @property {string=} token AppVeyor API access token.
  * @property {number=} verbosity Amount of diagnostic information to print
  * (0 is default, larger yields more output).
  * @property {number=} wait Length of time to wait (in milliseconds) for build
  * to complete.  If wait time is reached, incomplete build is returned.
  * (default: no polling)
- * @property {string=} webhookId webhook ID to query (default: auto-detect)
- * (exclusive with project and repo)
+ * @property {string=} webhookId *Deprecated* Webhook ID to query.  The
+ * webhookId has been replaced by statusBadgeId as the path parameter in the
+ * status badge URL.  This name is kept for backwards-compatibility only.
+ * (default: auto-detect) (exclusive with project, statusBadgeId, and repo)
  */
 // var AppveyorStatusOptions;
 
@@ -186,7 +191,7 @@ function canonicalizeOptions(options, apiFunc) {
   }
 
   if (options) {
-    var projectOpts = ['project', 'repo', 'webhookId']
+    var projectOpts = ['project', 'repo', 'statusBadgeId', 'webhookId']
       .filter(function(propName) {
         return options[propName];
       });
@@ -224,8 +229,11 @@ function canonicalizeOptions(options, apiFunc) {
     gitOptions.cwd = options.repo;
   }
 
-  // If project, repo, and webhookId are unspecified, use repo in current dir
-  if (!options.project && !options.repo && !options.webhookId) {
+  // If project, repo, statusBadgeId, & webhookId are unspecified, use work dir
+  if (!options.project &&
+      !options.repo &&
+      !options.statusBadgeId &&
+      !options.webhookId) {
     options.repo = '.';
   }
 
@@ -469,7 +477,7 @@ function getLastBuildForProject(options) {
 /** Gets the AppVeyor project which matches the given options.
  * @param {!Object} options Options, which must include .repo.
  * @return {!Promise<!Project>} AppVeyor project with the same repository
- * or webhookId as <code>options</code> or an Error if there is no single
+ * or statusBadgeId as <code>options</code> or an Error if there is no single
  * project which matches or another error occurs.
  * @private
  */
@@ -551,11 +559,11 @@ exports.getLastBuild = wrapApiFunc(getLastBuildInternal);
  * @private
  */
 function getStatusBadgeInternal(options) {
-  if (!options.repo && !options.webhookId) {
+  if (!options.repo && !options.statusBadgeId && !options.webhookId) {
     // Note:  Could resolve project to either using getLastBuild(), but the
     // overhead is enough that it's better for the caller to do that if it is
     // what they really want to do.
-    throw new Error('options.repo or options.webhookId is required');
+    throw new Error('options.repo, statusBadgeId, or webhookId is required');
   }
 
   var params = {
@@ -568,8 +576,8 @@ function getStatusBadgeInternal(options) {
 
   var client = options.appveyorClient;
   var responseP;
-  if (options.webhookId) {
-    params.webhookId = options.webhookId;
+  if (options.statusBadgeId || options.webhookId) {
+    params.statusBadgeId = options.statusBadgeId || options.webhookId;
 
     if (options.branch) {
       params.buildBranch = options.branch;
@@ -620,7 +628,7 @@ function getStatusInternal(options) {
       .then(appveyorUtils.projectBuildToStatus);
   }
 
-  // Otherwise get the status badge (which can resolve repo and webhookId in
+  // Otherwise get the status badge (which can resolve repo and statusBadgeId in
   // single request without authentication)
   return getStatusBadgeInternal(options)
     .then(appveyorUtils.badgeToStatus);

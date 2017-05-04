@@ -106,6 +106,10 @@ describe('appveyor-status command', function() {
   }
 
   // Check individual arguments are handled correctly
+  expectArgsResult(['--badge'], 4, null, /missing|not enough/i);
+  expectArgsResult(['-B'], 4, null, /missing|not enough/i);
+  expectArgsAs(['--badge', 'foo'], match({statusBadgeId: 'foo'}));
+  expectArgsAs(['-B', 'foo'], match({statusBadgeId: 'foo'}));
   expectArgsAs(['--branch'], match({branch: true}));
   expectArgsAs(['-b'], match({branch: true}));
   expectArgsAs(['--branch', 'foo'], match({branch: 'foo'}));
