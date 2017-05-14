@@ -1,5 +1,10 @@
 # Change Log
 
+## [2.0.1](https://github.com/kevinoid/appveyor-status/tree/2.0.1) (2017-05-14)
+[Full Changelog](https://github.com/kevinoid/appveyor-status/compare/v2.0.0...2.0.1)
+
+- Update swagger-client to the latest version 🚀 [\#7](https://github.com/kevinoid/appveyor-status/pull/7) ([greenkeeper[bot]](https://github.com/integration/greenkeeper))
+
 ## [2.0.0](https://github.com/kevinoid/appveyor-status/tree/2.0.0) (2017-05-04)
 [Full Changelog](https://github.com/kevinoid/appveyor-status/compare/v1.0.2...2.0.0)
 
