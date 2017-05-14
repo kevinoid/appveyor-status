@@ -44,6 +44,7 @@ const gitUtils = require('./lib/git-utils');
 const https = require('https');
 const nodeify = require('promise-nodeify');
 const promiseFinally = require('promise-finally').default;
+const url = require('url');
 
 /** Multiplicative increase in delay between retries.
  * @const
@@ -83,7 +84,9 @@ function shallowStrictCommonEqual(obj1, obj2) {
  * @private
  */
 function getResponseJson(response) {
-  if (response.obj === null || response.obj === undefined) {
+  if (response.obj === null ||
+      response.obj === undefined ||
+      response.obj === response.data) {
     try {
       response.obj = JSON.parse(response.data);
     } catch (errJson) {
@@ -116,35 +119,39 @@ function getResponseSvg(response) {
   return response.data.toString();
 }
 
-/** Makes a function to handle SwaggerClient error responses for an operation.
- * @param {string} opDesc Description of the operation which caused the error.
+/** Makes a function to catch SwaggerClient errors from operations and add
+ * additional information.
+ * @param {string} msgPrefix String to be prepended to error message.
  * @return {function(Object): Promise} Function which creates an Error from the
  * SwaggerClient result object and returns a rejected Promise with the error.
  * @private
  */
-function makeClientErrorHandler(opDesc) {
-  return function responseToClientError(result) {
-    let message = `Unable to ${opDesc}`;
+function makeClientErrorHandler(msgPrefix) {
+  return (err) => {
+    const res = err.response;
 
-    // SuperAgent Error object
-    const errHttp =
-      result.errObj &amp;&amp; result.errObj.response &amp;&amp; result.errObj.response.error;
-    if (errHttp &amp;&amp; errHttp.message) {
-      message += `: ${errHttp.message}`;
-    } else if (result.errObj &amp;&amp; result.errObj.message) {
-      // Node http Error object
-      message += `: ${result.errObj.message}`;
+    err.message = msgPrefix + err.message;
+
+    if (res &amp;&amp; res.status) {
+      err.message += ` (${res.status})`;
     }
 
-    // Parsed JSON response body
-    if (result.obj &amp;&amp; result.obj.message) {
-      message += `: ${result.obj.message}`;
+    // Add server error in message property of response body JSON, if present
+    const apiMessage = res &amp;&amp; res.body &amp;&amp; res.body.message;
+    if (apiMessage) {
+      err.message += `: ${apiMessage}`;
     }
 
-    const err = new Error(message);
-    err.body = result.obj;
-    assign(err, errHttp);
-    return Promise.reject(err);
+    // Set SuperAgent-like Error properties for API backwards-compatibility
+    if (res) {
+      // Note:  .status and .statusCode set by SwaggerClient
+      err.body = res.body;
+      err.text = res.text;
+      err.method = 'GET';
+      err.path = url.parse(res.url).path;
+    }
+
+    throw err;
   };
 }
 
@@ -170,7 +177,7 @@ function makeClientErrorHandler(opDesc) {
  * inter-call keep-alive and request sharing) (ignored if appveyorClient is
  * set).
  * @property {(SwaggerClient|Promise&lt;SwaggerClient>)=} appveyorClient client
- * used to query the AppVeyor API.  Must be constructed with usePromise: true.
+ * used to query the AppVeyor API.
  * @property {(string|boolean)=} branch query latest build for named branch,
  * or the current branch
  * @property {string=} commit require build to be for a specific commit.
@@ -287,8 +294,7 @@ function canonicalizeOptions(options, apiFunc) {
   if (!appveyorClientP) {
     const appveyorClientOptions = {
       connectionAgent: options.agent,
-      spec: appveyorSwagger,
-      usePromise: true
+      spec: appveyorSwagger
     };
 
     // If unspecified by caller, use an HTTP Agent with keep-alive enabled for
@@ -301,15 +307,11 @@ function canonicalizeOptions(options, apiFunc) {
 
     if (options.token) {
       appveyorClientOptions.authorizations = {
-        apiToken: new SwaggerClient.ApiKeyAuthorization(
-          'Authorization',
-          `Bearer ${options.token}`,
-          'header'
-        )
+        apiToken: `Bearer ${options.token}`
       };
     }
-    // Note: With usePromise: true the constructor returns a Promise for the
-    // SwaggerClient rather than the SwaggerClient instance.
+    // Note: The constructor returns a Promise for the SwaggerClient rather
+    // than the SwaggerClient instance.
     appveyorClientP = new SwaggerClient(appveyorClientOptions);
   }
 
@@ -407,13 +409,14 @@ function getLastBuildNoWait(options) {
     let responseP;
     if (options.branch) {
       params.buildBranch = options.branch;
-      responseP = client.Project.getProjectLastBuildBranch(params);
+      responseP = client.apis.Project.getProjectLastBuildBranch(params);
     } else {
-      responseP = client.Project.getProjectLastBuild(params);
+      responseP = client.apis.Project.getProjectLastBuild(params);
     }
 
     lastBuildP = responseP
-      .then(getResponseJson, makeClientErrorHandler('get last project build'));
+      .catch(makeClientErrorHandler('Unable to get last project build: '))
+      .then(getResponseJson);
   }
 
   let checkedLastBuildP;
@@ -504,11 +507,13 @@ function getMatchingProject(options) {
   // Parse early to avoid delay on error
   const avRepo = appveyorUtils.parseAppveyorRepoUrl(options.repo);
 
-  return options.appveyorClient.Project.getProjects()
-    .then(getResponseJson, makeClientErrorHandler('get projects'))
+  return options.appveyorClient.apis.Project.getProjects()
+    .catch(makeClientErrorHandler('Unable to get projects: '))
+    .then(getResponseJson)
     .then((projects) => {
-      const repoProjects =
-        projects.filter((project) => shallowStrictCommonEqual(avRepo, project));
+      const repoProjects = projects.filter((project) =>
+        shallowStrictCommonEqual(avRepo, project)
+      );
 
       if (repoProjects.length === 0) {
         throw new Error(`No AppVeyor projects matching ${
@@ -599,22 +604,21 @@ function getStatusBadgeInternal(options) {
 
     if (options.branch) {
       params.buildBranch = options.branch;
-      responseP = client.Project.getProjectBranchStatusBadge(params);
+      responseP = client.apis.Project.getProjectBranchStatusBadge(params);
     } else {
-      responseP = client.Project.getProjectStatusBadge(params);
+      responseP = client.apis.Project.getProjectStatusBadge(params);
     }
   } else {
     assign(params, appveyorUtils.repoUrlToBadgeParams(options.repo));
     if (options.branch) {
       params.branch = options.branch;
     }
-    responseP = client.Project.getPublicProjectStatusBadge(params);
+    responseP = client.apis.Project.getPublicProjectStatusBadge(params);
   }
 
-  return responseP.then(
-    getResponseSvg,
-    makeClientErrorHandler('get project status badge')
-  );
+  return responseP
+    .catch(makeClientErrorHandler('Unable to get project status badge: '))
+    .then(getResponseSvg);
 }
 
 /** Gets the AppVeyor status badge for a repo/branch.
@@ -690,7 +694,7 @@ exports.CommitMismatchError = CommitMismatchError;
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.3</a> on Thu May 04 2017 00:53:18 GMT-0600 (MDT)
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.3</a> on Sun May 14 2017 11:13:12 GMT-0600 (MDT)
 </footer>
 
 <script> prettyPrint(); </script>
