@@ -91,51 +91,38 @@ function getResponseSvg(response) {
   return response.data.toString();
 }
 
-/** Checks the HTTP status code of a response and throws an Error if the
- * code is not 2XX.
- * @param {!http.IncomingMessage|!fetch.Response} res HTTP response object.
- * @return {!http.IncomingMessage|!fetch.Response} <code>res</code>.
- * @throws {Error} If the HTTP status code is < 200 or >= 300.
+/** Makes a function to catch SwaggerClient errors from operations and add
+ * additional information.
+ * @param {string} msgPrefix String to be prepended to error message.
+ * @return {function(Object): Promise} Function which creates an Error from the
+ * SwaggerClient result object and returns a rejected Promise with the error.
  * @private
  */
-function checkResponseCode(res) {
-  const statusCode = res.statusCode || res.status;
-  if (statusCode >= 200 && statusCode < 300) {
-    return res;
-  }
+function makeClientErrorHandler(msgPrefix) {
+  return (err) => {
+    const res = err.response;
 
-  let message = statusCode;
-  const statusText = res.statusMessage || res.statusText;
-  if (statusText) {
-    message += ` ${statusText}`;
-  }
-  if (res.obj && res.obj.message) {
-    message += `: ${res.obj.message}`;
-  }
+    err.message = msgPrefix + err.message;
 
-  // Set SuperAgent-like Error properties for API compatibility
-  const err = new Error(message);
-  err.body = res.obj;
-  err.status = statusCode;
-  err.text = res.text;
-  err.method = 'GET';
-  err.path = url.parse(res.url).path;
-  return Promise.reject(err);
-}
+    if (res && res.status) {
+      err.message += ` (${res.status})`;
+    }
 
-/** Creates a function which will prepend a string to the message property of
- * its argument then throw it.
- * @param {string} msgPrefix String to be prepended.
- * @return {function(!{message: string})} Function which prepends
- * <code>msgPrefix</code> to the message property of its argument then throws
- * it.
- */
-function errorMessagePrepender(msgPrefix) {
-  return function prependErrorMessage(err) {
-    // Set using property descriptor so enumerability is preserved
-    const messageDesc = Object.getOwnPropertyDescriptor(err, 'message');
-    messageDesc.value = msgPrefix + messageDesc.value;
-    Object.defineProperty(err, 'message', messageDesc);
+    // Add server error in message property of response body JSON, if present
+    const apiMessage = res && res.body && res.body.message;
+    if (apiMessage) {
+      err.message += `: ${apiMessage}`;
+    }
+
+    // Set SuperAgent-like Error properties for API backwards-compatibility
+    if (res) {
+      // Note:  .status and .statusCode set by SwaggerClient
+      err.body = res.body;
+      err.text = res.text;
+      err.method = 'GET';
+      err.path = url.parse(res.url).path;
+    }
+
     throw err;
   };
 }
@@ -400,8 +387,7 @@ function getLastBuildNoWait(options) {
     }
 
     lastBuildP = responseP
-      .then(checkResponseCode)
-      .catch(errorMessagePrepender('Unable to get last project build: '))
+      .catch(makeClientErrorHandler('Unable to get last project build: '))
       .then(getResponseJson);
   }
 
@@ -494,8 +480,7 @@ function getMatchingProject(options) {
   const avRepo = appveyorUtils.parseAppveyorRepoUrl(options.repo);
 
   return options.appveyorClient.apis.Project.getProjects()
-    .then(checkResponseCode)
-    .catch(errorMessagePrepender('Unable to get projects: '))
+    .catch(makeClientErrorHandler('Unable to get projects: '))
     .then(getResponseJson)
     .then((projects) => {
       const repoProjects = projects.filter((project) =>
@@ -604,8 +589,7 @@ function getStatusBadgeInternal(options) {
   }
 
   return responseP
-    .then(checkResponseCode)
-    .catch(errorMessagePrepender('Unable to get project status badge: '))
+    .catch(makeClientErrorHandler('Unable to get project status badge: '))
     .then(getResponseSvg);
 }
 
