@@ -26,7 +26,12 @@ const badgeToStatus = appveyorUtils.badgeToStatus;
 const match = sinon.match;
 const projectBuildToStatus = appveyorUtils.projectBuildToStatus;
 
-describe('appveyorStatus', () => {
+// nock doesn't support Node v8 yet:
+// https://github.com/node-nock/nock/issues/922
+// https://github.com/node-nock/nock/issues/925
+const describeThis =
+  Number(process.version.slice(1).split('.', 1)[0]) >= 8 ? xdescribe : describe;
+describeThis('appveyorStatus', () => {
   // Ensure that expectations are not carried over between tests
   let gitUtilsMock;
   beforeEach(() => {
