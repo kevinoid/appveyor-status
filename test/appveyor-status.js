@@ -31,7 +31,10 @@ const projectBuildToStatus = appveyorUtils.projectBuildToStatus;
 // https://github.com/node-nock/nock/issues/925
 const describeThis =
   Number(process.version.slice(1).split('.', 1)[0]) >= 8 ? xdescribe : describe;
-describeThis('appveyorStatus', () => {
+describeThis('appveyorStatus', function() {
+  // Increase timeout to cover slower CI environments.
+  this.timeout(4000);
+
   // Ensure that expectations are not carried over between tests
   let gitUtilsMock;
   beforeEach(() => {
