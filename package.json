@@ -44,7 +44,7 @@
   "dependencies": {
     "appveyor-swagger": "^0.20170518.0",
     "array-uniq": "^1.0.3",
-    "chalk": "^1.1.0",
+    "chalk": "^2.0.0",
     "escape-string-regexp": "^1.0.0",
     "file-url": "^2.0.2",
     "get-exec-file": "^1.1.0",
