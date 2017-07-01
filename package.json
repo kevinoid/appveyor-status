@@ -31,7 +31,7 @@
     "lint-js": "node-version-gte-4 && eslint . && echo ESLint passed. || node-version-lt-4",
     "postpublish": "git -C doc push && git push --follow-tags origin master gh-pages && echo Remember to update GitHub Releases from CHANGELOG.md && echo until skywinder/github-changelog-generator#56 is fixed.",
     "postversion": "rimraf doc && git clone -b gh-pages -l -q . doc && npm run doc && git -C doc add . && git -C doc commit -n -m \"Docs for v$npm_package_version\"",
-    "preversion": "depcheck --ignores eslint-plugin-import --ignore-dirs doc && david -i chai,pify,swagger-client && git-branch-is master && travis-status -b master -c -wx && ./bin/appveyor-status.js -b master -c -p kevinoid/appveyor-status -w && istanbul check-coverage --statements 95 coverage/coverage.json",
+    "preversion": "depcheck --ignores eslint-plugin-import --ignore-dirs doc && david -i swagger-client && git-branch-is master && travis-status -b master -c -wx && ./bin/appveyor-status.js -b master -c -p kevinoid/appveyor-status -w && istanbul check-coverage --statements 95 coverage/coverage.json",
     "start": "supervisor --quiet --no-restart-on exit --extensions js,json --ignore test --poll-interval 2000 server.js",
     "test": "npm run lint && npm run test-unit",
     "test-cov": "npm run lint && npm run test-unit-cov",
@@ -44,7 +44,7 @@
   "dependencies": {
     "appveyor-swagger": "^0.20170518.0",
     "array-uniq": "^1.0.3",
-    "chalk": "^1.1.0",
+    "chalk": "^2.0.0",
     "escape-string-regexp": "^1.0.0",
     "file-url": "^2.0.2",
     "get-exec-file": "^1.1.0",
@@ -56,7 +56,7 @@
     "yargs": "^8.0.1"
   },
   "devDependencies": {
-    "chai": "^3.5.0",
+    "chai": "^4.0.0",
     "codecov": "^2.0.1",
     "coveralls": "^2.11.6",
     "eslint": "^3.0.0",
@@ -68,7 +68,7 @@
     "nock": "^9.0.0",
     "node-version-check": "^2.1.1",
     "nodecat": "^1.0.0",
-    "pify": "^2.3.0",
+    "pify": "^3.0.0",
     "rimraf": "^2.2.0",
     "sinon": "^2.0.0"
   },
