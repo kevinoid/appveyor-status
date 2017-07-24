@@ -167,7 +167,7 @@ describe('appveyor-status command', () => {
   expectArgsAs(['-W', 'foo'], match({webhookId: 'foo'}));
 
   expectArgsResult(['-t', 'foo', '-T', 'bar'], 4, null,
-                   /conflict|exclusive|together/i);
+    /conflict|exclusive|together/i);
 
   expectArgsAs(['-q', '-v'], match({verbosity: 0}));
   expectArgsAs(['-v', '-q'], match({verbosity: 0}));
@@ -177,7 +177,7 @@ describe('appveyor-status command', () => {
   // https://www.gnu.org/prep/standards/html_node/_002d_002dversion.html
   const versionRE = new RegExp(
     `^${escapeStringRegexp(`${packageJson.name} ${packageJson.version}`)
-      }\n`
+    }\n`
   );
   expectArgsResult(['--version'], 0, versionRE, null);
   expectArgsResult(['-V'], 0, versionRE, null);
@@ -237,7 +237,7 @@ describe('appveyor-status command', () => {
   statusValues.forEach((status) => {
     const colorName = status === 'success' ? 'green' :
       status === 'failed' ? 'red' :
-      'gray';
+        'gray';
     it(`prints ${status} in ${colorName} to TTY`, (done) => {
       appveyorStatusMock.expects('getStatus')
         .once().withArgs(match.object, match.func).yields(null, status);

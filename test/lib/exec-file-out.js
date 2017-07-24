@@ -21,7 +21,7 @@ function quote(str) {
       // Escape newline and tab for easier debugging
       .replace(/\t/g, '\\t')
       .replace(/\n/g, '\\n')
-    }'`;
+  }'`;
 }
 
 /** Creates a JavaScript test script which prints the given strings to stdout
@@ -116,5 +116,5 @@ describe('execFileOut', () => {
 
   it('closes stdin to prevent hanging', () =>
     // Test will timeout if stdin is not closed
-     execFileOut(process.execPath));
+    execFileOut(process.execPath));
 });

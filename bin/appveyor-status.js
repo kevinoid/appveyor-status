@@ -96,8 +96,9 @@ function checkStatus(options, callback) {
         if (options.commit !== err.expected) {
           expected += ` (${err.expected})`;
         }
-        options.err.write(`Error: Last build commit ${err.actual
-                          } did not match ${expected}\n`);
+        options.err.write(
+          `Error: Last build commit ${err.actual} did not match ${expected}\n`
+        );
         callback(null, ExitCode.FAIL_COMMIT);
       } else {
         options.err.write(`${err}\n`);
@@ -289,9 +290,9 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
     .strict();
   parseYargs(yargs, args, (err, argOpts, output) => {
     if (err) {
-      options.err.write(output ?
-                          `${output}\n` :
-                          `${err.name}: ${err.message}\n`);
+      options.err.write(
+        output ? `${output}\n` : `${err.name}: ${err.message}\n`
+      );
       callback(null, ExitCode.FAIL_ARGUMENTS);
       return;
     }
@@ -341,8 +342,9 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
         fs.createReadStream(argOpts.tokenFile);
       readAllStream(tokenFileStream, (errRead, token) => {
         if (errRead) {
-          options.err.write(`Error: Unable to read API token file: ${
-                            errRead.message}\n`);
+          options.err.write(
+            `Error: Unable to read API token file: ${errRead.message}\n`
+          );
           callback(null, ExitCode.FAIL_ARGUMENTS);
           return;
         }

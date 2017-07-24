@@ -53,37 +53,37 @@ before('setup test repository', function() {
     // The user name and email must be configured for the later git commands
     // to work.  On Travis CI (and probably others) there is no global config
     .then(() => execFileOut(
-        'git',
-        ['-C', TEST_REPO_PATH, 'config', 'user.name', 'Test User']
-      ))
+      'git',
+      ['-C', TEST_REPO_PATH, 'config', 'user.name', 'Test User']
+    ))
     .then(() => execFileOut(
-        'git',
-        ['-C', TEST_REPO_PATH, 'config', 'user.email', 'test@example.com']
-      ))
+      'git',
+      ['-C', TEST_REPO_PATH, 'config', 'user.email', 'test@example.com']
+    ))
     .then(() => execFileOut(
-        'git',
+      'git',
       ['-C', TEST_REPO_PATH, 'commit', '-q', '-m', 'Initial Commit',
         '--allow-empty']
-      ))
+    ))
     .then(() => execFileOut('git', ['-C', TEST_REPO_PATH, 'tag', TAGS[0]]))
     .then(() => execFileOut(
-        'git',
+      'git',
       ['-C', TEST_REPO_PATH, 'commit', '-q', '-m', 'Second Commit',
         '--allow-empty']
-      ))
+    ))
     .then(() => Object.keys(REMOTES).reduce((p, remoteName) => p.then(() => {
       const remoteUrl = REMOTES[remoteName];
       return execFileOut(
-            'git',
-            ['-C', TEST_REPO_PATH, 'remote', 'add', remoteName, remoteUrl]
-          );
+        'git',
+        ['-C', TEST_REPO_PATH, 'remote', 'add', remoteName, remoteUrl]
+      );
     }), Promise.resolve()))
     .then(() => Object.keys(BRANCH_REMOTES)
-        .filter((branchName) => branchName !== 'master')
-        .reduce((p, branchName) => p.then(() => execFileOut(
-              'git',
-              ['-C', TEST_REPO_PATH, 'branch', branchName]
-            )), Promise.resolve()))
+      .filter((branchName) => branchName !== 'master')
+      .reduce((p, branchName) => p.then(() => execFileOut(
+        'git',
+        ['-C', TEST_REPO_PATH, 'branch', branchName]
+      )), Promise.resolve()))
     .then(() =>
       Object.keys(BRANCH_REMOTES).reduce((p, branchName) =>
         p.then(() => {
@@ -91,7 +91,7 @@ before('setup test repository', function() {
           if (!upstream) {
             return p;
           }
-              // Note:  Can't use 'git branch -u' without fetching remote
+          // Note:  Can't use 'git branch -u' without fetching remote
           const upstreamParts = upstream.split('/');
           assert.strictEqual(upstreamParts.length, 2);
           const remoteName = upstreamParts[0];
@@ -101,14 +101,14 @@ before('setup test repository', function() {
           const configMerge = `${configBranch}.merge`;
           const configRemote = `${configBranch}.remote`;
           return execFileOut(
-                'git',
-                ['-C', TEST_REPO_PATH, 'config', '--add', configRemote, remoteName]
-              )
-                .then(() => execFileOut(
-                    'git',
-                  ['-C', TEST_REPO_PATH,
-                    'config', '--add', configMerge, remoteRef]
-                  ));
+            'git',
+            ['-C', TEST_REPO_PATH, 'config', '--add', configRemote, remoteName]
+          )
+            .then(() => execFileOut(
+              'git',
+              ['-C', TEST_REPO_PATH,
+                'config', '--add', configMerge, remoteRef]
+            ));
         }), Promise.resolve()));
 });
 
@@ -127,20 +127,20 @@ describe('gitUtils', () => {
     }));
 
     it('resolves branch1 on branch1', () => execFileOut('git', ['checkout', '-q', 'branch1'], options)
-        .then(() => gitUtils.getBranch(options))
-        .then((branch) => {
-          assert.strictEqual(branch, 'branch1');
-        }));
+      .then(() => gitUtils.getBranch(options))
+      .then((branch) => {
+        assert.strictEqual(branch, 'branch1');
+      }));
 
     it('rejects with Error not on branch', () => execFileOut('git', ['checkout', '-q', 'HEAD^'], options)
-        .then(() => gitUtils.getBranch(options))
-        .then(
-          neverCalled,
-          (err) => {
-            assert.instanceOf(err, Error);
-            assert.match(err.message, /branch/i);
-          }
-        ));
+      .then(() => gitUtils.getBranch(options))
+      .then(
+        neverCalled,
+        (err) => {
+          assert.instanceOf(err, Error);
+          assert.match(err.message, /branch/i);
+        }
+      ));
   });
 
   describe('.getRemote', () => {
@@ -158,33 +158,33 @@ describe('gitUtils', () => {
     });
 
     it('rejects branch without remote with Error', () => gitUtils.getRemote('branchnoremote', options).then(
-        neverCalled,
-        (err) => {
-          assert.instanceOf(err, Error);
-        }
-      ));
+      neverCalled,
+      (err) => {
+        assert.instanceOf(err, Error);
+      }
+    ));
   });
 
   describe('.getRemoteUrl', () => {
     Object.keys(REMOTES).forEach((remoteName) => {
       const remoteUrl = REMOTES[remoteName];
       it(`resolves ${remoteName} to ${remoteUrl}`, () => gitUtils.getRemoteUrl(remoteName, options)
-          .then((resultUrl) => {
-            assert.strictEqual(resultUrl, remoteUrl);
-          }));
+        .then((resultUrl) => {
+          assert.strictEqual(resultUrl, remoteUrl);
+        }));
     });
 
     it('rejects invalid remote with Error', () => gitUtils.getRemoteUrl('invalidremote', options).then(
-        neverCalled,
-        (err) => {
-          assert.instanceOf(err, Error);
-        }
-      ));
+      neverCalled,
+      (err) => {
+        assert.instanceOf(err, Error);
+      }
+    ));
 
     it('uses ls-remote default for unspecified remote', () => gitUtils.getRemoteUrl(null, options)
-        .then((resultUrl) => {
-          assert.strictEqual(resultUrl, REMOTES.origin);
-        }));
+      .then((resultUrl) => {
+        assert.strictEqual(resultUrl, REMOTES.origin);
+      }));
   });
 
   describe('.gitUrlIsLocalNotSsh', () => {
@@ -320,10 +320,10 @@ describe('gitUtils', () => {
     }));
 
     it('rejects with Error for unresolvable name', () => gitUtils.resolveCommit('notabranch', options).then(
-        neverCalled,
-        (err) => {
-          assert(err instanceof Error);
-        }
-      ));
+      neverCalled,
+      (err) => {
+        assert(err instanceof Error);
+      }
+    ));
   });
 });

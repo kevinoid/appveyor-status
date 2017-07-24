@@ -62,10 +62,10 @@ function getResponseJson(response) {
     try {
       response.obj = JSON.parse(response.data);
     } catch (errJson) {
-      const err = new Error(`Unable to parse JSON from ${response.method} ${
-                          response.url} with Content-Type ${
-                          response.headers['content-type']}: ${
-                          errJson.message}`);
+      const err = new Error(
+        `Unable to parse JSON from ${response.method} ${response.url} with ` +
+        `Content-Type ${response.headers['content-type']}: ${errJson.message}`
+      );
       err.cause = errJson;
       throw err;
     }
@@ -243,7 +243,7 @@ function canonicalizeOptions(options, apiFunc) {
 
   const branchP = options.branch === true ? gitUtils.getBranch(gitOptions) :
     options.branch ? Promise.resolve(options.branch) :
-    null;
+      null;
 
   let remoteUrlP;
   if (options.repo && gitUtils.gitUrlIsLocalNotSsh(options.repo)) {
@@ -444,8 +444,8 @@ function getLastBuildForProject(options) {
     );
 
     if (options.verbosity > 0) {
-      options.err.write(`DEBUG: AppVeyor build queued.  Waiting ${
-                        delay / 1000} seconds before retrying...\n`);
+      options.err.write('DEBUG: AppVeyor build queued.  ' +
+                        `Waiting ${delay / 1000} seconds before retrying...\n`);
     }
 
     return new Promise((resolve) => {
@@ -488,14 +488,15 @@ function getMatchingProject(options) {
       );
 
       if (repoProjects.length === 0) {
-        throw new Error(`No AppVeyor projects matching ${
-                        JSON.stringify(avRepo)}`);
+        throw new Error(
+          `No AppVeyor projects matching ${JSON.stringify(avRepo)}`
+        );
       } else if (repoProjects.length > 1) {
         // Callers may want to handle this error specially, so make it usable
         const repoProjectStrs = repoProjects.map(appveyorUtils.projectToString);
         throw new AmbiguousProjectError(
-          `Multiple AppVeyor projects matching ${JSON.stringify(avRepo)
-            }: ${repoProjectStrs.join(', ')}`,
+          `Multiple AppVeyor projects matching ${JSON.stringify(avRepo)}: ${
+            repoProjectStrs.join(', ')}`,
           repoProjectStrs
         );
       }
