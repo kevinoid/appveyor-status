@@ -250,13 +250,15 @@ describeThis('appveyorStatus', function() {
       let clock;
       beforeEach(() => {
         // No need to mock setImmediate, which is used in this file.
-        clock = sinon.useFakeTimers(
-          'setTimeout',
-          'clearTimeout',
-          'setInterval',
-          'clearInterval',
-          'Date'
-        );
+        clock = sinon.useFakeTimers({
+          toFake: [
+            'setTimeout',
+            'clearTimeout',
+            'setInterval',
+            'clearInterval',
+            'Date'
+          ]
+        });
       });
       afterEach(() => {
         clock.restore();
