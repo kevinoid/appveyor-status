@@ -166,8 +166,10 @@ describe('appveyor-status command', () => {
   expectArgsAs(['--webhook', 'foo'], match({webhookId: 'foo'}));
   expectArgsAs(['-W', 'foo'], match({webhookId: 'foo'}));
 
-  expectArgsResult(['-t', 'foo', '-T', 'bar'], 4, null,
-    /conflict|exclusive|together/i);
+  expectArgsResult(
+    ['-t', 'foo', '-T', 'bar'], 4, null,
+    /conflict|exclusive|together/i
+  );
 
   expectArgsAs(['-q', '-v'], match({verbosity: 0}));
   expectArgsAs(['-v', '-q'], match({verbosity: 0}));
@@ -175,10 +177,8 @@ describe('appveyor-status command', () => {
 
   // Satisfy GNU Coding Standards --version convention:
   // https://www.gnu.org/prep/standards/html_node/_002d_002dversion.html
-  const versionRE = new RegExp(
-    `^${escapeStringRegexp(`${packageJson.name} ${packageJson.version}`)
-    }\n`
-  );
+  const verStr = `${packageJson.name} ${packageJson.version}`;
+  const versionRE = new RegExp(`^${escapeStringRegexp(verStr)}\n`);
   expectArgsResult(['--version'], 0, versionRE, null);
   expectArgsResult(['-V'], 0, versionRE, null);
 

@@ -141,7 +141,8 @@ describe('appveyorUtils', () => {
 
     // FIXME:  Can't be sure this works without paid AppVeyor account
     it('parses vso project git SSH URL', () => {
-      const testUrl = 'ssh://kevinoid@kevinoid.visualstudio.com:22/_git/TestProj';
+      const testUrl =
+        'ssh://kevinoid@kevinoid.visualstudio.com:22/_git/TestProj';
       deepStrictEqual(
         appveyorUtils.parseAppveyorRepoUrl(testUrl),
         {
@@ -293,7 +294,8 @@ describe('appveyorUtils', () => {
 
     // Not supported by AppVeyor
     it('throws for vso SSH URL', () => {
-      const testUrl = 'ssh://kevinoid@kevinoid.visualstudio.com:22/_git/TestProj';
+      const testUrl =
+        'ssh://kevinoid@kevinoid.visualstudio.com:22/_git/TestProj';
       assert.throws(
         () => { appveyorUtils.repoUrlToBadgeParams(testUrl); },
         Error

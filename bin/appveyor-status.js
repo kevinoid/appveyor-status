@@ -54,7 +54,7 @@ const statusColor = {
 
 function coerceWait(arg) {
   const val = arg === true ? Infinity : Number(arg);
-  if (isNaN(val)) {
+  if (Number.isNaN(val)) {
     throw new Error(`Invalid number "${arg}"`);
   }
   return val;
@@ -96,9 +96,8 @@ function checkStatus(options, callback) {
         if (options.commit !== err.expected) {
           expected += ` (${err.expected})`;
         }
-        options.err.write(
-          `Error: Last build commit ${err.actual} did not match ${expected}\n`
-        );
+        options.err.write(`Error: Last build commit ${err.actual} ` +
+                          `did not match ${expected}\n`);
         callback(null, ExitCode.FAIL_COMMIT);
       } else {
         options.err.write(`${err}\n`);
@@ -237,7 +236,8 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
     })
     .option('commit', {
       alias: 'c',
-      description: 'Require build to be for named commit (requires project or token)',
+      description:
+        'Require build to be for named commit (requires project or token)',
       defaultDescription: 'HEAD'
     })
     .option('project', {
@@ -290,9 +290,8 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
     .strict();
   parseYargs(yargs, args, (err, argOpts, output) => {
     if (err) {
-      options.err.write(
-        output ? `${output}\n` : `${err.name}: ${err.message}\n`
-      );
+      options.err.write(output ? `${output}\n` :
+        `${err.name}: ${err.message}\n`);
       callback(null, ExitCode.FAIL_ARGUMENTS);
       return;
     }
@@ -342,9 +341,8 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
         fs.createReadStream(argOpts.tokenFile);
       readAllStream(tokenFileStream, (errRead, token) => {
         if (errRead) {
-          options.err.write(
-            `Error: Unable to read API token file: ${errRead.message}\n`
-          );
+          options.err.write('Error: Unable to read API token file: ' +
+                            `${errRead.message}\n`);
           callback(null, ExitCode.FAIL_ARGUMENTS);
           return;
         }

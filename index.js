@@ -62,10 +62,9 @@ function getResponseJson(response) {
     try {
       response.obj = JSON.parse(response.data);
     } catch (errJson) {
-      const err = new Error(
-        `Unable to parse JSON from ${response.method} ${response.url} with ` +
-        `Content-Type ${response.headers['content-type']}: ${errJson.message}`
-      );
+      const err = new Error(`Unable to parse JSON from ${response.method} ` +
+        `${response.url} with Content-Type ` +
+        `${response.headers['content-type']}: ${errJson.message}`);
       err.cause = errJson;
       throw err;
     }
@@ -200,9 +199,8 @@ function canonicalizeOptions(options, apiFunc) {
     const projectOpts = ['project', 'repo', 'statusBadgeId', 'webhookId']
       .filter((propName) => options[propName]);
     if (projectOpts.length > 1) {
-      throw new Error(
-        `${projectOpts.join(' and ')} can not be specified together`
-      );
+      throw new Error(`${projectOpts.join(' and ')}` +
+                      ' can not be specified together');
     }
   }
 
@@ -214,7 +212,7 @@ function canonicalizeOptions(options, apiFunc) {
   }
 
   options.wait = options.wait === true ? Infinity : Number(options.wait || 0);
-  if (isNaN(options.wait)) {
+  if (Number.isNaN(options.wait)) {
     throw new TypeError('options.wait must be a number');
   }
   if (options.wait < 0) {
@@ -453,10 +451,8 @@ function getLastBuildForProject(options) {
         // Do not use options.project.builds after waiting
         delete options.useProjectBuilds;
 
-        resolve(
-          getLastBuildNoWait(options)
-            .then((result) => checkRetry(result, delay))
-        );
+        resolve(getLastBuildNoWait(options)
+          .then((result) => checkRetry(result, delay)));
       }, delay);
     });
   }
@@ -484,13 +480,11 @@ function getMatchingProject(options) {
     .then(getResponseJson)
     .then((projects) => {
       const repoProjects = projects.filter((project) =>
-        shallowStrictCommonEqual(avRepo, project)
-      );
+        shallowStrictCommonEqual(avRepo, project));
 
       if (repoProjects.length === 0) {
-        throw new Error(
-          `No AppVeyor projects matching ${JSON.stringify(avRepo)}`
-        );
+        throw new Error('No AppVeyor projects matching ' +
+                        `${JSON.stringify(avRepo)}`);
       } else if (repoProjects.length > 1) {
         // Callers may want to handle this error specially, so make it usable
         const repoProjectStrs = repoProjects.map(appveyorUtils.projectToString);

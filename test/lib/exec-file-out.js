@@ -55,7 +55,7 @@ describe('execFileOut', () => {
     const options = {encoding: 'buffer'};
     return execFileOut(process.execPath, testArgs, options)
       .then((stdout) => {
-        deepStrictEqual(stdout, new Buffer(testOut));
+        deepStrictEqual(stdout, Buffer.from(testOut));
       });
   });
 
@@ -66,11 +66,15 @@ describe('execFileOut', () => {
     return execFileOut(process.execPath, testArgs).then(
       neverCalled,
       (err) => {
-        assert.strictEqual(err.cmd, [process.execPath].concat(testArgs).join(' '));
+        assert.strictEqual(
+          err.cmd,
+          [process.execPath].concat(testArgs).join(' ')
+        );
         assert.strictEqual(err.code, testCode);
         assert.strictEqual(err.stderr, '');
         assert.strictEqual(err.stdout, testOut);
-      });
+      }
+    );
   });
 
   it('rejects Promise with Error for non-empty stderr', () => {
@@ -81,11 +85,15 @@ describe('execFileOut', () => {
       neverCalled,
       (err) => {
         assert(err.message.indexOf(testErr) >= 0, 'stderr is in message');
-        assert.strictEqual(err.cmd, [process.execPath].concat(testArgs).join(' '));
+        assert.strictEqual(
+          err.cmd,
+          [process.execPath].concat(testArgs).join(' ')
+        );
         assert.strictEqual(err.code, 0);
         assert.strictEqual(err.stderr, testErr);
         assert.strictEqual(err.stdout, testOut);
-      });
+      }
+    );
   });
 
   it('rejects Promise with Error for non-empty stderr Buffer', () => {
@@ -97,11 +105,15 @@ describe('execFileOut', () => {
       neverCalled,
       (err) => {
         assert(err.message.indexOf(testErr) >= 0, 'stderr is in message');
-        assert.strictEqual(err.cmd, [process.execPath].concat(testArgs).join(' '));
+        assert.strictEqual(
+          err.cmd,
+          [process.execPath].concat(testArgs).join(' ')
+        );
         assert.strictEqual(err.code, 0);
-        deepStrictEqual(err.stderr, new Buffer(testErr));
-        deepStrictEqual(err.stdout, new Buffer(testOut));
-      });
+        deepStrictEqual(err.stderr, Buffer.from(testErr));
+        deepStrictEqual(err.stdout, Buffer.from(testOut));
+      }
+    );
   });
 
   it('does not reject stderr with only whitespace', () => {
