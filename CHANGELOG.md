@@ -1,5 +1,10 @@
 # Change Log
 
+## [2.0.2](https://github.com/kevinoid/appveyor-status/tree/2.0.2) (2018-04-19)
+[Full Changelog](https://github.com/kevinoid/appveyor-status/compare/v2.0.1...2.0.2)
+
+- Update dependency versions.
+
 ## [2.0.1](https://github.com/kevinoid/appveyor-status/tree/2.0.1) (2017-05-14)
 [Full Changelog](https://github.com/kevinoid/appveyor-status/compare/v2.0.0...2.0.1)
 
