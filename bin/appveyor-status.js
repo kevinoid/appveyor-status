@@ -14,8 +14,9 @@ const Yargs = require('yargs/yargs');
 const appveyorStatus = require('..');
 const assign = require('object-assign');
 const fs = require('fs');
-const packageJson = require('../package.json');
 const readAllStream = require('read-all-stream');
+
+const packageJson = require('../package.json');
 
 /** Exit codes returned by {@link module:appveyor-status/bin/appveyor-status}
  * (as a bi-directional map).
@@ -96,8 +97,8 @@ function checkStatus(options, callback) {
         if (options.commit !== err.expected) {
           expected += ` (${err.expected})`;
         }
-        options.err.write(`Error: Last build commit ${err.actual} ` +
-                          `did not match ${expected}\n`);
+        options.err.write(`Error: Last build commit ${err.actual} `
+                          + `did not match ${expected}\n`);
         callback(null, ExitCode.FAIL_COMMIT);
       } else {
         options.err.write(`${err}\n`);
@@ -172,8 +173,8 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
   try {
     if (args === undefined || args === null) {
       args = [];
-    } else if (typeof args !== 'object' ||
-               Math.floor(args.length) !== args.length) {
+    } else if (typeof args !== 'object'
+               || Math.floor(args.length) !== args.length) {
       throw new TypeError('args must be Array-like');
     } else if (args.length < 2) {
       throw new RangeError('args must have at least 2 elements');
@@ -290,8 +291,8 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
     .strict();
   parseYargs(yargs, args, (err, argOpts, output) => {
     if (err) {
-      options.err.write(output ? `${output}\n` :
-        `${err.name}: ${err.message}\n`);
+      options.err.write(output ? `${output}\n`
+        : `${err.name}: ${err.message}\n`);
       callback(null, ExitCode.FAIL_ARGUMENTS);
       return;
     }
@@ -337,12 +338,12 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
     const statusOpts = assign({}, options, argOpts);
 
     if (argOpts.tokenFile !== undefined) {
-      const tokenFileStream = argOpts.tokenFile === '-' ? options.in :
-        fs.createReadStream(argOpts.tokenFile);
+      const tokenFileStream = argOpts.tokenFile === '-' ? options.in
+        : fs.createReadStream(argOpts.tokenFile);
       readAllStream(tokenFileStream, (errRead, token) => {
         if (errRead) {
-          options.err.write('Error: Unable to read API token file: ' +
-                            `${errRead.message}\n`);
+          options.err.write('Error: Unable to read API token file: '
+                            + `${errRead.message}\n`);
           callback(null, ExitCode.FAIL_ARGUMENTS);
           return;
         }
@@ -351,8 +352,8 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
         checkStatus(statusOpts, callback);
       });
     } else {
-      statusOpts.token = statusOpts.token !== undefined ? statusOpts.token :
-        process.env.APPVEYOR_API_TOKEN;
+      statusOpts.token = statusOpts.token !== undefined ? statusOpts.token
+        : process.env.APPVEYOR_API_TOKEN;
       checkStatus(statusOpts, callback);
     }
   });

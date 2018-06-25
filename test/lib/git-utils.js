@@ -5,15 +5,16 @@
 
 'use strict';
 
-const execFileOut = require('../../lib/exec-file-out');
 const fileUrl = require('file-url');
-const gitUtils = require('../../lib/git-utils');
 const assert = require('chai').assert;
 const assign = require('object-assign');
 const path = require('path');
 const pify = require('pify');
 const rimraf = require('rimraf');
 const url = require('url');
+
+const gitUtils = require('../../lib/git-utils');
+const execFileOut = require('../../lib/exec-file-out');
 
 const deepStrictEqual = assert.deepStrictEqual || assert.deepEqual;
 const isWindows = /^win/i.test(process.platform);
@@ -84,32 +85,31 @@ before('setup test repository', function() {
         'git',
         ['-C', TEST_REPO_PATH, 'branch', branchName]
       )), Promise.resolve()))
-    .then(() =>
-      Object.keys(BRANCH_REMOTES).reduce((p, branchName) =>
-        p.then(() => {
-          const upstream = BRANCH_REMOTES[branchName];
-          if (!upstream) {
-            return p;
-          }
-          // Note:  Can't use 'git branch -u' without fetching remote
-          const upstreamParts = upstream.split('/');
-          assert.strictEqual(upstreamParts.length, 2);
-          const remoteName = upstreamParts[0];
-          const remoteBranch = upstreamParts[1];
-          const remoteRef = `refs/heads/${remoteBranch}`;
-          const configBranch = `branch.${branchName}`;
-          const configMerge = `${configBranch}.merge`;
-          const configRemote = `${configBranch}.remote`;
-          return execFileOut(
+    .then(() => Object.keys(BRANCH_REMOTES)
+      .reduce((p, branchName) => p.then(() => {
+        const upstream = BRANCH_REMOTES[branchName];
+        if (!upstream) {
+          return p;
+        }
+        // Note:  Can't use 'git branch -u' without fetching remote
+        const upstreamParts = upstream.split('/');
+        assert.strictEqual(upstreamParts.length, 2);
+        const remoteName = upstreamParts[0];
+        const remoteBranch = upstreamParts[1];
+        const remoteRef = `refs/heads/${remoteBranch}`;
+        const configBranch = `branch.${branchName}`;
+        const configMerge = `${configBranch}.merge`;
+        const configRemote = `${configBranch}.remote`;
+        return execFileOut(
+          'git',
+          ['-C', TEST_REPO_PATH, 'config', '--add', configRemote, remoteName]
+        )
+          .then(() => execFileOut(
             'git',
-            ['-C', TEST_REPO_PATH, 'config', '--add', configRemote, remoteName]
-          )
-            .then(() => execFileOut(
-              'git',
-              ['-C', TEST_REPO_PATH,
-                'config', '--add', configMerge, remoteRef]
-            ));
-        }), Promise.resolve()));
+            ['-C', TEST_REPO_PATH,
+              'config', '--add', configMerge, remoteRef]
+          ));
+      }), Promise.resolve()));
 });
 
 after('remove test repository', () => rimrafP(TEST_REPO_PATH));
@@ -122,20 +122,20 @@ describe('gitUtils', () => {
   describe('.getBranch', () => {
     after(checkoutMaster);
 
-    it('resolves master on master', () =>
-      gitUtils.getBranch(options).then((branch) => {
+    it('resolves master on master', () => gitUtils.getBranch(options)
+      .then((branch) => {
         assert.strictEqual(branch, 'master');
       }));
 
-    it('resolves branch1 on branch1', () =>
-      execFileOut('git', ['checkout', '-q', 'branch1'], options)
+    it('resolves branch1 on branch1',
+      () => execFileOut('git', ['checkout', '-q', 'branch1'], options)
         .then(() => gitUtils.getBranch(options))
         .then((branch) => {
           assert.strictEqual(branch, 'branch1');
         }));
 
-    it('rejects with Error not on branch', () =>
-      execFileOut('git', ['checkout', '-q', 'HEAD^'], options)
+    it('rejects with Error not on branch',
+      () => execFileOut('git', ['checkout', '-q', 'HEAD^'], options)
         .then(() => gitUtils.getBranch(options))
         .then(
           neverCalled,
@@ -155,14 +155,14 @@ describe('gitUtils', () => {
         return;
       }
       const remote = remoteRef.split('/')[0];
-      it(`resolves ${branch} to ${remote}`, () =>
-        gitUtils.getRemote(branch, options).then((result) => {
+      it(`resolves ${branch} to ${remote}`,
+        () => gitUtils.getRemote(branch, options).then((result) => {
           assert.strictEqual(result, remote);
         }));
     });
 
-    it('rejects branch without remote with Error', () =>
-      gitUtils.getRemote('branchnoremote', options).then(
+    it('rejects branch without remote with Error',
+      () => gitUtils.getRemote('branchnoremote', options).then(
         neverCalled,
         (err) => {
           assert.instanceOf(err, Error);
@@ -173,23 +173,23 @@ describe('gitUtils', () => {
   describe('.getRemoteUrl', () => {
     Object.keys(REMOTES).forEach((remoteName) => {
       const remoteUrl = REMOTES[remoteName];
-      it(`resolves ${remoteName} to ${remoteUrl}`, () =>
-        gitUtils.getRemoteUrl(remoteName, options)
+      it(`resolves ${remoteName} to ${remoteUrl}`,
+        () => gitUtils.getRemoteUrl(remoteName, options)
           .then((resultUrl) => {
             assert.strictEqual(resultUrl, remoteUrl);
           }));
     });
 
-    it('rejects invalid remote with Error', () =>
-      gitUtils.getRemoteUrl('invalidremote', options).then(
+    it('rejects invalid remote with Error',
+      () => gitUtils.getRemoteUrl('invalidremote', options).then(
         neverCalled,
         (err) => {
           assert.instanceOf(err, Error);
         }
       ));
 
-    it('uses ls-remote default for unspecified remote', () =>
-      gitUtils.getRemoteUrl(null, options)
+    it('uses ls-remote default for unspecified remote',
+      () => gitUtils.getRemoteUrl(null, options)
         .then((resultUrl) => {
           assert.strictEqual(resultUrl, REMOTES.origin);
         }));
@@ -307,14 +307,14 @@ describe('gitUtils', () => {
 
   describe('.resolveCommit', () => {
     let headHash;
-    it('can resolve the hash of HEAD', () =>
-      gitUtils.resolveCommit('HEAD', options).then((hash) => {
+    it('can resolve the hash of HEAD',
+      () => gitUtils.resolveCommit('HEAD', options).then((hash) => {
         assert.match(hash, /^[a-fA-F0-9]{40}$/);
         headHash = hash;
       }));
 
-    it('can resolve a hash to itself', () =>
-      gitUtils.resolveCommit(headHash, options).then((hash) => {
+    it('can resolve a hash to itself',
+      () => gitUtils.resolveCommit(headHash, options).then((hash) => {
         assert.strictEqual(hash, headHash);
       }));
 
@@ -325,13 +325,13 @@ describe('gitUtils', () => {
       });
     });
 
-    it('can resolve tag name to commit hash', () =>
-      gitUtils.resolveCommit(TAGS[0], options).then((hash) => {
+    it('can resolve tag name to commit hash',
+      () => gitUtils.resolveCommit(TAGS[0], options).then((hash) => {
         assert.match(hash, /^[a-fA-F0-9]{40}$/);
       }));
 
-    it('rejects with Error for unresolvable name', () =>
-      gitUtils.resolveCommit('notabranch', options).then(
+    it('rejects with Error for unresolvable name',
+      () => gitUtils.resolveCommit('notabranch', options).then(
         neverCalled,
         (err) => {
           assert(err instanceof Error);

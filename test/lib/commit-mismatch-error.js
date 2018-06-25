@@ -5,8 +5,9 @@
 
 'use strict';
 
-const CommitMismatchError = require('../../lib/commit-mismatch-error');
 const assert = require('assert');
+
+const CommitMismatchError = require('../../lib/commit-mismatch-error');
 
 describe('CommitMismatchError', () => {
   it('sets .actual and .expected from arguments', () => {

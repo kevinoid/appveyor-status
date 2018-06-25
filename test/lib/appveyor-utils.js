@@ -5,9 +5,10 @@
 
 'use strict';
 
+const assert = require('assert');
+
 const apiResponses = require('../../test-lib/api-responses');
 const appveyorUtils = require('../../lib/appveyor-utils');
-const assert = require('assert');
 
 const deepStrictEqual = assert.deepStrictEqual || assert.deepEqual;
 
@@ -141,8 +142,8 @@ describe('appveyorUtils', () => {
 
     // FIXME:  Can't be sure this works without paid AppVeyor account
     it('parses vso project git SSH URL', () => {
-      const testUrl =
-        'ssh://kevinoid@kevinoid.visualstudio.com:22/_git/TestProj';
+      const testUrl
+        = 'ssh://kevinoid@kevinoid.visualstudio.com:22/_git/TestProj';
       deepStrictEqual(
         appveyorUtils.parseAppveyorRepoUrl(testUrl),
         {
@@ -166,8 +167,8 @@ describe('appveyorUtils', () => {
 
     // FIXME:  Can't be sure this works without paid AppVeyor account
     it('parses vso sub-project git SSH URL', () => {
-      const testUrl =
-        'ssh://kevinoid@kevinoid.visualstudio.com:22/TestProj/_git/repo2';
+      const testUrl
+        = 'ssh://kevinoid@kevinoid.visualstudio.com:22/TestProj/_git/repo2';
       deepStrictEqual(
         appveyorUtils.parseAppveyorRepoUrl(testUrl),
         {
@@ -198,8 +199,8 @@ describe('appveyorUtils', () => {
     it('parses bitBucket HTTPS URL', () => {
       const testAccount = 'foo';
       const testProject = 'bar';
-      const testUrl =
-        `https://bitbucket.org/${testAccount}/${testProject}.git`;
+      const testUrl
+        = `https://bitbucket.org/${testAccount}/${testProject}.git`;
       deepStrictEqual(
         appveyorUtils.repoUrlToBadgeParams(testUrl),
         {
@@ -213,8 +214,8 @@ describe('appveyorUtils', () => {
     it('parses bitBucket SSH URL', () => {
       const testAccount = 'foo';
       const testProject = 'bar';
-      const testUrl =
-        `git@bitbucket.org:${testAccount}/${testProject}.git`;
+      const testUrl
+        = `git@bitbucket.org:${testAccount}/${testProject}.git`;
       deepStrictEqual(
         appveyorUtils.repoUrlToBadgeParams(testUrl),
         {
@@ -238,8 +239,8 @@ describe('appveyorUtils', () => {
     it('parses gitHub HTTPS URL', () => {
       const testAccount = 'foo';
       const testProject = 'bar';
-      const testUrl =
-        `https://github.com/${testAccount}/${testProject}.git`;
+      const testUrl
+        = `https://github.com/${testAccount}/${testProject}.git`;
       deepStrictEqual(
         appveyorUtils.repoUrlToBadgeParams(testUrl),
         {
@@ -253,8 +254,8 @@ describe('appveyorUtils', () => {
     it('parses gitHub SSH URL', () => {
       const testAccount = 'foo';
       const testProject = 'bar';
-      const testUrl =
-        `git@github.com:${testAccount}/${testProject}.git`;
+      const testUrl
+        = `git@github.com:${testAccount}/${testProject}.git`;
       deepStrictEqual(
         appveyorUtils.repoUrlToBadgeParams(testUrl),
         {
@@ -294,8 +295,8 @@ describe('appveyorUtils', () => {
 
     // Not supported by AppVeyor
     it('throws for vso SSH URL', () => {
-      const testUrl =
-        'ssh://kevinoid@kevinoid.visualstudio.com:22/_git/TestProj';
+      const testUrl
+        = 'ssh://kevinoid@kevinoid.visualstudio.com:22/_git/TestProj';
       assert.throws(
         () => { appveyorUtils.repoUrlToBadgeParams(testUrl); },
         Error

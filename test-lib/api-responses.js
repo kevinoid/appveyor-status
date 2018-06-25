@@ -34,8 +34,8 @@ function assignUpdate(target, varArgs) { // .length of function is 2
     if (nextSource) {
       // eslint-disable-next-line no-restricted-syntax
       for (const nextKey in nextSource) {
-        if (hasOwnProperty.call(nextSource, nextKey) &&
-            hasOwnProperty.call(to, nextKey)) {
+        if (hasOwnProperty.call(nextSource, nextKey)
+            && hasOwnProperty.call(to, nextKey)) {
           to[nextKey] = nextSource[nextKey];
         }
       }
@@ -341,8 +341,8 @@ exports.getProjectBuild = function getLastBuild(options) {
 exports.getStatusBadge = function getStatusBadge(status) {
   if (!badgeData) {
     const badgeDataPath = path.join(__dirname, '..', 'test-data', 'badge.svg');
-    badgeData =
-      fs.readFileSync(badgeDataPath, {encoding: 'utf-8'});
+    badgeData
+      = fs.readFileSync(badgeDataPath, {encoding: 'utf-8'});
   }
 
   return badgeData.replace(/\bpassing\b/g, status);

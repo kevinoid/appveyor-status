@@ -6,17 +6,18 @@
 
 'use strict';
 
-const AmbiguousProjectError = require('./lib/ambiguous-project-error');
-const CommitMismatchError = require('./lib/commit-mismatch-error');
 const SwaggerClient = require('swagger-client');
 const appveyorSwagger = require('appveyor-swagger');
-const appveyorUtils = require('./lib/appveyor-utils');
 const assign = require('object-assign');
-const gitUtils = require('./lib/git-utils');
 const https = require('https');
 const nodeify = require('promise-nodeify');
 const promiseFinally = require('promise-finally').default;
 const url = require('url');
+
+const gitUtils = require('./lib/git-utils');
+const appveyorUtils = require('./lib/appveyor-utils');
+const CommitMismatchError = require('./lib/commit-mismatch-error');
+const AmbiguousProjectError = require('./lib/ambiguous-project-error');
 
 /** Multiplicative increase in delay between retries.
  * @const
@@ -56,15 +57,15 @@ function shallowStrictCommonEqual(obj1, obj2) {
  * @private
  */
 function getResponseJson(response) {
-  if (response.obj === null ||
-      response.obj === undefined ||
-      response.obj === response.data) {
+  if (response.obj === null
+      || response.obj === undefined
+      || response.obj === response.data) {
     try {
       response.obj = JSON.parse(response.data);
     } catch (errJson) {
-      const err = new Error(`Unable to parse JSON from ${response.method} ` +
-        `${response.url} with Content-Type ` +
-        `${response.headers['content-type']}: ${errJson.message}`);
+      const err = new Error(`Unable to parse JSON from ${response.method} `
+        + `${response.url} with Content-Type `
+        + `${response.headers['content-type']}: ${errJson.message}`);
       err.cause = errJson;
       throw err;
     }
@@ -80,8 +81,8 @@ function getResponseJson(response) {
  * @private
  */
 function getResponseSvg(response) {
-  const contentType =
-    (response.headers['content-type'] || '(none)').toLowerCase();
+  const contentType
+    = (response.headers['content-type'] || '(none)').toLowerCase();
   const svgType = 'image/svg+xml';
   if (contentType.lastIndexOf(svgType, 0) !== 0) {
     throw new Error(`Expected ${svgType} got ${contentType}`);
@@ -199,8 +200,8 @@ function canonicalizeOptions(options, apiFunc) {
     const projectOpts = ['project', 'repo', 'statusBadgeId', 'webhookId']
       .filter((propName) => options[propName]);
     if (projectOpts.length > 1) {
-      throw new Error(`${projectOpts.join(' and ')}` +
-                      ' can not be specified together');
+      throw new Error(`${projectOpts.join(' and ')}`
+                      + ' can not be specified together');
     }
   }
 
@@ -221,8 +222,8 @@ function canonicalizeOptions(options, apiFunc) {
 
   if (typeof options.project === 'string') {
     options.project = appveyorUtils.projectFromString(options.project);
-  } else if (options.project &&
-             (!options.project.accountName || !options.project.slug)) {
+  } else if (options.project
+             && (!options.project.accountName || !options.project.slug)) {
     throw new Error('options.project must have accountName and slug');
   }
 
@@ -232,16 +233,16 @@ function canonicalizeOptions(options, apiFunc) {
   }
 
   // If project, repo, statusBadgeId, & webhookId are unspecified, use work dir
-  if (!options.project &&
-      !options.repo &&
-      !options.statusBadgeId &&
-      !options.webhookId) {
+  if (!options.project
+      && !options.repo
+      && !options.statusBadgeId
+      && !options.webhookId) {
     options.repo = '.';
   }
 
-  const branchP = options.branch === true ? gitUtils.getBranch(gitOptions) :
-    options.branch ? Promise.resolve(options.branch) :
-      null;
+  const branchP = options.branch === true ? gitUtils.getBranch(gitOptions)
+    : options.branch ? Promise.resolve(options.branch)
+      : null;
 
   let remoteUrlP;
   if (options.repo && gitUtils.gitUrlIsLocalNotSsh(options.repo)) {
@@ -251,8 +252,8 @@ function canonicalizeOptions(options, apiFunc) {
       .then((branch) => gitUtils.getRemote(branch, gitOptions))
       .catch((err) => {
         if (options.verbosity > 0) {
-          options.err.write(`DEBUG: Unable to get remote: ${err}\n` +
-                            'DEBUG: Will try to use origin remote.\n');
+          options.err.write(`DEBUG: Unable to get remote: ${err}\n`
+                            + 'DEBUG: Will try to use origin remote.\n');
         }
         return 'origin';
       })
@@ -287,9 +288,9 @@ function canonicalizeOptions(options, apiFunc) {
 
   let commitP;
   if (options.commit) {
-    commitP = /^[0-9a-f]{40}$/i.test(options.commit) ?
-      Promise.resolve(options.commit.toLowerCase()) :
-      gitUtils.resolveCommit(options.commit, gitOptions);
+    commitP = /^[0-9a-f]{40}$/i.test(options.commit)
+      ? Promise.resolve(options.commit.toLowerCase())
+      : gitUtils.resolveCommit(options.commit, gitOptions);
   }
 
   let resultP = Promise.all([
@@ -362,9 +363,9 @@ function wrapApiFunc(apiFunc) {
 function getLastBuildNoWait(options) {
   let lastBuildP;
   const buildFromProject = options.project.builds && options.project.builds[0];
-  if (options.useProjectBuilds &&
-      buildFromProject &&
-      (!options.branch || options.branch === buildFromProject.branch)) {
+  if (options.useProjectBuilds
+      && buildFromProject
+      && (!options.branch || options.branch === buildFromProject.branch)) {
     lastBuildP = Promise.resolve({
       project: options.project,
       build: buildFromProject
@@ -442,8 +443,10 @@ function getLastBuildForProject(options) {
     );
 
     if (options.verbosity > 0) {
-      options.err.write('DEBUG: AppVeyor build queued.  ' +
-                        `Waiting ${delay / 1000} seconds before retrying...\n`);
+      options.err.write(
+        'DEBUG: AppVeyor build queued.  '
+        + `Waiting ${delay / 1000} seconds before retrying...\n`
+      );
     }
 
     return new Promise((resolve) => {
@@ -479,12 +482,13 @@ function getMatchingProject(options) {
     .catch(makeClientErrorHandler('Unable to get projects: '))
     .then(getResponseJson)
     .then((projects) => {
-      const repoProjects = projects.filter((project) =>
-        shallowStrictCommonEqual(avRepo, project));
+      const repoProjects = projects.filter(
+        (project) => shallowStrictCommonEqual(avRepo, project)
+      );
 
       if (repoProjects.length === 0) {
-        throw new Error('No AppVeyor projects matching ' +
-                        `${JSON.stringify(avRepo)}`);
+        throw new Error('No AppVeyor projects matching '
+                        + `${JSON.stringify(avRepo)}`);
       } else if (repoProjects.length > 1) {
         // Callers may want to handle this error specially, so make it usable
         const repoProjectStrs = repoProjects.map(appveyorUtils.projectToString);

@@ -5,18 +5,19 @@
 
 'use strict';
 
-const AmbiguousProjectError = require('../lib/ambiguous-project-error');
 const SwaggerClient = require('swagger-client');
-const apiResponses = require('../test-lib/api-responses');
 const appveyorStatus = require('..');
 const appveyorSwagger = require('appveyor-swagger');
-const appveyorUtils = require('../lib/appveyor-utils');
 const assert = require('chai').assert;
-const gitUtils = require('../lib/git-utils');
 const nock = require('nock');
 const sinon = require('sinon');
 const stream = require('stream');
 const url = require('url');
+
+const gitUtils = require('../lib/git-utils');
+const appveyorUtils = require('../lib/appveyor-utils');
+const apiResponses = require('../test-lib/api-responses');
+const AmbiguousProjectError = require('../lib/ambiguous-project-error');
 
 const apiUrl = url.format({
   protocol: appveyorSwagger.schemes[0],
@@ -29,8 +30,9 @@ const projectBuildToStatus = appveyorUtils.projectBuildToStatus;
 // nock doesn't support Node v8 yet:
 // https://github.com/node-nock/nock/issues/922
 // https://github.com/node-nock/nock/issues/925
-const describeThis =
-  Number(process.version.slice(1).split('.', 1)[0]) >= 8 ? xdescribe : describe;
+const describeThis
+  = Number(process.version.slice(1).split('.', 1)[0]) >= 8 ? xdescribe
+    : describe;
 describeThis('appveyorStatus', function() {
   // Increase timeout to cover slower CI environments.
   this.timeout(4000);
@@ -1122,8 +1124,8 @@ describeThis('appveyorStatus', function() {
       );
     });
 
-    it('rejects non-object options with TypeError', () =>
-      appveyorStatus.getStatus(true).then(
+    it('rejects non-object options with TypeError',
+      () => appveyorStatus.getStatus(true).then(
         sinon.mock().never(),
         (err) => {
           assert.instanceOf(err, TypeError);
@@ -1196,8 +1198,8 @@ describeThis('appveyorStatus', function() {
       );
     });
 
-    it('rejects non-Writable err with TypeError', () =>
-      appveyorStatus.getStatus({err: new stream.Readable()}).then(
+    it('rejects non-Writable err with TypeError',
+      () => appveyorStatus.getStatus({err: new stream.Readable()}).then(
         sinon.mock().never(),
         (err) => {
           assert.instanceOf(err, TypeError);

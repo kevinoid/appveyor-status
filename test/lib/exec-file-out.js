@@ -6,6 +6,7 @@
 'use strict';
 
 const assert = require('assert');
+
 const execFileOut = require('../../lib/exec-file-out');
 
 const deepStrictEqual = assert.deepStrictEqual || assert.deepEqual;
@@ -126,7 +127,5 @@ describe('execFileOut', () => {
       });
   });
 
-  it('closes stdin to prevent hanging', () =>
-    // Test will timeout if stdin is not closed
-    execFileOut(process.execPath));
+  it('closes stdin to prevent hanging', () => execFileOut(process.execPath));
 });

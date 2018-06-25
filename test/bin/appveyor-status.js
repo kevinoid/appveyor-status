@@ -6,17 +6,18 @@
 'use strict';
 
 const Chalk = require('chalk').constructor;
-const CommitMismatchError = require('../../lib/commit-mismatch-error');
-const appveyorStatusCmd = require('../../bin/appveyor-status');
-const appveyorStatus = require('../..');
 const appveyorSwagger = require('appveyor-swagger');
 const assert = require('chai').assert;
 const escapeStringRegexp = require('escape-string-regexp');
 const fs = require('fs');
-const packageJson = require('../../package.json');
 const path = require('path');
 const sinon = require('sinon');
 const stream = require('stream');
+
+const packageJson = require('../../package.json');
+const appveyorStatus = require('../..');
+const appveyorStatusCmd = require('../../bin/appveyor-status');
+const CommitMismatchError = require('../../lib/commit-mismatch-error');
 
 const chalk = new Chalk({enabled: true});
 const match = sinon.match;
@@ -24,8 +25,8 @@ const statusValues = appveyorSwagger.definitions.Status.enum;
 
 // Simulate arguments passed by the node runtime
 const RUNTIME_ARGS = ['node', 'appveyor-status'];
-const TEST_TOKEN_PATH =
-  path.join(__dirname, '..', '..', 'test-data', 'token.txt');
+const TEST_TOKEN_PATH
+  = path.join(__dirname, '..', '..', 'test-data', 'token.txt');
 
 process.env.APPVEYOR_API_TOKEN = 'env-token';
 
@@ -235,9 +236,9 @@ describe('appveyor-status command', () => {
   });
 
   statusValues.forEach((status) => {
-    const colorName = status === 'success' ? 'green' :
-      status === 'failed' ? 'red' :
-        'gray';
+    const colorName = status === 'success' ? 'green'
+      : status === 'failed' ? 'red'
+        : 'gray';
     it(`prints ${status} in ${colorName} to TTY`, (done) => {
       appveyorStatusMock.expects('getStatus')
         .once().withArgs(match.object, match.func).yields(null, status);
