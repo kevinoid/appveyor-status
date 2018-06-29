@@ -28,9 +28,644 @@ section section section section {
         <section class="suite">
           <h1>.getLastBuild</h1>
           <dl>
+            <dt>queries last build for options.project</dt>
+            <dd><pre><code>const testProject = &#x27;foo/bar&#x27;;
+const testStatus = &#x27;success&#x27;;
+gitUtilsMock.expects(&#x27;getBranch&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemote&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemoteUrl&#x27;).never();
+gitUtilsMock.expects(&#x27;resolveCommit&#x27;).never();
+const ne = nock(apiUrl)
+  .get(&#x60;/api/projects/${testProject}&#x60;)
+  .query(true)
+  .reply(200, apiResponses.getProjectBuild({status: testStatus}));
+options.project = testProject;
+return appveyorStatus.getLastBuild(options)
+  .then((projectBuild) =&#x3E; {
+    assert.strictEqual(projectBuildToStatus(projectBuild), testStatus);
+    ne.done();
+  });</code></pre></dd>
+            <dt>queries last build for project with named branch</dt>
+            <dd><pre><code>const testBranch = &#x27;testb&#x27;;
+const testProject = &#x27;foo/bar&#x27;;
+const testStatus = &#x27;success&#x27;;
+gitUtilsMock.expects(&#x27;getBranch&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemote&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemoteUrl&#x27;).never();
+gitUtilsMock.expects(&#x27;resolveCommit&#x27;).never();
+const ne = nock(apiUrl)
+  .get(&#x60;/api/projects/${testProject}/branch/${testBranch}&#x60;)
+  .query(true)
+  .reply(200, apiResponses.getProjectBuild({status: testStatus}));
+options.branch = testBranch;
+options.project = testProject;
+return appveyorStatus.getLastBuild(options)
+  .then((projectBuild) =&#x3E; {
+    assert.strictEqual(projectBuildToStatus(projectBuild), testStatus);
+    ne.done();
+  });</code></pre></dd>
+            <dt>queries last build for named branch by remote</dt>
+            <dd><pre><code>const testBranch = &#x27;testb&#x27;;
+const testRemote = &#x27;testr&#x27;;
+const testRemoteUrl = &#x27;git://foo.bar/baz&#x27;;
+const testStatus = &#x27;success&#x27;;
+gitUtilsMock.expects(&#x27;getBranch&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemote&#x27;)
+  .once().withArgs(testBranch, matchOptionsCwd).resolves(testRemote);
+gitUtilsMock.expects(&#x27;getRemoteUrl&#x27;)
+  .once().withArgs(testRemote, matchOptionsCwd).resolves(testRemoteUrl);
+gitUtilsMock.expects(&#x27;resolveCommit&#x27;).never();
+const ne = nock(apiUrl)
+  .get(&#x27;/api/projects&#x27;)
+  .query(true)
+  .reply(200, [
+    apiResponses.getProject({
+      branch: testBranch,
+      repositoryType: &#x27;git&#x27;,
+      repositoryName: testRemoteUrl,
+      status: testStatus
+    })
+  ]);
+options.branch = testBranch;
+return appveyorStatus.getLastBuild(options)
+  .then((projectBuild) =&#x3E; {
+    assert.strictEqual(projectBuildToStatus(projectBuild), testStatus);
+    ne.done();
+  });</code></pre></dd>
+            <dt>queries non-last build for named branch by remote</dt>
+            <dd><pre><code>const testBranch = &#x27;testb&#x27;;
+const testProject = [&#x27;foo&#x27;, &#x27;bar&#x27;];
+const testRemote = &#x27;testr&#x27;;
+const testRemoteUrl = &#x27;git://foo.bar/baz&#x27;;
+const testStatus = &#x27;success&#x27;;
+gitUtilsMock.expects(&#x27;getBranch&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemote&#x27;)
+  .once().withArgs(testBranch, matchOptionsCwd).resolves(testRemote);
+gitUtilsMock.expects(&#x27;getRemoteUrl&#x27;)
+  .once().withArgs(testRemote, matchOptionsCwd).resolves(testRemoteUrl);
+gitUtilsMock.expects(&#x27;resolveCommit&#x27;).never();
+const ne = nock(apiUrl)
+  .get(&#x27;/api/projects&#x27;)
+  .query(true)
+  .reply(200, [
+    apiResponses.getProject({
+      accountName: testProject[0],
+      branch: &#x60;${testBranch}5&#x60;,
+      repositoryType: &#x27;git&#x27;,
+      repositoryName: testRemoteUrl,
+      slug: testProject[1],
+      status: testStatus
+    })
+  ])
+  .get(&#x60;/api/projects/${testProject.join(&#x27;/&#x27;)}/branch/${testBranch}&#x60;)
+  .query(true)
+  .reply(200, apiResponses.getProjectBuild({
+    branch: testBranch,
+    repositoryType: &#x27;git&#x27;,
+    repositoryName: testRemoteUrl,
+    status: testStatus
+  }));
+options.branch = testBranch;
+return appveyorStatus.getLastBuild(options)
+  .then((projectBuild) =&#x3E; {
+    assert.strictEqual(projectBuildToStatus(projectBuild), testStatus);
+    ne.done();
+  });</code></pre></dd>
+            <dt>uses commit hash without resolving</dt>
+            <dd><pre><code>const testCommit = &#x27;adc83b19e793491b1c6ea0fd8b46cd9f32e592a1&#x27;;
+const testProject = &#x27;foo/bar&#x27;;
+const testStatus = &#x27;success&#x27;;
+gitUtilsMock.expects(&#x27;getBranch&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemote&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemoteUrl&#x27;).never();
+gitUtilsMock.expects(&#x27;resolveCommit&#x27;).never();
+const ne = nock(apiUrl)
+  .get(&#x60;/api/projects/${testProject}&#x60;)
+  .query(true)
+  .reply(200, apiResponses.getProjectBuild({
+    commitId: testCommit,
+    status: testStatus
+  }));
+options.commit = testCommit;
+options.project = testProject;
+return appveyorStatus.getLastBuild(options)
+  .then((projectBuild) =&#x3E; {
+    assert.strictEqual(projectBuildToStatus(projectBuild), testStatus);
+    ne.done();
+  });</code></pre></dd>
+            <dt>rejects with CommitMismatchError if commit does not match</dt>
+            <dd><pre><code>const testCommit = &#x27;testtag&#x27;;
+const testProject = &#x27;foo/bar&#x27;;
+const testStatus = &#x27;success&#x27;;
+gitUtilsMock.expects(&#x27;getBranch&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemote&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemoteUrl&#x27;).never();
+gitUtilsMock.expects(&#x27;resolveCommit&#x27;)
+  .once().withArgs(testCommit, matchOptionsCwd).resolves(&#x27;abcde&#x27;);
+const ne = nock(apiUrl)
+  .get(&#x60;/api/projects/${testProject}&#x60;)
+  .query(true)
+  .reply(200, apiResponses.getProjectBuild({
+    commitId: &#x27;12345&#x27;,
+    status: testStatus
+  }));
+options.commit = testCommit;
+options.project = testProject;
+return appveyorStatus.getLastBuild(options).then(
+  sinon.mock().never(),
+  (err) =&#x3E; {
+    assert.strictEqual(err.name, &#x27;CommitMismatchError&#x27;);
+    ne.done();
+  }
+);</code></pre></dd>
+            <dt>returns queued status as-is without wait</dt>
+            <dd><pre><code>const testProject = &#x27;foo/bar&#x27;;
+const testStatus = &#x27;queued&#x27;;
+const ne = nock(apiUrl)
+  .get(&#x60;/api/projects/${testProject}&#x60;)
+  .query(true)
+  .reply(200, apiResponses.getProjectBuild({status: testStatus}));
+options.project = testProject;
+return appveyorStatus.getLastBuild(options)
+  .then((projectBuild) =&#x3E; {
+    assert.strictEqual(projectBuildToStatus(projectBuild), testStatus);
+    ne.done();
+  });</code></pre></dd>
+            <dt>queries repo in cwd by default</dt>
+            <dd><pre><code>const testBranch = &#x27;testb&#x27;;
+const testRemote = &#x27;testr&#x27;;
+const testRemoteUrl = &#x27;git://foo.bar/baz&#x27;;
+const testStatus = &#x27;success&#x27;;
+gitUtilsMock.expects(&#x27;getBranch&#x27;)
+  .once().withArgs(matchOptionsCwd).resolves(testBranch);
+gitUtilsMock.expects(&#x27;getRemote&#x27;)
+  .once().withArgs(testBranch, matchOptionsCwd).resolves(testRemote);
+gitUtilsMock.expects(&#x27;getRemoteUrl&#x27;)
+  .once().withArgs(testRemote, matchOptionsCwd).resolves(testRemoteUrl);
+const ne = nock(apiUrl)
+  .get(&#x27;/api/projects&#x27;)
+  .reply(200, [
+    apiResponses.getProject({
+      repositoryType: &#x27;git&#x27;,
+      repositoryName: testRemoteUrl,
+      status: testStatus
+    })
+  ]);
+return appveyorStatus.getLastBuild(options)
+  .then((projectBuild) =&#x3E; {
+    assert.strictEqual(projectBuildToStatus(projectBuild), testStatus);
+    ne.done();
+  });</code></pre></dd>
+            <dt>resolves branch, commit, and remote URL in local repo</dt>
+            <dd><pre><code>const testBranch = &#x27;testb&#x27;;
+const testCommit = &#x27;testtag&#x27;;
+const testCommitHash = &#x27;4b482f89ef23e06ad6a9c01adaece30943bf434c&#x27;;
+const testRemote = &#x27;testr&#x27;;
+const testRemoteUrl = &#x27;git://foo.bar/baz&#x27;;
+const testRepo = &#x27;foo/bar&#x27;;
+const testStatus = &#x27;success&#x27;;
+const matchRepoCwd = match({cwd: testRepo});
+gitUtilsMock.expects(&#x27;getBranch&#x27;)
+  .once().withArgs(matchRepoCwd).resolves(testBranch);
+gitUtilsMock.expects(&#x27;getRemote&#x27;)
+  .once().withArgs(testBranch, matchRepoCwd).resolves(testRemote);
+gitUtilsMock.expects(&#x27;getRemoteUrl&#x27;)
+  .once().withArgs(testRemote, matchRepoCwd).resolves(testRemoteUrl);
+gitUtilsMock.expects(&#x27;resolveCommit&#x27;)
+  .once().withArgs(testCommit, matchRepoCwd).resolves(testCommitHash);
+const ne = nock(apiUrl)
+  .get(&#x27;/api/projects&#x27;)
+  .reply(200, [
+    apiResponses.getProject({
+      branch: testBranch,
+      commitId: testCommitHash,
+      repositoryType: &#x27;git&#x27;,
+      repositoryName: testRemoteUrl,
+      status: testStatus
+    })
+  ]);
+options.branch = true;
+options.commit = testCommit;
+options.repo = testRepo;
+return appveyorStatus.getLastBuild(options)
+  .then((projectBuild) =&#x3E; {
+    assert.strictEqual(projectBuildToStatus(projectBuild), testStatus);
+    ne.done();
+  });</code></pre></dd>
+            <dt>falls back to origin if not on a branch</dt>
+            <dd><pre><code>const testRemoteUrl = &#x27;git://foo.bar/baz&#x27;;
+const testStatus = &#x27;success&#x27;;
+gitUtilsMock.expects(&#x27;getBranch&#x27;)
+  .once().withArgs(matchOptionsCwd).rejects(new Error());
+gitUtilsMock.expects(&#x27;getRemote&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemoteUrl&#x27;)
+  .once().withArgs(&#x27;origin&#x27;, matchOptionsCwd).resolves(testRemoteUrl);
+gitUtilsMock.expects(&#x27;resolveCommit&#x27;).never();
+const ne = nock(apiUrl)
+  .get(&#x27;/api/projects&#x27;)
+  .reply(200, [
+    apiResponses.getProject({
+      repositoryType: &#x27;git&#x27;,
+      repositoryName: testRemoteUrl,
+      status: testStatus
+    })
+  ]);
+return appveyorStatus.getLastBuild(options)
+  .then((projectBuild) =&#x3E; {
+    assert.strictEqual(options.err.read(), null);
+    assert.strictEqual(projectBuildToStatus(projectBuild), testStatus);
+    ne.done();
+  });</code></pre></dd>
+            <dt>falls back to origin if branch has no remote</dt>
+            <dd><pre><code>const testBranch = &#x27;testb&#x27;;
+const testRemoteUrl = &#x27;git://foo.bar/baz&#x27;;
+const testStatus = &#x27;success&#x27;;
+gitUtilsMock.expects(&#x27;getBranch&#x27;)
+  .once().withArgs(matchOptionsCwd).resolves(testBranch);
+gitUtilsMock.expects(&#x27;getRemote&#x27;)
+  .once().withArgs(testBranch, matchOptionsCwd).rejects(new Error());
+gitUtilsMock.expects(&#x27;getRemoteUrl&#x27;)
+  .once().withArgs(&#x27;origin&#x27;, matchOptionsCwd).resolves(testRemoteUrl);
+gitUtilsMock.expects(&#x27;resolveCommit&#x27;).never();
+const ne = nock(apiUrl)
+  .get(&#x27;/api/projects&#x27;)
+  .reply(200, [
+    apiResponses.getProject({
+      repositoryType: &#x27;git&#x27;,
+      repositoryName: testRemoteUrl,
+      status: testStatus
+    })
+  ]);
+options.verbosity = 1;
+return appveyorStatus.getLastBuild(options)
+  .then((projectBuild) =&#x3E; {
+    const errStr = String(options.err.read());
+    assert.match(errStr, /\bremote\b/i);
+    assert.match(errStr, /\borigin\b/i);
+    assert.strictEqual(projectBuildToStatus(projectBuild), testStatus);
+    ne.done();
+  });</code></pre></dd>
+            <dt>rejects with Error if no project matches repo</dt>
+            <dd><pre><code>const testRepo = &#x27;git://foo.bar/baz&#x27;;
+const testStatus = &#x27;success&#x27;;
+gitUtilsMock.expects(&#x27;getBranch&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemote&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemoteUrl&#x27;).never();
+gitUtilsMock.expects(&#x27;resolveCommit&#x27;).never();
+const ne = nock(apiUrl)
+  .get(&#x27;/api/projects&#x27;)
+  .query(true)
+  .reply(200, [
+    apiResponses.getProject({
+      repositoryType: &#x27;git&#x27;,
+      repositoryName: &#x60;${testRepo}/quux&#x60;,
+      status: testStatus
+    })
+  ]);
+options.repo = testRepo;
+return appveyorStatus.getLastBuild(options).then(
+  sinon.mock().never(),
+  (err) =&#x3E; {
+    assert.instanceOf(err, Error);
+    assert.include(err.message, testRepo);
+    ne.done();
+  }
+);</code></pre></dd>
+            <dt>AmbiguousProjectError if multiple projects match repo</dt>
+            <dd><pre><code>const testProject1 = [&#x27;myacct&#x27;, &#x27;proj1&#x27;];
+const testProject2 = [&#x27;youracct&#x27;, &#x27;proj2&#x27;];
+const testRepo = &#x27;git://foo.bar/baz&#x27;;
+const testStatus = &#x27;success&#x27;;
+gitUtilsMock.expects(&#x27;getBranch&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemote&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemoteUrl&#x27;).never();
+gitUtilsMock.expects(&#x27;resolveCommit&#x27;).never();
+const ne = nock(apiUrl)
+  .get(&#x27;/api/projects&#x27;)
+  .query(true)
+  .reply(200, [
+    apiResponses.getProject({
+      accountName: testProject1[0],
+      repositoryType: &#x27;git&#x27;,
+      repositoryName: testRepo,
+      slug: testProject1[1],
+      status: testStatus
+    }),
+    apiResponses.getProject({
+      accountName: testProject2[0],
+      repositoryType: &#x27;git&#x27;,
+      repositoryName: testRepo,
+      slug: testProject2[1],
+      status: testStatus
+    })
+  ]);
+options.repo = testRepo;
+return appveyorStatus.getLastBuild(options).then(
+  sinon.mock().never(),
+  (err) =&#x3E; {
+    assert.instanceOf(err, AmbiguousProjectError);
+    assert.deepEqual(
+      err.projects,
+      [testProject1.join(&#x27;/&#x27;), testProject2.join(&#x27;/&#x27;)]
+    );
+    ne.done();
+  }
+);</code></pre></dd>
+            <dt>rejects with Error for non-200 responses</dt>
+            <dd><pre><code>const testErrMsg = &#x27;bad dead bodies&#x27;;
+const testProject = &#x27;foo/bar&#x27;;
+gitUtilsMock.expects(&#x27;getBranch&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemote&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemoteUrl&#x27;).never();
+gitUtilsMock.expects(&#x27;resolveCommit&#x27;).never();
+const ne = nock(apiUrl)
+  .get(&#x60;/api/projects/${testProject}&#x60;)
+  .query(true)
+  .reply(400, {message: testErrMsg});
+options.project = testProject;
+return appveyorStatus.getLastBuild(options).then(
+  sinon.mock().never(),
+  (err) =&#x3E; {
+    assert.match(err.message, /400|Bad Request/i);
+    assert.include(err.message, testErrMsg);
+    assert.strictEqual(err.status, 400);
+    ne.done();
+  }
+);</code></pre></dd>
+            <dt>rejects with Error for non-JSON responses</dt>
+            <dd><pre><code>const testProject = &#x27;foo/bar&#x27;;
+gitUtilsMock.expects(&#x27;getBranch&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemote&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemoteUrl&#x27;).never();
+gitUtilsMock.expects(&#x27;resolveCommit&#x27;).never();
+const ne = nock(apiUrl)
+  .get(&#x60;/api/projects/${testProject}&#x60;)
+  .query(true)
+  .reply(200, &#x27;invalid&#x27;, {&#x27;Content-Type&#x27;: &#x27;text/plain&#x27;});
+options.project = testProject;
+return appveyorStatus.getLastBuild(options).then(
+  sinon.mock().never(),
+  (err) =&#x3E; {
+    assert.include(err.message, &#x27;JSON&#x27;);
+    ne.done();
+  }
+);</code></pre></dd>
+            <dt>rejects with Error for request error</dt>
+            <dd><pre><code>const testErrMsg = &#x27;something bad happened&#x27;;
+const testProject = &#x27;foo/bar&#x27;;
+gitUtilsMock.expects(&#x27;getBranch&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemote&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemoteUrl&#x27;).never();
+gitUtilsMock.expects(&#x27;resolveCommit&#x27;).never();
+const ne = nock(apiUrl)
+  .get(&#x60;/api/projects/${testProject}&#x60;)
+  .query(true)
+  .replyWithError(testErrMsg);
+options.project = testProject;
+return appveyorStatus.getLastBuild(options).then(
+  sinon.mock().never(),
+  (err) =&#x3E; {
+    assert.include(err.message, testErrMsg);
+    ne.done();
+  }
+);</code></pre></dd>
+            <dt>passes options.token as bearer token</dt>
+            <dd><pre><code>const testRepo = &#x27;git://foo.bar/baz&#x27;;
+const testStatus = &#x27;success&#x27;;
+const testToken = &#x27;testtoken&#x27;;
+gitUtilsMock.expects(&#x27;getBranch&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemote&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemoteUrl&#x27;).never();
+gitUtilsMock.expects(&#x27;resolveCommit&#x27;).never();
+const ne = nock(apiUrl)
+  // IMPORTANT: Must be path which requires auth
+  .get(&#x27;/api/projects&#x27;)
+  .query(true)
+  .reply(200, function(uri, requestBody) {
+    assert.deepEqual(
+      this.req.headers.authorization,
+      [&#x60;Bearer ${testToken}&#x60;]
+    );
+    return [
+      apiResponses.getProject({
+        repositoryType: &#x27;git&#x27;,
+        repositoryName: testRepo,
+        status: testStatus
+      })
+    ];
+  });
+options.repo = testRepo;
+options.token = testToken;
+return appveyorStatus.getLastBuild(options)
+  .then((projectBuild) =&#x3E; {
+    assert.strictEqual(projectBuildToStatus(projectBuild), testStatus);
+    ne.done();
+  });</code></pre></dd>
+            <dt>ignores options.token when appveyorClient is given</dt>
+            <dd><pre><code>const testRepo = &#x27;git://foo.bar/baz&#x27;;
+const testStatus = &#x27;success&#x27;;
+const testToken1 = &#x27;testtoken1&#x27;;
+const testToken2 = &#x27;testtoken2&#x27;;
+gitUtilsMock.expects(&#x27;getBranch&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemote&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemoteUrl&#x27;).never();
+gitUtilsMock.expects(&#x27;resolveCommit&#x27;).never();
+const ne = nock(apiUrl)
+  // IMPORTANT: Must be path which requires auth
+  .get(&#x27;/api/projects&#x27;)
+  .query(true)
+  .reply(200, function(uri, requestBody) {
+    assert.deepEqual(
+      this.req.headers.authorization,
+      [&#x60;Bearer ${testToken2}&#x60;]
+    );
+    return [
+      apiResponses.getProject({
+        repositoryType: &#x27;git&#x27;,
+        repositoryName: testRepo,
+        status: testStatus
+      })
+    ];
+  });
+options.appveyorClient = new SwaggerClient({
+  authorizations: {
+    apiToken: &#x60;Bearer ${testToken2}&#x60;
+  },
+  spec: appveyorSwagger
+});
+options.repo = testRepo;
+options.token = testToken1;
+return appveyorStatus.getLastBuild(options)
+  .then((projectBuild) =&#x3E; {
+    assert.strictEqual(projectBuildToStatus(projectBuild), testStatus);
+    ne.done();
+  });</code></pre></dd>
+            <dt>rejects with Error for statusBadgeId</dt>
+            <dd><pre><code>gitUtilsMock.expects(&#x27;getBranch&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemote&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemoteUrl&#x27;).never();
+gitUtilsMock.expects(&#x27;resolveCommit&#x27;).never();
+options.statusBadgeId = &#x27;abcde&#x27;;
+return appveyorStatus.getLastBuild(options).then(
+  sinon.mock().never(),
+  (err) =&#x3E; {
+    assert.match(err.message, /required|supported/i);
+  }
+);</code></pre></dd>
+            <dt>rejects with Error for webhookId</dt>
+            <dd><pre><code>gitUtilsMock.expects(&#x27;getBranch&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemote&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemoteUrl&#x27;).never();
+gitUtilsMock.expects(&#x27;resolveCommit&#x27;).never();
+options.webhookId = &#x27;abcde&#x27;;
+return appveyorStatus.getLastBuild(options).then(
+  sinon.mock().never(),
+  (err) =&#x3E; {
+    assert.match(err.message, /required|supported/i);
+  }
+);</code></pre></dd>
             <section class="suite">
               <h1>with wait</h1>
               <dl>
+                <dt>true retries queued status</dt>
+                <dd><pre><code>const testProject = &#x27;foo/bar&#x27;;
+const testStatus = &#x27;success&#x27;;
+const expectQueued = nock(apiUrl)
+  .get(&#x60;/api/projects/${testProject}&#x60;)
+  .query(true)
+  .reply(200, apiResponses.getProjectBuild({status: &#x27;queued&#x27;}));
+const expectSuccess = nock(apiUrl)
+  .get(&#x60;/api/projects/${testProject}&#x60;)
+  .query(true)
+  .reply(200, apiResponses.getProjectBuild({status: testStatus}));
+let retriesDone = false;
+afterFirstRequest(() =&#x3E; {
+  assert(expectQueued.isDone(), &#x27;First call is made immediately.&#x27;);
+  assert(!expectSuccess.isDone(), &#x27;Retry is not done immediately.&#x27;);
+  clock.tick(900);
+  assert(!expectSuccess.isDone(), &#x27;Retry is not done less than 1 sec.&#x27;);
+  clock.tick(60000);
+  assert(expectSuccess.isDone(), &#x27;Retry is done less than 1 minute.&#x27;);
+  retriesDone = true;
+});
+options.project = testProject;
+options.wait = true;
+return appveyorStatus.getLastBuild(options)
+  .then((projectBuild) =&#x3E; {
+    assert.strictEqual(projectBuildToStatus(projectBuild), testStatus);
+    assert(retriesDone, &#x27;Retries completed&#x27;);
+    assert.strictEqual(
+      options.err.read(),
+      null,
+      &#x27;does not print wait messages by default&#x27;
+    );
+  });</code></pre></dd>
+                <dt>true retries running status from project</dt>
+                <dd><pre><code>const testProjectParts = [&#x27;foo&#x27;, &#x27;bar&#x27;];
+const testRepoUrl = &#x27;git://foo.bar/baz&#x27;;
+const testStatus = &#x27;success&#x27;;
+const expectQueued = nock(apiUrl)
+  .get(&#x27;/api/projects&#x27;)
+  .query(true)
+  .reply(200, [
+    apiResponses.getProject({
+      accountName: testProjectParts[0],
+      repositoryType: &#x27;git&#x27;,
+      repositoryName: testRepoUrl,
+      slug: testProjectParts[1],
+      status: &#x27;running&#x27;
+    })
+  ]);
+const expectSuccess = nock(apiUrl)
+  .get(&#x60;/api/projects/${testProjectParts.join(&#x27;/&#x27;)}&#x60;)
+  .query(true)
+  .reply(200, apiResponses.getProjectBuild({status: testStatus}));
+let retriesDone = false;
+afterFirstRequest(() =&#x3E; {
+  assert(expectQueued.isDone(), &#x27;First call is made immediately.&#x27;);
+  assert(!expectSuccess.isDone(), &#x27;Retry is not done immediately.&#x27;);
+  clock.tick(900);
+  assert(!expectSuccess.isDone(), &#x27;Retry is not done less than 1 sec.&#x27;);
+  clock.tick(60000);
+  assert(expectSuccess.isDone(), &#x27;Retry is done less than 1 minute.&#x27;);
+  retriesDone = true;
+});
+options.repo = testRepoUrl;
+options.wait = true;
+options.verbosity = 1;
+return appveyorStatus.getLastBuild(options)
+  .then((projectBuild) =&#x3E; {
+    assert.strictEqual(projectBuildToStatus(projectBuild), testStatus);
+    assert(retriesDone, &#x27;Retries completed&#x27;);
+    assert.match(
+      String(options.err.read()),
+      /\bwait/i,
+      &#x27;prints wait message when verbose&#x27;
+    );
+  });</code></pre></dd>
+                <dt>is stopped on error</dt>
+                <dd><pre><code>const testErrMsg = &#x27;something bad&#x27;;
+const testProject = &#x27;foo/bar&#x27;;
+const expectQueued = nock(apiUrl)
+  .get(&#x60;/api/projects/${testProject}&#x60;)
+  .query(true)
+  .reply(200, apiResponses.getProjectBuild({status: &#x27;queued&#x27;}));
+const expectSuccess = nock(apiUrl)
+  .get(&#x60;/api/projects/${testProject}&#x60;)
+  .query(true)
+  .replyWithError(testErrMsg);
+let retriesDone = false;
+afterFirstRequest(() =&#x3E; {
+  assert(expectQueued.isDone(), &#x27;First call is made immediately.&#x27;);
+  assert(!expectSuccess.isDone(), &#x27;Retry is not done immediately.&#x27;);
+  clock.tick(900);
+  assert(!expectSuccess.isDone(), &#x27;Retry is not done less than 1 sec.&#x27;);
+  clock.tick(60000);
+  assert(expectSuccess.isDone(), &#x27;Retry is done less than 1 minute.&#x27;);
+  retriesDone = true;
+});
+options.project = testProject;
+options.wait = true;
+return appveyorStatus.getLastBuild(options).then(
+  sinon.mock().never(),
+  (err) =&#x3E; {
+    assert.include(err.message, testErrMsg);
+    assert(retriesDone, &#x27;Retries completed&#x27;);
+  }
+);</code></pre></dd>
+                <dt>returns queued status if wait elapses</dt>
+                <dd><pre><code>const testProject = &#x27;foo/bar&#x27;;
+const expectQueued1 = nock(apiUrl)
+  .get(&#x60;/api/projects/${testProject}&#x60;)
+  .query(true)
+  .reply(200, apiResponses.getProjectBuild({status: &#x27;queued&#x27;}));
+const expectQueued2 = nock(apiUrl)
+  .get(&#x60;/api/projects/${testProject}&#x60;)
+  .query(true)
+  .reply(200, apiResponses.getProjectBuild({status: &#x27;queued&#x27;}));
+// This test does not specify specifics of exponential backoff
+nock(apiUrl)
+  .persist()
+  .get(&#x60;/api/projects/${testProject}&#x60;)
+  .query(true)
+  .reply(200, apiResponses.getProjectBuild({status: &#x27;queued&#x27;}));
+let retriesDone = false;
+afterFirstRequest(() =&#x3E; {
+  assert(expectQueued1.isDone(), &#x27;First call is made immediately.&#x27;);
+  assert(!expectQueued2.isDone(), &#x27;Retry is not done immediately.&#x27;);
+  clock.tick(900);
+  assert(!expectQueued2.isDone(), &#x27;Retry is not done less than 1 sec.&#x27;);
+  clock.tick(60000);
+  assert(expectQueued2.isDone(), &#x27;Retry is done less than 1 minute.&#x27;);
+  retriesDone = true;
+});
+options.project = testProject;
+options.wait = 8000;
+return appveyorStatus.getLastBuild(options)
+  .then((projectBuild) =&#x3E; {
+    assert.strictEqual(projectBuildToStatus(projectBuild), &#x27;queued&#x27;);
+    assert(retriesDone, &#x27;Retries completed&#x27;);
+  });</code></pre></dd>
               </dl>
             </section>
           </dl>
@@ -38,11 +673,400 @@ section section section section {
         <section class="suite">
           <h1>.getStatusBadge</h1>
           <dl>
+            <dt>queries badge by repo URL</dt>
+            <dd><pre><code>const testBadgeUrlPath = &#x27;gitHub/foo/bar&#x27;;
+const testRepoUrl = &#x27;git@github.com:foo/bar.git&#x27;;
+const testStatus = &#x27;success&#x27;;
+gitUtilsMock.expects(&#x27;getBranch&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemote&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemoteUrl&#x27;).never();
+gitUtilsMock.expects(&#x27;resolveCommit&#x27;).never();
+const ne = nock(apiUrl)
+  .get(&#x60;/api/projects/status/${testBadgeUrlPath}&#x60;)
+  .query(true)
+  .reply(
+    200,
+    apiResponses.getStatusBadge(testStatus),
+    {&#x27;Content-Type&#x27;: &#x27;image/svg+xml&#x27;}
+  );
+options.repo = testRepoUrl;
+return appveyorStatus.getStatusBadge(options)
+  .then((badge) =&#x3E; {
+    assert.strictEqual(badgeToStatus(badge), testStatus);
+    ne.done();
+  });</code></pre></dd>
+            <dt>queries badge by repo URL and branch</dt>
+            <dd><pre><code>const testBadgeUrlPath = &#x27;gitHub/foo/bar&#x27;;
+const testBranch = &#x27;testb&#x27;;
+const testRepoUrl = &#x27;git@github.com:foo/bar.git&#x27;;
+const testStatus = &#x27;success&#x27;;
+gitUtilsMock.expects(&#x27;getBranch&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemote&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemoteUrl&#x27;).never();
+gitUtilsMock.expects(&#x27;resolveCommit&#x27;).never();
+const ne = nock(apiUrl)
+  .get(&#x60;/api/projects/status/${testBadgeUrlPath}&#x60;)
+  .query((query) =&#x3E; query.branch === testBranch &#x26;&#x26; query.svg === &#x27;true&#x27;)
+  .reply(
+    200,
+    apiResponses.getStatusBadge(testStatus),
+    {&#x27;Content-Type&#x27;: &#x27;image/svg+xml&#x27;}
+  );
+options.branch = testBranch;
+options.repo = testRepoUrl;
+return appveyorStatus.getStatusBadge(options)
+  .then((badge) =&#x3E; {
+    assert.strictEqual(badgeToStatus(badge), testStatus);
+    ne.done();
+  });</code></pre></dd>
+            <dt>queries badge by statusBadgeId</dt>
+            <dd><pre><code>const testStatusBadgeId = &#x27;abcde&#x27;;
+const testStatus = &#x27;success&#x27;;
+gitUtilsMock.expects(&#x27;getBranch&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemote&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemoteUrl&#x27;).never();
+gitUtilsMock.expects(&#x27;resolveCommit&#x27;).never();
+const ne = nock(apiUrl)
+  .get(&#x60;/api/projects/status/${testStatusBadgeId}&#x60;)
+  .query(true)
+  .reply(
+    200,
+    apiResponses.getStatusBadge(testStatus),
+    {&#x27;Content-Type&#x27;: &#x27;image/svg+xml&#x27;}
+  );
+options.statusBadgeId = testStatusBadgeId;
+return appveyorStatus.getStatusBadge(options)
+  .then((badge) =&#x3E; {
+    assert.strictEqual(badgeToStatus(badge), testStatus);
+    ne.done();
+  });</code></pre></dd>
+            <dt>queries badge by webhookId</dt>
+            <dd><pre><code>const testWebhookId = &#x27;abcde&#x27;;
+const testStatus = &#x27;success&#x27;;
+gitUtilsMock.expects(&#x27;getBranch&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemote&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemoteUrl&#x27;).never();
+gitUtilsMock.expects(&#x27;resolveCommit&#x27;).never();
+const ne = nock(apiUrl)
+  .get(&#x60;/api/projects/status/${testWebhookId}&#x60;)
+  .query(true)
+  .reply(
+    200,
+    apiResponses.getStatusBadge(testStatus),
+    {&#x27;Content-Type&#x27;: &#x27;image/svg+xml&#x27;}
+  );
+options.webhookId = testWebhookId;
+return appveyorStatus.getStatusBadge(options)
+  .then((badge) =&#x3E; {
+    assert.strictEqual(badgeToStatus(badge), testStatus);
+    ne.done();
+  });</code></pre></dd>
+            <dt>queries badge by statusBadgeId and branch</dt>
+            <dd><pre><code>const testBranch = &#x27;testb&#x27;;
+const testStatusBadgeId = &#x27;abcde&#x27;;
+const testStatus = &#x27;success&#x27;;
+gitUtilsMock.expects(&#x27;getBranch&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemote&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemoteUrl&#x27;).never();
+gitUtilsMock.expects(&#x27;resolveCommit&#x27;).never();
+const ne = nock(apiUrl)
+  .get(&#x60;/api/projects/status/${testStatusBadgeId}/branch/${testBranch}&#x60;)
+  .query(true)
+  .reply(
+    200,
+    apiResponses.getStatusBadge(testStatus),
+    {&#x27;Content-Type&#x27;: &#x27;image/svg+xml&#x27;}
+  );
+options.branch = testBranch;
+options.statusBadgeId = testStatusBadgeId;
+return appveyorStatus.getStatusBadge(options)
+  .then((badge) =&#x3E; {
+    assert.strictEqual(badgeToStatus(badge), testStatus);
+    ne.done();
+  });</code></pre></dd>
+            <dt>queries badge by webhookId and branch</dt>
+            <dd><pre><code>const testBranch = &#x27;testb&#x27;;
+const testWebhookId = &#x27;abcde&#x27;;
+const testStatus = &#x27;success&#x27;;
+gitUtilsMock.expects(&#x27;getBranch&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemote&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemoteUrl&#x27;).never();
+gitUtilsMock.expects(&#x27;resolveCommit&#x27;).never();
+const ne = nock(apiUrl)
+  .get(&#x60;/api/projects/status/${testWebhookId}/branch/${testBranch}&#x60;)
+  .query(true)
+  .reply(
+    200,
+    apiResponses.getStatusBadge(testStatus),
+    {&#x27;Content-Type&#x27;: &#x27;image/svg+xml&#x27;}
+  );
+options.branch = testBranch;
+options.webhookId = testWebhookId;
+return appveyorStatus.getStatusBadge(options)
+  .then((badge) =&#x3E; {
+    assert.strictEqual(badgeToStatus(badge), testStatus);
+    ne.done();
+  });</code></pre></dd>
+            <dt>rejects with Error for non-200 response</dt>
+            <dd><pre><code>const testWebhookId = &#x27;abcde&#x27;;
+const testStatus = &#x27;success&#x27;;
+gitUtilsMock.expects(&#x27;getBranch&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemote&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemoteUrl&#x27;).never();
+gitUtilsMock.expects(&#x27;resolveCommit&#x27;).never();
+const ne = nock(apiUrl)
+  .get(&#x60;/api/projects/status/${testWebhookId}&#x60;)
+  .query(true)
+  .reply(
+    400,
+    apiResponses.getStatusBadge(testStatus),
+    {&#x27;Content-Type&#x27;: &#x27;image/svg+xml&#x27;}
+  );
+options.statusBadgeId = testWebhookId;
+return appveyorStatus.getStatusBadge(options).then(
+  sinon.mock().never(),
+  (err) =&#x3E; {
+    assert.match(err.message, /400|Bad Request/i);
+    assert.strictEqual(err.status, 400);
+    ne.done();
+  }
+);</code></pre></dd>
+            <dt>rejects with Error for non-SVG response</dt>
+            <dd><pre><code>const testWebhookId = &#x27;abcde&#x27;;
+gitUtilsMock.expects(&#x27;getBranch&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemote&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemoteUrl&#x27;).never();
+gitUtilsMock.expects(&#x27;resolveCommit&#x27;).never();
+const ne = nock(apiUrl)
+  .get(&#x60;/api/projects/status/${testWebhookId}&#x60;)
+  .query(true)
+  .reply(200, &#x27;invalid&#x27;, {&#x27;Content-Type&#x27;: &#x27;text/plain&#x27;});
+options.statusBadgeId = testWebhookId;
+return appveyorStatus.getStatusBadge(options).then(
+  sinon.mock().never(),
+  (err) =&#x3E; {
+    assert.match(err.message, /svg/i);
+    ne.done();
+  }
+);</code></pre></dd>
+            <dt>rejects with Error for response without Content-Type</dt>
+            <dd><pre><code>const testStatusBadgeId = &#x27;abcde&#x27;;
+gitUtilsMock.expects(&#x27;getBranch&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemote&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemoteUrl&#x27;).never();
+gitUtilsMock.expects(&#x27;resolveCommit&#x27;).never();
+const ne = nock(apiUrl)
+  .get(&#x60;/api/projects/status/${testStatusBadgeId}&#x60;)
+  .query(true)
+  .reply(200, &#x27;invalid&#x27;, {&#x27;Content-Type&#x27;: undefined});
+options.statusBadgeId = testStatusBadgeId;
+return appveyorStatus.getStatusBadge(options).then(
+  sinon.mock().never(),
+  (err) =&#x3E; {
+    assert.match(err.message, /svg/i);
+    ne.done();
+  }
+);</code></pre></dd>
+            <dt>rejects with Error for options.project</dt>
+            <dd><pre><code>gitUtilsMock.expects(&#x27;getBranch&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemote&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemoteUrl&#x27;).never();
+gitUtilsMock.expects(&#x27;resolveCommit&#x27;).never();
+options.project = &#x27;foo/bar&#x27;;
+return appveyorStatus.getStatusBadge(options).then(
+  sinon.mock().never(),
+  (err) =&#x3E; {
+    assert.match(err.message, /required|supported/i);
+  }
+);</code></pre></dd>
           </dl>
         </section>
         <section class="suite">
           <h1>.getStatus</h1>
           <dl>
+            <dt>returns status from last build for project</dt>
+            <dd><pre><code>const testProject = &#x27;foo/bar&#x27;;
+const testStatus = &#x27;success&#x27;;
+gitUtilsMock.expects(&#x27;getBranch&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemote&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemoteUrl&#x27;).never();
+gitUtilsMock.expects(&#x27;resolveCommit&#x27;).never();
+const ne = nock(apiUrl)
+  .get(&#x60;/api/projects/${testProject}&#x60;)
+  .reply(200, apiResponses.getProjectBuild({status: testStatus}));
+options.project = testProject;
+return appveyorStatus.getStatus(options)
+  .then((status) =&#x3E; {
+    assert.strictEqual(status, testStatus);
+    ne.done();
+  });</code></pre></dd>
+            <dt>returns status from badge for GitHub repo</dt>
+            <dd><pre><code>const testProject = &#x27;foo/bar&#x27;;
+const testRepo = &#x60;https://github.com/${testProject}.git&#x60;;
+const testStatus = &#x27;success&#x27;;
+gitUtilsMock.expects(&#x27;getBranch&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemote&#x27;).never();
+gitUtilsMock.expects(&#x27;getRemoteUrl&#x27;).never();
+gitUtilsMock.expects(&#x27;resolveCommit&#x27;).never();
+const ne = nock(apiUrl)
+  .get(&#x60;/api/projects/status/gitHub/${testProject}&#x60;)
+  .query(true)
+  .reply(
+    200,
+    apiResponses.getStatusBadge(testStatus),
+    {&#x27;Content-Type&#x27;: &#x27;image/svg+xml&#x27;}
+  );
+options.repo = testRepo;
+return appveyorStatus.getStatus(options)
+  .then((status) =&#x3E; {
+    assert.strictEqual(status, testStatus);
+    ne.done();
+  });</code></pre></dd>
+            <dt>can be called with callback without options</dt>
+            <dd><pre><code>const testBranch = &#x27;testb&#x27;;
+const testProject = &#x27;foo/bar&#x27;;
+const testRemote = &#x27;testr&#x27;;
+const testRemoteUrl = &#x60;https://github.com/${testProject}.git&#x60;;
+const testStatus = &#x27;success&#x27;;
+gitUtilsMock.expects(&#x27;getBranch&#x27;)
+  .once().withArgs(matchOptionsCwd).resolves(testBranch);
+gitUtilsMock.expects(&#x27;getRemote&#x27;)
+  .once().withArgs(testBranch, matchOptionsCwd).resolves(testRemote);
+gitUtilsMock.expects(&#x27;getRemoteUrl&#x27;)
+  .once().withArgs(testRemote, matchOptionsCwd).resolves(testRemoteUrl);
+gitUtilsMock.expects(&#x27;resolveCommit&#x27;).never();
+const ne = nock(apiUrl)
+  .get(&#x60;/api/projects/status/gitHub/${testProject}&#x60;)
+  .query(true)
+  .reply(
+    200,
+    apiResponses.getStatusBadge(testStatus),
+    {&#x27;Content-Type&#x27;: &#x27;image/svg+xml&#x27;}
+  );
+appveyorStatus.getStatus((err, status) =&#x3E; {
+  assert.ifError(err);
+  assert.strictEqual(status, testStatus);
+  ne.done();
+  done();
+});</code></pre></dd>
+            <dt>throws TypeError for non-function callback</dt>
+            <dd><pre><code>assert.throws(
+  () =&#x3E; { appveyorStatus.getStatus(options, true); },
+  TypeError
+);</code></pre></dd>
+            <dt>rejects non-object options with TypeError</dt>
+            <dd><pre><code>appveyorStatus.getStatus(true).then(
+        sinon.mock().never(),
+        (err) =&#x3E; {
+          assert.instanceOf(err, TypeError);
+          assert.match(err.message, /\boptions\b/);
+        }
+      )</code></pre></dd>
+            <dt>rejects project and repo with Error</dt>
+            <dd><pre><code>options.project = &#x27;foo/bar&#x27;;
+options.repo = &#x27;.&#x27;;
+return appveyorStatus.getStatus(options).then(
+  sinon.mock().never(),
+  (err) =&#x3E; {
+    assert.instanceOf(err, Error);
+    assert.match(err.message, /\bproject\b/);
+    assert.match(err.message, /\brepo\b/);
+  }
+);</code></pre></dd>
+            <dt>rejects project and statusBadgeId with Error</dt>
+            <dd><pre><code>options.project = &#x27;foo/bar&#x27;;
+options.statusBadgeId = &#x27;abcde&#x27;;
+return appveyorStatus.getStatus(options).then(
+  sinon.mock().never(),
+  (err) =&#x3E; {
+    assert.instanceOf(err, Error);
+    assert.match(err.message, /\bproject\b/);
+    assert.match(err.message, /\bstatusBadgeId\b/);
+  }
+);</code></pre></dd>
+            <dt>rejects repo and statusBadgeId with Error</dt>
+            <dd><pre><code>options.repo = &#x27;.&#x27;;
+options.statusBadgeId = &#x27;abcde&#x27;;
+return appveyorStatus.getStatus(options).then(
+  sinon.mock().never(),
+  (err) =&#x3E; {
+    assert.instanceOf(err, Error);
+    assert.match(err.message, /\brepo\b/);
+    assert.match(err.message, /\bstatusBadgeId\b/);
+  }
+);</code></pre></dd>
+            <dt>rejects project and webhookId with Error</dt>
+            <dd><pre><code>options.project = &#x27;foo/bar&#x27;;
+options.webhookId = &#x27;abcde&#x27;;
+return appveyorStatus.getStatus(options).then(
+  sinon.mock().never(),
+  (err) =&#x3E; {
+    assert.instanceOf(err, Error);
+    assert.match(err.message, /\bproject\b/);
+    assert.match(err.message, /\bwebhookId\b/);
+  }
+);</code></pre></dd>
+            <dt>rejects repo and webhookId with Error</dt>
+            <dd><pre><code>options.repo = &#x27;.&#x27;;
+options.webhookId = &#x27;abcde&#x27;;
+return appveyorStatus.getStatus(options).then(
+  sinon.mock().never(),
+  (err) =&#x3E; {
+    assert.instanceOf(err, Error);
+    assert.match(err.message, /\brepo\b/);
+    assert.match(err.message, /\bwebhookId\b/);
+  }
+);</code></pre></dd>
+            <dt>rejects non-Writable err with TypeError</dt>
+            <dd><pre><code>appveyorStatus.getStatus({err: new stream.Readable()}).then(
+        sinon.mock().never(),
+        (err) =&#x3E; {
+          assert.instanceOf(err, TypeError);
+          assert.match(err.message, /\berr\b/);
+        }
+      )</code></pre></dd>
+            <dt>rejects non-numeric wait with TypeError</dt>
+            <dd><pre><code>options.wait = &#x27;forever&#x27;;
+return appveyorStatus.getStatus(options).then(
+  sinon.mock().never(),
+  (err) =&#x3E; {
+    assert.instanceOf(err, TypeError);
+    assert.match(err.message, /\bwait\b/);
+  }
+);</code></pre></dd>
+            <dt>rejects negative wait with RangeError</dt>
+            <dd><pre><code>options.wait = -1;
+return appveyorStatus.getStatus(options).then(
+  sinon.mock().never(),
+  (err) =&#x3E; {
+    assert.instanceOf(err, RangeError);
+    assert.match(err.message, /\bwait\b/);
+  }
+);</code></pre></dd>
+            <dt>rejects project without accountName with Error</dt>
+            <dd><pre><code>options.project = {
+  slug: &#x27;foo&#x27;
+};
+return appveyorStatus.getStatus(options).then(
+  sinon.mock().never(),
+  (err) =&#x3E; {
+    assert.instanceOf(err, Error);
+    assert.match(err.message, /\bproject\b/);
+    assert.match(err.message, /\baccountName\b/);
+  }
+);</code></pre></dd>
+            <dt>rejects project without slug with Error</dt>
+            <dd><pre><code>options.project = {
+  accountName: &#x27;foo&#x27;
+};
+return appveyorStatus.getStatus(options).then(
+  sinon.mock().never(),
+  (err) =&#x3E; {
+    assert.instanceOf(err, Error);
+    assert.match(err.message, /\bproject\b/);
+    assert.match(err.message, /\bslug\b/);
+  }
+);</code></pre></dd>
           </dl>
         </section>
       </dl>
@@ -1505,8 +2529,8 @@ deepStrictEqual(
   }
 );</code></pre></dd>
             <dt>parses vso project git SSH URL</dt>
-            <dd><pre><code>const testUrl =
-  &#x27;ssh://kevinoid@kevinoid.visualstudio.com:22/_git/TestProj&#x27;;
+            <dd><pre><code>const testUrl
+  = &#x27;ssh://kevinoid@kevinoid.visualstudio.com:22/_git/TestProj&#x27;;
 deepStrictEqual(
   appveyorUtils.parseAppveyorRepoUrl(testUrl),
   {
@@ -1524,8 +2548,8 @@ deepStrictEqual(
   }
 );</code></pre></dd>
             <dt>parses vso sub-project git SSH URL</dt>
-            <dd><pre><code>const testUrl =
-  &#x27;ssh://kevinoid@kevinoid.visualstudio.com:22/TestProj/_git/repo2&#x27;;
+            <dd><pre><code>const testUrl
+  = &#x27;ssh://kevinoid@kevinoid.visualstudio.com:22/TestProj/_git/repo2&#x27;;
 deepStrictEqual(
   appveyorUtils.parseAppveyorRepoUrl(testUrl),
   {
@@ -1553,8 +2577,8 @@ deepStrictEqual(
             <dt>parses bitBucket HTTPS URL</dt>
             <dd><pre><code>const testAccount = &#x27;foo&#x27;;
 const testProject = &#x27;bar&#x27;;
-const testUrl =
-  &#x60;https://bitbucket.org/${testAccount}/${testProject}.git&#x60;;
+const testUrl
+  = &#x60;https://bitbucket.org/${testAccount}/${testProject}.git&#x60;;
 deepStrictEqual(
   appveyorUtils.repoUrlToBadgeParams(testUrl),
   {
@@ -1566,8 +2590,8 @@ deepStrictEqual(
             <dt>parses bitBucket SSH URL</dt>
             <dd><pre><code>const testAccount = &#x27;foo&#x27;;
 const testProject = &#x27;bar&#x27;;
-const testUrl =
-  &#x60;git@bitbucket.org:${testAccount}/${testProject}.git&#x60;;
+const testUrl
+  = &#x60;git@bitbucket.org:${testAccount}/${testProject}.git&#x60;;
 deepStrictEqual(
   appveyorUtils.repoUrlToBadgeParams(testUrl),
   {
@@ -1585,8 +2609,8 @@ assert.throws(
             <dt>parses gitHub HTTPS URL</dt>
             <dd><pre><code>const testAccount = &#x27;foo&#x27;;
 const testProject = &#x27;bar&#x27;;
-const testUrl =
-  &#x60;https://github.com/${testAccount}/${testProject}.git&#x60;;
+const testUrl
+  = &#x60;https://github.com/${testAccount}/${testProject}.git&#x60;;
 deepStrictEqual(
   appveyorUtils.repoUrlToBadgeParams(testUrl),
   {
@@ -1598,8 +2622,8 @@ deepStrictEqual(
             <dt>parses gitHub SSH URL</dt>
             <dd><pre><code>const testAccount = &#x27;foo&#x27;;
 const testProject = &#x27;bar&#x27;;
-const testUrl =
-  &#x60;git@github.com:${testAccount}/${testProject}.git&#x60;;
+const testUrl
+  = &#x60;git@github.com:${testAccount}/${testProject}.git&#x60;;
 deepStrictEqual(
   appveyorUtils.repoUrlToBadgeParams(testUrl),
   {
@@ -1627,8 +2651,8 @@ assert.throws(
   Error
 );</code></pre></dd>
             <dt>throws for vso SSH URL</dt>
-            <dd><pre><code>const testUrl =
-  &#x27;ssh://kevinoid@kevinoid.visualstudio.com:22/_git/TestProj&#x27;;
+            <dd><pre><code>const testUrl
+  = &#x27;ssh://kevinoid@kevinoid.visualstudio.com:22/_git/TestProj&#x27;;
 assert.throws(
   () =&#x3E; { appveyorUtils.repoUrlToBadgeParams(testUrl); },
   Error
@@ -1828,8 +2852,7 @@ return execFileOut(process.execPath, testArgs)
     assert.strictEqual(stdout, testOut);
   });</code></pre></dd>
         <dt>closes stdin to prevent hanging</dt>
-        <dd><pre><code>// Test will timeout if stdin is not closed
-    execFileOut(process.execPath)</code></pre></dd>
+        <dd><pre><code>execFileOut(process.execPath)</code></pre></dd>
       </dl>
     </section>
     <section class="suite">
@@ -1839,7 +2862,8 @@ return execFileOut(process.execPath, testArgs)
           <h1>.getBranch</h1>
           <dl>
             <dt>resolves master on master</dt>
-            <dd><pre><code>gitUtils.getBranch(options).then((branch) =&#x3E; {
+            <dd><pre><code>gitUtils.getBranch(options)
+      .then((branch) =&#x3E; {
         assert.strictEqual(branch, &#x27;master&#x27;);
       })</code></pre></dd>
             <dt>resolves branch1 on branch1</dt>
@@ -1986,19 +3010,19 @@ return execFileOut(process.execPath, testArgs)
             <dd><pre><code>const testUrl = &#x27;http://user@example.com/foo/bar&#x27;;
 deepStrictEqual(
   gitUtils.parseGitUrl(testUrl),
-  assign(url.parse(testUrl), {helper: undefined})
+  Object.assign(url.parse(testUrl), {helper: undefined})
 );</code></pre></dd>
             <dt>parses git: like url module</dt>
             <dd><pre><code>const testUrl = &#x27;git://user@example.com/foo/bar&#x27;;
 deepStrictEqual(
   gitUtils.parseGitUrl(testUrl),
-  assign(url.parse(testUrl), {helper: undefined})
+  Object.assign(url.parse(testUrl), {helper: undefined})
 );</code></pre></dd>
             <dt>parses SCP-like URL like ssh: URL</dt>
             <dd><pre><code>const testUrl = &#x27;user@example.com:foo/bar.git&#x27;;
 deepStrictEqual(
   gitUtils.parseGitUrl(testUrl),
-  assign(
+  Object.assign(
     url.parse(&#x27;ssh://user@example.com/foo/bar.git&#x27;),
     {helper: undefined}
   )
@@ -2007,25 +3031,25 @@ deepStrictEqual(
             <dd><pre><code>const testPath = path.resolve(path.join(&#x27;foo&#x27;, &#x27;bar&#x27;));
 deepStrictEqual(
   gitUtils.parseGitUrl(testPath),
-  assign(url.parse(fileUrl(testPath)), {helper: undefined})
+  Object.assign(url.parse(fileUrl(testPath)), {helper: undefined})
 );</code></pre></dd>
             <dt>parses relative path like file:// URL</dt>
             <dd><pre><code>const testPath = path.join(&#x27;foo&#x27;, &#x27;bar&#x27;);
 deepStrictEqual(
   gitUtils.parseGitUrl(testPath),
-  assign(url.parse(fileUrl(testPath)), {helper: undefined})
+  Object.assign(url.parse(fileUrl(testPath)), {helper: undefined})
 );</code></pre></dd>
             <dt>parses Windows path like URL on non-Windows</dt>
             <dd><pre><code>const testPath = &#x27;C:\\foo\\bar&#x27;;
 deepStrictEqual(
   gitUtils.parseGitUrl(testPath),
-  assign(url.parse(testPath), {helper: undefined})
+  Object.assign(url.parse(testPath), {helper: undefined})
 );</code></pre></dd>
             <dt>adds helper property for transport helper</dt>
             <dd><pre><code>const testUrl = &#x27;myhelper::user@example.com:foo/bar.git&#x27;;
 deepStrictEqual(
   gitUtils.parseGitUrl(testUrl),
-  assign(
+  Object.assign(
     url.parse(&#x27;ssh://user@example.com/foo/bar.git&#x27;),
     {helper: &#x27;myhelper&#x27;}
   )
