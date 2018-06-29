@@ -5,7 +5,7 @@ language: node_js
 node_js:
   - node
   - 7   # Test on 7 until nock supports 8
-  - 4
+  - 6
 
 # If the package has OS-dependent features, uncomment this.
 #os:
