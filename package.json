@@ -42,7 +42,6 @@
   },
   "dependencies": {
     "appveyor-swagger": "^0.20180607.0",
-    "array-uniq": "^1.0.3",
     "chalk": "^2.0.0",
     "escape-string-regexp": "^1.0.0",
     "file-url": "^2.0.2",
