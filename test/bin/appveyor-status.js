@@ -7,7 +7,7 @@
 
 const Chalk = require('chalk').constructor;
 const appveyorSwagger = require('appveyor-swagger');
-const assert = require('chai').assert;
+const {assert} = require('chai');
 const escapeStringRegexp = require('escape-string-regexp');
 const fs = require('fs');
 const path = require('path');
@@ -20,7 +20,7 @@ const appveyorStatusCmd = require('../../bin/appveyor-status');
 const CommitMismatchError = require('../../lib/commit-mismatch-error');
 
 const chalk = new Chalk({enabled: true});
-const match = sinon.match;
+const {match} = sinon;
 const statusValues = appveyorSwagger.definitions.Status.enum;
 
 // Simulate arguments passed by the node runtime

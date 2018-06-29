@@ -299,11 +299,11 @@ function canonicalizeOptions(options, apiFunc) {
     commitP,
     remoteUrlP || options.repo
   ])
-    .then((results) => {
-      options.appveyorClient = results[0];
-      options.branch = results[1];
-      options.commit = results[2];
-      options.repo = results[3];
+    .then(([appveyorClient, branch, commit, repo]) => {
+      options.appveyorClient = appveyorClient;
+      options.branch = branch;
+      options.commit = commit;
+      options.repo = repo;
 
       return apiFunc(options);
     });

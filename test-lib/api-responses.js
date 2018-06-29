@@ -18,18 +18,18 @@ let badgeData;
  * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/assign
  *
  * @param {!Object} target Object to be updated.
- * @param {Object} varArgs Object from which to copy updated properties.
+ * @param {...Object} args Objects from which to copy updated properties.
  * @private
  */
-function assignUpdate(target, varArgs) { // .length of function is 2
+function assignUpdate(target, ...args) {
   if (target === undefined || target === null) {
     throw new TypeError('Cannot convert undefined or null to object');
   }
 
   const to = Object(target);
 
-  for (let index = 1; index < arguments.length; index += 1) {
-    const nextSource = arguments[index];
+  for (let index = 0; index < args.length; index += 1) {
+    const nextSource = args[index];
 
     if (nextSource) {
       // eslint-disable-next-line no-restricted-syntax

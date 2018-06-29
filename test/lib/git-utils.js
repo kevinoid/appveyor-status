@@ -6,7 +6,7 @@
 'use strict';
 
 const fileUrl = require('file-url');
-const assert = require('chai').assert;
+const {assert} = require('chai');
 const assign = require('object-assign');
 const path = require('path');
 const pify = require('pify');

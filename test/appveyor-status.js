@@ -8,7 +8,7 @@
 const SwaggerClient = require('swagger-client');
 const appveyorStatus = require('..');
 const appveyorSwagger = require('appveyor-swagger');
-const assert = require('chai').assert;
+const {assert} = require('chai');
 const nock = require('nock');
 const sinon = require('sinon');
 const stream = require('stream');
@@ -23,9 +23,9 @@ const apiUrl = url.format({
   protocol: appveyorSwagger.schemes[0],
   host: appveyorSwagger.host
 });
-const badgeToStatus = appveyorUtils.badgeToStatus;
-const match = sinon.match;
-const projectBuildToStatus = appveyorUtils.projectBuildToStatus;
+const {badgeToStatus} = appveyorUtils;
+const {match} = sinon;
+const {projectBuildToStatus} = appveyorUtils;
 
 describe('appveyorStatus', function() {
   // Increase timeout to cover slower CI environments.
