@@ -27,13 +27,7 @@ const badgeToStatus = appveyorUtils.badgeToStatus;
 const match = sinon.match;
 const projectBuildToStatus = appveyorUtils.projectBuildToStatus;
 
-// nock doesn't support Node v8 yet:
-// https://github.com/node-nock/nock/issues/922
-// https://github.com/node-nock/nock/issues/925
-const describeThis
-  = Number(process.version.slice(1).split('.', 1)[0]) >= 8 ? xdescribe
-    : describe;
-describeThis('appveyorStatus', function() {
+describe('appveyorStatus', function() {
   // Increase timeout to cover slower CI environments.
   this.timeout(4000);
 
