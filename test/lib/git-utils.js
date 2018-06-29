@@ -7,7 +7,6 @@
 
 const fileUrl = require('file-url');
 const {assert} = require('chai');
-const assign = require('object-assign');
 const path = require('path');
 const pify = require('pify');
 const rimraf = require('rimraf');
@@ -237,7 +236,7 @@ describe('gitUtils', () => {
       const testUrl = 'http://user@example.com/foo/bar';
       deepStrictEqual(
         gitUtils.parseGitUrl(testUrl),
-        assign(url.parse(testUrl), {helper: undefined})
+        Object.assign(url.parse(testUrl), {helper: undefined})
       );
     });
 
@@ -245,7 +244,7 @@ describe('gitUtils', () => {
       const testUrl = 'git://user@example.com/foo/bar';
       deepStrictEqual(
         gitUtils.parseGitUrl(testUrl),
-        assign(url.parse(testUrl), {helper: undefined})
+        Object.assign(url.parse(testUrl), {helper: undefined})
       );
     });
 
@@ -253,7 +252,7 @@ describe('gitUtils', () => {
       const testUrl = 'user@example.com:foo/bar.git';
       deepStrictEqual(
         gitUtils.parseGitUrl(testUrl),
-        assign(
+        Object.assign(
           url.parse('ssh://user@example.com/foo/bar.git'),
           {helper: undefined}
         )
@@ -264,7 +263,7 @@ describe('gitUtils', () => {
       const testPath = path.resolve(path.join('foo', 'bar'));
       deepStrictEqual(
         gitUtils.parseGitUrl(testPath),
-        assign(url.parse(fileUrl(testPath)), {helper: undefined})
+        Object.assign(url.parse(fileUrl(testPath)), {helper: undefined})
       );
     });
 
@@ -272,7 +271,7 @@ describe('gitUtils', () => {
       const testPath = path.join('foo', 'bar');
       deepStrictEqual(
         gitUtils.parseGitUrl(testPath),
-        assign(url.parse(fileUrl(testPath)), {helper: undefined})
+        Object.assign(url.parse(fileUrl(testPath)), {helper: undefined})
       );
     });
 
@@ -280,7 +279,7 @@ describe('gitUtils', () => {
       it('parses Windows path like file:// URL on Windows', () => {
         deepStrictEqual(
           gitUtils.parseGitUrl('C:\\foo\\bar'),
-          assign(url.parse('file:///C:/foo/bar'), {helper: undefined})
+          Object.assign(url.parse('file:///C:/foo/bar'), {helper: undefined})
         );
       });
     } else {
@@ -288,7 +287,7 @@ describe('gitUtils', () => {
         const testPath = 'C:\\foo\\bar';
         deepStrictEqual(
           gitUtils.parseGitUrl(testPath),
-          assign(url.parse(testPath), {helper: undefined})
+          Object.assign(url.parse(testPath), {helper: undefined})
         );
       });
     }
@@ -297,7 +296,7 @@ describe('gitUtils', () => {
       const testUrl = 'myhelper::user@example.com:foo/bar.git';
       deepStrictEqual(
         gitUtils.parseGitUrl(testUrl),
-        assign(
+        Object.assign(
           url.parse('ssh://user@example.com/foo/bar.git'),
           {helper: 'myhelper'}
         )

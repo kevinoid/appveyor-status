@@ -47,7 +47,6 @@
     "escape-string-regexp": "^1.0.0",
     "file-url": "^2.0.2",
     "get-exec-file": "^1.1.0",
-    "object-assign": "^4.1.0",
     "promise-finally": "^3.0.0",
     "promise-nodeify": "^2.0.0",
     "read-all-stream": "^3.1.0",

@@ -12,7 +12,6 @@
 const Chalk = require('chalk').constructor;
 const Yargs = require('yargs/yargs');
 const appveyorStatus = require('..');
-const assign = require('object-assign');
 const fs = require('fs');
 const readAllStream = require('read-all-stream');
 
@@ -186,7 +185,7 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
       throw new TypeError('options must be an object');
     }
 
-    options = assign(
+    options = Object.assign(
       {
         in: process.stdin,
         out: process.stdout,
@@ -335,7 +334,7 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
     argOpts.webhookId = argOpts.webhook;
     delete argOpts.webhook;
 
-    const statusOpts = assign({}, options, argOpts);
+    const statusOpts = Object.assign({}, options, argOpts);
 
     if (argOpts.tokenFile !== undefined) {
       const tokenFileStream = argOpts.tokenFile === '-' ? options.in

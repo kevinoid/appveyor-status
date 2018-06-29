@@ -8,7 +8,6 @@
 
 const SwaggerClient = require('swagger-client');
 const appveyorSwagger = require('appveyor-swagger');
-const assign = require('object-assign');
 const https = require('https');
 const nodeify = require('promise-nodeify');
 const promiseFinally = require('promise-finally').default;
@@ -205,7 +204,7 @@ function canonicalizeOptions(options, apiFunc) {
     }
   }
 
-  options = assign({}, options);
+  options = Object.assign({}, options);
 
   options.err = options.err || process.stderr;
   if (!options.err || typeof options.err.write !== 'function') {
@@ -520,7 +519,7 @@ function getLastBuildInternal(options) {
 
   return getMatchingProject(options)
     .then((project) => {
-      const optionsWithProject = assign({}, options);
+      const optionsWithProject = Object.assign({}, options);
       optionsWithProject.project = project;
       optionsWithProject.useProjectBuilds = true;
       return getLastBuildForProject(optionsWithProject);
@@ -580,7 +579,7 @@ function getStatusBadgeInternal(options) {
       responseP = client.apis.Project.getProjectStatusBadge(params);
     }
   } else {
-    assign(params, appveyorUtils.repoUrlToBadgeParams(options.repo));
+    Object.assign(params, appveyorUtils.repoUrlToBadgeParams(options.repo));
     if (options.branch) {
       params.branch = options.branch;
     }
