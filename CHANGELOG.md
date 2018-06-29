@@ -1,5 +1,13 @@
 # Change Log
 
+## [3.0.0](https://github.com/kevinoid/appveyor-status/tree/3.0.0) (2018-06-29)
+[Full Changelog](https://github.com/kevinoid/appveyor-status/compare/v2.0.2...3.0.0)
+
+- **BREAKING** Drop support for Node 4 which is no longer supported upstream.
+- Drop now-unnecessary dependencies.
+- Dependency version updates.
+- Code style fixes.
+
 ## [2.0.2](https://github.com/kevinoid/appveyor-status/tree/2.0.2) (2018-04-19)
 [Full Changelog](https://github.com/kevinoid/appveyor-status/compare/v2.0.1...2.0.2)
 
