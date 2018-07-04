@@ -10,8 +10,6 @@ const assert = require('assert');
 const apiResponses = require('../../test-lib/api-responses');
 const appveyorUtils = require('../../lib/appveyor-utils');
 
-const deepStrictEqual = assert.deepStrictEqual || assert.deepEqual;
-
 describe('appveyorUtils', () => {
   describe('.badgeToStatus', () => {
     ['success', 'failed'].forEach((status) => {
@@ -59,7 +57,7 @@ describe('appveyorUtils', () => {
     it('parses bitBucket HTTPS URL', () => {
       const testProject = 'foo/bar';
       const testUrl = `https://bitbucket.org/${testProject}.git`;
-      deepStrictEqual(
+      assert.deepStrictEqual(
         appveyorUtils.parseAppveyorRepoUrl(testUrl),
         {
           repositoryType: 'bitBucket',
@@ -71,7 +69,7 @@ describe('appveyorUtils', () => {
     it('parses bitBucket SSH URL', () => {
       const testProject = 'foo/bar';
       const testUrl = `git@bitbucket.org:${testProject}.git`;
-      deepStrictEqual(
+      assert.deepStrictEqual(
         appveyorUtils.parseAppveyorRepoUrl(testUrl),
         {
           repositoryType: 'bitBucket',
@@ -83,7 +81,7 @@ describe('appveyorUtils', () => {
     it('parses gitHub HTTPS URL', () => {
       const testProject = 'foo/bar';
       const testUrl = `https://github.com/${testProject}.git`;
-      deepStrictEqual(
+      assert.deepStrictEqual(
         appveyorUtils.parseAppveyorRepoUrl(testUrl),
         {
           repositoryType: 'gitHub',
@@ -95,7 +93,7 @@ describe('appveyorUtils', () => {
     it('parses gitHub SSH URL', () => {
       const testProject = 'foo/bar';
       const testUrl = `git@github.com:${testProject}.git`;
-      deepStrictEqual(
+      assert.deepStrictEqual(
         appveyorUtils.parseAppveyorRepoUrl(testUrl),
         {
           repositoryType: 'gitHub',
@@ -107,7 +105,7 @@ describe('appveyorUtils', () => {
     it('parses gitLab HTTPS URL', () => {
       const testProject = 'foo/bar';
       const testUrl = `https://gitlab.com/${testProject}.git`;
-      deepStrictEqual(
+      assert.deepStrictEqual(
         appveyorUtils.parseAppveyorRepoUrl(testUrl),
         {
           repositoryType: 'gitLab',
@@ -119,7 +117,7 @@ describe('appveyorUtils', () => {
     it('parses gitLab SSH URL', () => {
       const testProject = 'foo/bar';
       const testUrl = `git@gitlab.com:${testProject}.git`;
-      deepStrictEqual(
+      assert.deepStrictEqual(
         appveyorUtils.parseAppveyorRepoUrl(testUrl),
         {
           repositoryType: 'gitLab',
@@ -131,7 +129,7 @@ describe('appveyorUtils', () => {
     // FIXME:  Can't be sure this works without paid AppVeyor account
     it('parses vso project git HTTPS URL', () => {
       const testUrl = 'https://kevinoid.visualstudio.com/_git/TestProj';
-      deepStrictEqual(
+      assert.deepStrictEqual(
         appveyorUtils.parseAppveyorRepoUrl(testUrl),
         {
           repositoryType: 'vso',
@@ -144,7 +142,7 @@ describe('appveyorUtils', () => {
     it('parses vso project git SSH URL', () => {
       const testUrl
         = 'ssh://kevinoid@kevinoid.visualstudio.com:22/_git/TestProj';
-      deepStrictEqual(
+      assert.deepStrictEqual(
         appveyorUtils.parseAppveyorRepoUrl(testUrl),
         {
           repositoryType: 'vso',
@@ -156,7 +154,7 @@ describe('appveyorUtils', () => {
     // FIXME:  Can't be sure this works without paid AppVeyor account
     it('parses vso sub-project git HTTPS URL', () => {
       const testUrl = 'https://kevinoid.visualstudio.com/TestProj/_git/repo2';
-      deepStrictEqual(
+      assert.deepStrictEqual(
         appveyorUtils.parseAppveyorRepoUrl(testUrl),
         {
           repositoryType: 'vso',
@@ -169,7 +167,7 @@ describe('appveyorUtils', () => {
     it('parses vso sub-project git SSH URL', () => {
       const testUrl
         = 'ssh://kevinoid@kevinoid.visualstudio.com:22/TestProj/_git/repo2';
-      deepStrictEqual(
+      assert.deepStrictEqual(
         appveyorUtils.parseAppveyorRepoUrl(testUrl),
         {
           repositoryType: 'vso',
@@ -180,7 +178,7 @@ describe('appveyorUtils', () => {
 
     it('returns unknown HTTPS URL', () => {
       const testUrl = 'https://example.com/foo.git';
-      deepStrictEqual(
+      assert.deepStrictEqual(
         appveyorUtils.parseAppveyorRepoUrl(testUrl),
         {repositoryName: testUrl}
       );
@@ -188,7 +186,7 @@ describe('appveyorUtils', () => {
 
     it('returns unknown SCP-like URL', () => {
       const testUrl = 'user@example.com:foo.git';
-      deepStrictEqual(
+      assert.deepStrictEqual(
         appveyorUtils.parseAppveyorRepoUrl(testUrl),
         {repositoryName: testUrl}
       );
@@ -201,7 +199,7 @@ describe('appveyorUtils', () => {
       const testProject = 'bar';
       const testUrl
         = `https://bitbucket.org/${testAccount}/${testProject}.git`;
-      deepStrictEqual(
+      assert.deepStrictEqual(
         appveyorUtils.repoUrlToBadgeParams(testUrl),
         {
           badgeRepoProvider: 'bitBucket',
@@ -216,7 +214,7 @@ describe('appveyorUtils', () => {
       const testProject = 'bar';
       const testUrl
         = `git@bitbucket.org:${testAccount}/${testProject}.git`;
-      deepStrictEqual(
+      assert.deepStrictEqual(
         appveyorUtils.repoUrlToBadgeParams(testUrl),
         {
           badgeRepoProvider: 'bitBucket',
@@ -241,7 +239,7 @@ describe('appveyorUtils', () => {
       const testProject = 'bar';
       const testUrl
         = `https://github.com/${testAccount}/${testProject}.git`;
-      deepStrictEqual(
+      assert.deepStrictEqual(
         appveyorUtils.repoUrlToBadgeParams(testUrl),
         {
           badgeRepoProvider: 'gitHub',
@@ -256,7 +254,7 @@ describe('appveyorUtils', () => {
       const testProject = 'bar';
       const testUrl
         = `git@github.com:${testAccount}/${testProject}.git`;
-      deepStrictEqual(
+      assert.deepStrictEqual(
         appveyorUtils.repoUrlToBadgeParams(testUrl),
         {
           badgeRepoProvider: 'gitHub',
@@ -324,7 +322,7 @@ describe('appveyorUtils', () => {
     it('splits account name and slug to object', () => {
       const accountName = 'foo';
       const slug = 'bar';
-      deepStrictEqual(
+      assert.deepStrictEqual(
         appveyorUtils.projectFromString(`${accountName}/${slug}`),
         {
           accountName,
@@ -361,7 +359,7 @@ describe('appveyorUtils', () => {
         accountName: 'foo',
         slug: 'bar'
       };
-      deepStrictEqual(
+      assert.deepStrictEqual(
         appveyorUtils.projectToString(testProj),
         'foo/bar'
       );

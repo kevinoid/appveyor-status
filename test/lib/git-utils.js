@@ -15,7 +15,6 @@ const url = require('url');
 const gitUtils = require('../../lib/git-utils');
 const execFileOut = require('../../lib/exec-file-out');
 
-const deepStrictEqual = assert.deepStrictEqual || assert.deepEqual;
 const isWindows = /^win/i.test(process.platform);
 const rimrafP = pify(rimraf);
 
@@ -234,7 +233,7 @@ describe('gitUtils', () => {
   describe('.parseGitUrl', () => {
     it('parses http: like url module', () => {
       const testUrl = 'http://user@example.com/foo/bar';
-      deepStrictEqual(
+      assert.deepStrictEqual(
         gitUtils.parseGitUrl(testUrl),
         Object.assign(url.parse(testUrl), {helper: undefined})
       );
@@ -242,7 +241,7 @@ describe('gitUtils', () => {
 
     it('parses git: like url module', () => {
       const testUrl = 'git://user@example.com/foo/bar';
-      deepStrictEqual(
+      assert.deepStrictEqual(
         gitUtils.parseGitUrl(testUrl),
         Object.assign(url.parse(testUrl), {helper: undefined})
       );
@@ -250,7 +249,7 @@ describe('gitUtils', () => {
 
     it('parses SCP-like URL like ssh: URL', () => {
       const testUrl = 'user@example.com:foo/bar.git';
-      deepStrictEqual(
+      assert.deepStrictEqual(
         gitUtils.parseGitUrl(testUrl),
         Object.assign(
           url.parse('ssh://user@example.com/foo/bar.git'),
@@ -261,7 +260,7 @@ describe('gitUtils', () => {
 
     it('parses absolute path like file:// URL', () => {
       const testPath = path.resolve(path.join('foo', 'bar'));
-      deepStrictEqual(
+      assert.deepStrictEqual(
         gitUtils.parseGitUrl(testPath),
         Object.assign(url.parse(fileUrl(testPath)), {helper: undefined})
       );
@@ -269,7 +268,7 @@ describe('gitUtils', () => {
 
     it('parses relative path like file:// URL', () => {
       const testPath = path.join('foo', 'bar');
-      deepStrictEqual(
+      assert.deepStrictEqual(
         gitUtils.parseGitUrl(testPath),
         Object.assign(url.parse(fileUrl(testPath)), {helper: undefined})
       );
@@ -277,7 +276,7 @@ describe('gitUtils', () => {
 
     if (isWindows) {
       it('parses Windows path like file:// URL on Windows', () => {
-        deepStrictEqual(
+        assert.deepStrictEqual(
           gitUtils.parseGitUrl('C:\\foo\\bar'),
           Object.assign(url.parse('file:///C:/foo/bar'), {helper: undefined})
         );
@@ -285,7 +284,7 @@ describe('gitUtils', () => {
     } else {
       it('parses Windows path like URL on non-Windows', () => {
         const testPath = 'C:\\foo\\bar';
-        deepStrictEqual(
+        assert.deepStrictEqual(
           gitUtils.parseGitUrl(testPath),
           Object.assign(url.parse(testPath), {helper: undefined})
         );
@@ -294,7 +293,7 @@ describe('gitUtils', () => {
 
     it('adds helper property for transport helper', () => {
       const testUrl = 'myhelper::user@example.com:foo/bar.git';
-      deepStrictEqual(
+      assert.deepStrictEqual(
         gitUtils.parseGitUrl(testUrl),
         Object.assign(
           url.parse('ssh://user@example.com/foo/bar.git'),

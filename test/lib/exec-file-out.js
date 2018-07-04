@@ -9,8 +9,6 @@ const assert = require('assert');
 
 const execFileOut = require('../../lib/exec-file-out');
 
-const deepStrictEqual = assert.deepStrictEqual || assert.deepEqual;
-
 function neverCalled() {
   throw new Error('Should not be called');
 }
@@ -56,7 +54,7 @@ describe('execFileOut', () => {
     const options = {encoding: 'buffer'};
     return execFileOut(process.execPath, testArgs, options)
       .then((stdout) => {
-        deepStrictEqual(stdout, Buffer.from(testOut));
+        assert.deepStrictEqual(stdout, Buffer.from(testOut));
       });
   });
 
@@ -111,8 +109,8 @@ describe('execFileOut', () => {
           [process.execPath].concat(testArgs).join(' ')
         );
         assert.strictEqual(err.code, 0);
-        deepStrictEqual(err.stderr, Buffer.from(testErr));
-        deepStrictEqual(err.stdout, Buffer.from(testOut));
+        assert.deepStrictEqual(err.stderr, Buffer.from(testErr));
+        assert.deepStrictEqual(err.stdout, Buffer.from(testOut));
       }
     );
   });
