@@ -1,5 +1,12 @@
 # Change Log
 
+## [3.0.1](https://github.com/kevinoid/appveyor-status/tree/v3.0.1) (2018-09-09)
+[Full Changelog](https://github.com/kevinoid/appveyor-status/compare/v3.0.0...v3.0.1)
+
+- Limit `swagger-client` dependency to version 3.8.15 until
+  swagger-api/swagger-js#1382 is fixed.
+- Dependency version updates.
+
 ## [3.0.0](https://github.com/kevinoid/appveyor-status/tree/3.0.0) (2018-06-29)
 [Full Changelog](https://github.com/kevinoid/appveyor-status/compare/v2.0.2...3.0.0)
 
