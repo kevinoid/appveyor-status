@@ -2462,7 +2462,7 @@ assert.strictEqual(result, testStatus);</code></pre></dd>
             <dt>parses bitBucket HTTPS URL</dt>
             <dd><pre><code>const testProject = &#x27;foo/bar&#x27;;
 const testUrl = &#x60;https://bitbucket.org/${testProject}.git&#x60;;
-deepStrictEqual(
+assert.deepStrictEqual(
   appveyorUtils.parseAppveyorRepoUrl(testUrl),
   {
     repositoryType: &#x27;bitBucket&#x27;,
@@ -2472,7 +2472,7 @@ deepStrictEqual(
             <dt>parses bitBucket SSH URL</dt>
             <dd><pre><code>const testProject = &#x27;foo/bar&#x27;;
 const testUrl = &#x60;git@bitbucket.org:${testProject}.git&#x60;;
-deepStrictEqual(
+assert.deepStrictEqual(
   appveyorUtils.parseAppveyorRepoUrl(testUrl),
   {
     repositoryType: &#x27;bitBucket&#x27;,
@@ -2482,7 +2482,7 @@ deepStrictEqual(
             <dt>parses gitHub HTTPS URL</dt>
             <dd><pre><code>const testProject = &#x27;foo/bar&#x27;;
 const testUrl = &#x60;https://github.com/${testProject}.git&#x60;;
-deepStrictEqual(
+assert.deepStrictEqual(
   appveyorUtils.parseAppveyorRepoUrl(testUrl),
   {
     repositoryType: &#x27;gitHub&#x27;,
@@ -2492,7 +2492,7 @@ deepStrictEqual(
             <dt>parses gitHub SSH URL</dt>
             <dd><pre><code>const testProject = &#x27;foo/bar&#x27;;
 const testUrl = &#x60;git@github.com:${testProject}.git&#x60;;
-deepStrictEqual(
+assert.deepStrictEqual(
   appveyorUtils.parseAppveyorRepoUrl(testUrl),
   {
     repositoryType: &#x27;gitHub&#x27;,
@@ -2502,7 +2502,7 @@ deepStrictEqual(
             <dt>parses gitLab HTTPS URL</dt>
             <dd><pre><code>const testProject = &#x27;foo/bar&#x27;;
 const testUrl = &#x60;https://gitlab.com/${testProject}.git&#x60;;
-deepStrictEqual(
+assert.deepStrictEqual(
   appveyorUtils.parseAppveyorRepoUrl(testUrl),
   {
     repositoryType: &#x27;gitLab&#x27;,
@@ -2512,7 +2512,7 @@ deepStrictEqual(
             <dt>parses gitLab SSH URL</dt>
             <dd><pre><code>const testProject = &#x27;foo/bar&#x27;;
 const testUrl = &#x60;git@gitlab.com:${testProject}.git&#x60;;
-deepStrictEqual(
+assert.deepStrictEqual(
   appveyorUtils.parseAppveyorRepoUrl(testUrl),
   {
     repositoryType: &#x27;gitLab&#x27;,
@@ -2521,7 +2521,7 @@ deepStrictEqual(
 );</code></pre></dd>
             <dt>parses vso project git HTTPS URL</dt>
             <dd><pre><code>const testUrl = &#x27;https://kevinoid.visualstudio.com/_git/TestProj&#x27;;
-deepStrictEqual(
+assert.deepStrictEqual(
   appveyorUtils.parseAppveyorRepoUrl(testUrl),
   {
     repositoryType: &#x27;vso&#x27;,
@@ -2531,7 +2531,7 @@ deepStrictEqual(
             <dt>parses vso project git SSH URL</dt>
             <dd><pre><code>const testUrl
   = &#x27;ssh://kevinoid@kevinoid.visualstudio.com:22/_git/TestProj&#x27;;
-deepStrictEqual(
+assert.deepStrictEqual(
   appveyorUtils.parseAppveyorRepoUrl(testUrl),
   {
     repositoryType: &#x27;vso&#x27;,
@@ -2540,7 +2540,7 @@ deepStrictEqual(
 );</code></pre></dd>
             <dt>parses vso sub-project git HTTPS URL</dt>
             <dd><pre><code>const testUrl = &#x27;https://kevinoid.visualstudio.com/TestProj/_git/repo2&#x27;;
-deepStrictEqual(
+assert.deepStrictEqual(
   appveyorUtils.parseAppveyorRepoUrl(testUrl),
   {
     repositoryType: &#x27;vso&#x27;,
@@ -2550,7 +2550,7 @@ deepStrictEqual(
             <dt>parses vso sub-project git SSH URL</dt>
             <dd><pre><code>const testUrl
   = &#x27;ssh://kevinoid@kevinoid.visualstudio.com:22/TestProj/_git/repo2&#x27;;
-deepStrictEqual(
+assert.deepStrictEqual(
   appveyorUtils.parseAppveyorRepoUrl(testUrl),
   {
     repositoryType: &#x27;vso&#x27;,
@@ -2559,13 +2559,13 @@ deepStrictEqual(
 );</code></pre></dd>
             <dt>returns unknown HTTPS URL</dt>
             <dd><pre><code>const testUrl = &#x27;https://example.com/foo.git&#x27;;
-deepStrictEqual(
+assert.deepStrictEqual(
   appveyorUtils.parseAppveyorRepoUrl(testUrl),
   {repositoryName: testUrl}
 );</code></pre></dd>
             <dt>returns unknown SCP-like URL</dt>
             <dd><pre><code>const testUrl = &#x27;user@example.com:foo.git&#x27;;
-deepStrictEqual(
+assert.deepStrictEqual(
   appveyorUtils.parseAppveyorRepoUrl(testUrl),
   {repositoryName: testUrl}
 );</code></pre></dd>
@@ -2579,7 +2579,7 @@ deepStrictEqual(
 const testProject = &#x27;bar&#x27;;
 const testUrl
   = &#x60;https://bitbucket.org/${testAccount}/${testProject}.git&#x60;;
-deepStrictEqual(
+assert.deepStrictEqual(
   appveyorUtils.repoUrlToBadgeParams(testUrl),
   {
     badgeRepoProvider: &#x27;bitBucket&#x27;,
@@ -2592,7 +2592,7 @@ deepStrictEqual(
 const testProject = &#x27;bar&#x27;;
 const testUrl
   = &#x60;git@bitbucket.org:${testAccount}/${testProject}.git&#x60;;
-deepStrictEqual(
+assert.deepStrictEqual(
   appveyorUtils.repoUrlToBadgeParams(testUrl),
   {
     badgeRepoProvider: &#x27;bitBucket&#x27;,
@@ -2611,7 +2611,7 @@ assert.throws(
 const testProject = &#x27;bar&#x27;;
 const testUrl
   = &#x60;https://github.com/${testAccount}/${testProject}.git&#x60;;
-deepStrictEqual(
+assert.deepStrictEqual(
   appveyorUtils.repoUrlToBadgeParams(testUrl),
   {
     badgeRepoProvider: &#x27;gitHub&#x27;,
@@ -2624,7 +2624,7 @@ deepStrictEqual(
 const testProject = &#x27;bar&#x27;;
 const testUrl
   = &#x60;git@github.com:${testAccount}/${testProject}.git&#x60;;
-deepStrictEqual(
+assert.deepStrictEqual(
   appveyorUtils.repoUrlToBadgeParams(testUrl),
   {
     badgeRepoProvider: &#x27;gitHub&#x27;,
@@ -2677,7 +2677,7 @@ assert.throws(
             <dt>splits account name and slug to object</dt>
             <dd><pre><code>const accountName = &#x27;foo&#x27;;
 const slug = &#x27;bar&#x27;;
-deepStrictEqual(
+assert.deepStrictEqual(
   appveyorUtils.projectFromString(&#x60;${accountName}/${slug}&#x60;),
   {
     accountName,
@@ -2709,7 +2709,7 @@ deepStrictEqual(
   accountName: &#x27;foo&#x27;,
   slug: &#x27;bar&#x27;
 };
-deepStrictEqual(
+assert.deepStrictEqual(
   appveyorUtils.projectToString(testProj),
   &#x27;foo/bar&#x27;
 );</code></pre></dd>
@@ -2790,7 +2790,7 @@ const testArgs = [&#x27;-e&#x27;, makeScript(testOut)];
 const options = {encoding: &#x27;buffer&#x27;};
 return execFileOut(process.execPath, testArgs, options)
   .then((stdout) =&#x3E; {
-    deepStrictEqual(stdout, Buffer.from(testOut));
+    assert.deepStrictEqual(stdout, Buffer.from(testOut));
   });</code></pre></dd>
         <dt>rejects Promise with Error for non-0 exit code</dt>
         <dd><pre><code>const testOut = &#x27;stdout content&#x27;;
@@ -2839,8 +2839,8 @@ return execFileOut(process.execPath, testArgs, options).then(
       [process.execPath].concat(testArgs).join(&#x27; &#x27;)
     );
     assert.strictEqual(err.code, 0);
-    deepStrictEqual(err.stderr, Buffer.from(testErr));
-    deepStrictEqual(err.stdout, Buffer.from(testOut));
+    assert.deepStrictEqual(err.stderr, Buffer.from(testErr));
+    assert.deepStrictEqual(err.stdout, Buffer.from(testOut));
   }
 );</code></pre></dd>
         <dt>does not reject stderr with only whitespace</dt>
@@ -3008,19 +3008,19 @@ return execFileOut(process.execPath, testArgs)
           <dl>
             <dt>parses http: like url module</dt>
             <dd><pre><code>const testUrl = &#x27;http://user@example.com/foo/bar&#x27;;
-deepStrictEqual(
+assert.deepStrictEqual(
   gitUtils.parseGitUrl(testUrl),
   Object.assign(url.parse(testUrl), {helper: undefined})
 );</code></pre></dd>
             <dt>parses git: like url module</dt>
             <dd><pre><code>const testUrl = &#x27;git://user@example.com/foo/bar&#x27;;
-deepStrictEqual(
+assert.deepStrictEqual(
   gitUtils.parseGitUrl(testUrl),
   Object.assign(url.parse(testUrl), {helper: undefined})
 );</code></pre></dd>
             <dt>parses SCP-like URL like ssh: URL</dt>
             <dd><pre><code>const testUrl = &#x27;user@example.com:foo/bar.git&#x27;;
-deepStrictEqual(
+assert.deepStrictEqual(
   gitUtils.parseGitUrl(testUrl),
   Object.assign(
     url.parse(&#x27;ssh://user@example.com/foo/bar.git&#x27;),
@@ -3029,25 +3029,25 @@ deepStrictEqual(
 );</code></pre></dd>
             <dt>parses absolute path like file:// URL</dt>
             <dd><pre><code>const testPath = path.resolve(path.join(&#x27;foo&#x27;, &#x27;bar&#x27;));
-deepStrictEqual(
+assert.deepStrictEqual(
   gitUtils.parseGitUrl(testPath),
   Object.assign(url.parse(fileUrl(testPath)), {helper: undefined})
 );</code></pre></dd>
             <dt>parses relative path like file:// URL</dt>
             <dd><pre><code>const testPath = path.join(&#x27;foo&#x27;, &#x27;bar&#x27;);
-deepStrictEqual(
+assert.deepStrictEqual(
   gitUtils.parseGitUrl(testPath),
   Object.assign(url.parse(fileUrl(testPath)), {helper: undefined})
 );</code></pre></dd>
             <dt>parses Windows path like URL on non-Windows</dt>
             <dd><pre><code>const testPath = &#x27;C:\\foo\\bar&#x27;;
-deepStrictEqual(
+assert.deepStrictEqual(
   gitUtils.parseGitUrl(testPath),
   Object.assign(url.parse(testPath), {helper: undefined})
 );</code></pre></dd>
             <dt>adds helper property for transport helper</dt>
             <dd><pre><code>const testUrl = &#x27;myhelper::user@example.com:foo/bar.git&#x27;;
-deepStrictEqual(
+assert.deepStrictEqual(
   gitUtils.parseGitUrl(testUrl),
   Object.assign(
     url.parse(&#x27;ssh://user@example.com/foo/bar.git&#x27;),
