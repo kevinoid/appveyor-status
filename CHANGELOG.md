@@ -1,5 +1,10 @@
 # Change Log
 
+## [3.0.2](https://github.com/kevinoid/appveyor-status/tree/v3.0.2) (2018-09-09)
+[Full Changelog](https://github.com/kevinoid/appveyor-status/compare/v3.0.1...v3.0.2)
+
+- Require `swagger-client@^3.8.20` for swagger-api/swagger-js#1382 fix.
+
 ## [3.0.1](https://github.com/kevinoid/appveyor-status/tree/v3.0.1) (2018-09-09)
 [Full Changelog](https://github.com/kevinoid/appveyor-status/compare/v3.0.0...v3.0.1)
 
