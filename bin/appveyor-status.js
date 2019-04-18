@@ -211,8 +211,14 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
   }
 
   // Workaround for https://github.com/yargs/yargs/issues/783
+  // Necessary because mocha package.json overrides .parserConfiguration()
   require.main = module;
   const yargs = new Yargs(null, null, require)
+    .parserConfiguration({
+      'parse-numbers': false,
+      'duplicate-arguments-array': false,
+      'flatten-duplicate-arrays': false
+    })
     .usage('Usage: $0 [options]')
     .help()
     .alias('help', 'h')
