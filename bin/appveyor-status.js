@@ -11,9 +11,10 @@
 
 const Chalk = require('chalk').constructor;
 const Yargs = require('yargs/yargs');
-const appveyorStatus = require('..');
 const fs = require('fs');
 const readAllStream = require('read-all-stream');
+
+const appveyorStatus = require('..');
 
 const packageJson = require('../package.json');
 

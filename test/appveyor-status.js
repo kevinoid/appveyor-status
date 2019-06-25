@@ -6,7 +6,6 @@
 'use strict';
 
 const SwaggerClient = require('swagger-client');
-const appveyorStatus = require('..');
 const appveyorSwagger = require('appveyor-swagger');
 const {assert} = require('chai');
 const nock = require('nock');
@@ -14,6 +13,7 @@ const sinon = require('sinon');
 const stream = require('stream');
 const url = require('url');
 
+const appveyorStatus = require('..');
 const gitUtils = require('../lib/git-utils');
 const appveyorUtils = require('../lib/appveyor-utils');
 const apiResponses = require('../test-lib/api-responses');
