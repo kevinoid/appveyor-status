@@ -9,7 +9,8 @@ const fileUrl = require('file-url');
 const { assert } = require('chai');
 const path = require('path');
 const rimraf = require('rimraf');
-const url = require('url');
+// TODO [engine:node@>=10]: Use URL defined globally
+const { URL } = require('url'); // eslint-disable-line no-shadow
 const util = require('util');
 
 const gitUtils = require('../../lib/git-utils');
@@ -235,7 +236,7 @@ describe('gitUtils', () => {
       const testUrl = 'http://user@example.com/foo/bar';
       assert.deepStrictEqual(
         gitUtils.parseGitUrl(testUrl),
-        Object.assign(url.parse(testUrl), { helper: undefined }),
+        Object.assign(new URL(testUrl), { helper: undefined }),
       );
     });
 
@@ -243,7 +244,7 @@ describe('gitUtils', () => {
       const testUrl = 'git://user@example.com/foo/bar';
       assert.deepStrictEqual(
         gitUtils.parseGitUrl(testUrl),
-        Object.assign(url.parse(testUrl), { helper: undefined }),
+        Object.assign(new URL(testUrl), { helper: undefined }),
       );
     });
 
@@ -252,7 +253,7 @@ describe('gitUtils', () => {
       assert.deepStrictEqual(
         gitUtils.parseGitUrl(testUrl),
         Object.assign(
-          url.parse('ssh://user@example.com/foo/bar.git'),
+          new URL('ssh://user@example.com/foo/bar.git'),
           { helper: undefined },
         ),
       );
@@ -262,7 +263,7 @@ describe('gitUtils', () => {
       const testPath = path.resolve(path.join('foo', 'bar'));
       assert.deepStrictEqual(
         gitUtils.parseGitUrl(testPath),
-        Object.assign(url.parse(fileUrl(testPath)), { helper: undefined }),
+        Object.assign(new URL(fileUrl(testPath)), { helper: undefined }),
       );
     });
 
@@ -270,7 +271,7 @@ describe('gitUtils', () => {
       const testPath = path.join('foo', 'bar');
       assert.deepStrictEqual(
         gitUtils.parseGitUrl(testPath),
-        Object.assign(url.parse(fileUrl(testPath)), { helper: undefined }),
+        Object.assign(new URL(fileUrl(testPath)), { helper: undefined }),
       );
     });
 
@@ -278,7 +279,7 @@ describe('gitUtils', () => {
       it('parses Windows path like file:// URL on Windows', () => {
         assert.deepStrictEqual(
           gitUtils.parseGitUrl('C:\\foo\\bar'),
-          Object.assign(url.parse('file:///C:/foo/bar'), { helper: undefined }),
+          Object.assign(new URL('file:///C:/foo/bar'), { helper: undefined }),
         );
       });
     } else {
@@ -286,7 +287,7 @@ describe('gitUtils', () => {
         const testPath = 'C:\\foo\\bar';
         assert.deepStrictEqual(
           gitUtils.parseGitUrl(testPath),
-          Object.assign(url.parse(testPath), { helper: undefined }),
+          Object.assign(new URL(testPath), { helper: undefined }),
         );
       });
     }
@@ -296,7 +297,7 @@ describe('gitUtils', () => {
       assert.deepStrictEqual(
         gitUtils.parseGitUrl(testUrl),
         Object.assign(
-          url.parse('ssh://user@example.com/foo/bar.git'),
+          new URL('ssh://user@example.com/foo/bar.git'),
           { helper: 'myhelper' },
         ),
       );
