@@ -11,7 +11,8 @@ const appveyorSwagger = require('appveyor-swagger');
 const https = require('https');
 const nodeify = require('promise-nodeify');
 const promiseFinally = require('promise-finally').default;
-const url = require('url');
+// TODO [engine:node@>=10]: Use URL defined globally
+const { URL } = require('url'); // eslint-disable-line no-shadow
 
 const gitUtils = require('./lib/git-utils');
 const appveyorUtils = require('./lib/appveyor-utils');
@@ -119,7 +120,8 @@ function makeClientErrorHandler(msgPrefix) {
       err.body = res.body;
       err.text = res.text;
       err.method = 'GET';
-      err.path = url.parse(res.url).path;
+      const resUrl = new URL(res.url);
+      err.path = resUrl.pathname + resUrl.query;
     }
 
     throw err;
