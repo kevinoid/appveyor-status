@@ -26,9 +26,12 @@ function assignUpdate(target, ...args) {
     throw new TypeError('Cannot convert undefined or null to object');
   }
 
+  // Ensure target is an object.
+  // Workaround until https://github.com/eslint/eslint/pull/11811 is merged
+  // eslint-disable-next-line no-new-object
   const to = new Object(target);
 
-  for (const nextSource of args) {
+  args.forEach((nextSource) => {
     if (nextSource) {
       // eslint-disable-next-line no-restricted-syntax
       for (const nextKey in nextSource) {
@@ -38,7 +41,7 @@ function assignUpdate(target, ...args) {
         }
       }
     }
-  }
+  });
 
   return to;
 }
