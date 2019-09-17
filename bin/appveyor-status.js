@@ -134,7 +134,6 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
   }
 
   if (!callback && typeof Promise === 'function') {
-    // eslint-disable-next-line no-undef
     return new Promise((resolve, reject) => {
       appveyorStatusCmd(args, options, (err, result) => {
         if (err) { reject(err); } else { resolve(result); }
