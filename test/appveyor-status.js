@@ -269,6 +269,8 @@ describe('appveyorStatus', function() {
        * https://github.com/swagger-api/swagger-js/blob/v2.1.32/lib/client.js#L264-L266
        * and by use of setImmediate in nock.  This function is a workaround.
        */
+      // FIXME: https://github.com/sindresorhus/eslint-plugin-unicorn/issues/374
+      // eslint-disable-next-line unicorn/consistent-function-scoping
       function afterFirstRequest(cb) {
         // Wait for any Promises to resolve
         setImmediate(() => {
