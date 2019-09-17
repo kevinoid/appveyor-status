@@ -148,7 +148,10 @@ describe('appveyor-status command', () => {
   expectArgsAs(['-t', 'foo'], match({ token: 'foo' }));
   expectArgsResult(['--token-file'], 4, null, /missing|not enough/i);
   expectArgsResult(['-T'], 4, null, /missing|not enough/i);
-  expectArgsAs(['--token-file', TEST_TOKEN_PATH], match({ token: 'file-token' }));
+  expectArgsAs(
+    ['--token-file', TEST_TOKEN_PATH],
+    match({ token: 'file-token' }),
+  );
   expectArgsAs(['-T', TEST_TOKEN_PATH], match({ token: 'file-token' }));
   expectArgsResult(['--token-file', 'badfile'], 4, null, /token.*badfile/i);
   expectArgsResult(['-T', 'badfile'], 4, null, /token.*badfile/i);
