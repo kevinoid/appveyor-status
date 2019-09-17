@@ -61,30 +61,6 @@ function coerceWait(arg) {
   return val;
 }
 
-/** Calls <code>yargs.parse</code> and passes any thrown errors to the callback.
- * Workaround for https://github.com/yargs/yargs/issues/755
- * @private
- */
-function parseYargs(yargs, args, callback) {
-  // Since yargs doesn't nextTick its callback, this function must be careful
-  // that exceptions thrown from callback (which propagate through yargs.parse)
-  // are not caught and passed to a second invocation of callback.
-  let called = false;
-  try {
-    yargs.parse(args, function(...cbargs) {
-      called = true;
-      return callback.apply(this, cbargs);
-    });
-  } catch (err) {
-    if (called) {
-      // err was thrown after or by callback.  Let it propagate.
-      throw err;
-    } else {
-      callback(err);
-    }
-  }
-}
-
 /** Gets the AppVeyor build status, handles errors, and writes the result to
  * output or error streams.
  * @private
@@ -295,7 +271,7 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
     .version(`${packageJson.name} ${packageJson.version}`)
     .alias('version', 'V')
     .strict();
-  parseYargs(yargs, args, (err, argOpts, output) => {
+  yargs.parse(args, (err, argOpts, output) => {
     if (err) {
       options.err.write(output ? `${output}\n`
         : `${err.name}: ${err.message}\n`);
