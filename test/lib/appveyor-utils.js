@@ -24,7 +24,7 @@ describe('appveyorUtils', () => {
       const badge = apiResponses.getStatusBadge('whatever');
       assert.throws(
         () => { appveyorUtils.badgeToStatus(badge); },
-        Error
+        Error,
       );
     });
 
@@ -32,14 +32,14 @@ describe('appveyorUtils', () => {
       const badge = apiResponses.getStatusBadge('success failed');
       assert.throws(
         () => { appveyorUtils.badgeToStatus(badge); },
-        Error
+        Error,
       );
     });
 
     it('throws for non-string', () => {
       assert.throws(
         () => { appveyorUtils.badgeToStatus(null); },
-        Error
+        Error,
       );
     });
   });
@@ -47,7 +47,7 @@ describe('appveyorUtils', () => {
   describe('.projectBuildToStatus', () => {
     it('returns any status of ProjectBuild', () => {
       const testStatus = 'foo';
-      const projectBuild = apiResponses.getProjectBuild({status: testStatus});
+      const projectBuild = apiResponses.getProjectBuild({ status: testStatus });
       const result = appveyorUtils.projectBuildToStatus(projectBuild);
       assert.strictEqual(result, testStatus);
     });
@@ -61,8 +61,8 @@ describe('appveyorUtils', () => {
         appveyorUtils.parseAppveyorRepoUrl(testUrl),
         {
           repositoryType: 'bitBucket',
-          repositoryName: testProject
-        }
+          repositoryName: testProject,
+        },
       );
     });
 
@@ -73,8 +73,8 @@ describe('appveyorUtils', () => {
         appveyorUtils.parseAppveyorRepoUrl(testUrl),
         {
           repositoryType: 'bitBucket',
-          repositoryName: testProject
-        }
+          repositoryName: testProject,
+        },
       );
     });
 
@@ -85,8 +85,8 @@ describe('appveyorUtils', () => {
         appveyorUtils.parseAppveyorRepoUrl(testUrl),
         {
           repositoryType: 'gitHub',
-          repositoryName: testProject
-        }
+          repositoryName: testProject,
+        },
       );
     });
 
@@ -97,8 +97,8 @@ describe('appveyorUtils', () => {
         appveyorUtils.parseAppveyorRepoUrl(testUrl),
         {
           repositoryType: 'gitHub',
-          repositoryName: testProject
-        }
+          repositoryName: testProject,
+        },
       );
     });
 
@@ -109,8 +109,8 @@ describe('appveyorUtils', () => {
         appveyorUtils.parseAppveyorRepoUrl(testUrl),
         {
           repositoryType: 'gitLab',
-          repositoryName: testProject
-        }
+          repositoryName: testProject,
+        },
       );
     });
 
@@ -121,8 +121,8 @@ describe('appveyorUtils', () => {
         appveyorUtils.parseAppveyorRepoUrl(testUrl),
         {
           repositoryType: 'gitLab',
-          repositoryName: testProject
-        }
+          repositoryName: testProject,
+        },
       );
     });
 
@@ -133,21 +133,21 @@ describe('appveyorUtils', () => {
         appveyorUtils.parseAppveyorRepoUrl(testUrl),
         {
           repositoryType: 'vso',
-          repositoryName: 'git/kevinoid/TestProj/TestProj'
-        }
+          repositoryName: 'git/kevinoid/TestProj/TestProj',
+        },
       );
     });
 
     // FIXME:  Can't be sure this works without paid AppVeyor account
     it('parses vso project git SSH URL', () => {
-      const testUrl
-        = 'ssh://kevinoid@kevinoid.visualstudio.com:22/_git/TestProj';
+      const testUrl =
+        'ssh://kevinoid@kevinoid.visualstudio.com:22/_git/TestProj';
       assert.deepStrictEqual(
         appveyorUtils.parseAppveyorRepoUrl(testUrl),
         {
           repositoryType: 'vso',
-          repositoryName: 'git/kevinoid/TestProj/TestProj'
-        }
+          repositoryName: 'git/kevinoid/TestProj/TestProj',
+        },
       );
     });
 
@@ -158,21 +158,21 @@ describe('appveyorUtils', () => {
         appveyorUtils.parseAppveyorRepoUrl(testUrl),
         {
           repositoryType: 'vso',
-          repositoryName: 'git/kevinoid/TestProj/repo2'
-        }
+          repositoryName: 'git/kevinoid/TestProj/repo2',
+        },
       );
     });
 
     // FIXME:  Can't be sure this works without paid AppVeyor account
     it('parses vso sub-project git SSH URL', () => {
-      const testUrl
-        = 'ssh://kevinoid@kevinoid.visualstudio.com:22/TestProj/_git/repo2';
+      const testUrl =
+        'ssh://kevinoid@kevinoid.visualstudio.com:22/TestProj/_git/repo2';
       assert.deepStrictEqual(
         appveyorUtils.parseAppveyorRepoUrl(testUrl),
         {
           repositoryType: 'vso',
-          repositoryName: 'git/kevinoid/TestProj/repo2'
-        }
+          repositoryName: 'git/kevinoid/TestProj/repo2',
+        },
       );
     });
 
@@ -180,7 +180,7 @@ describe('appveyorUtils', () => {
       const testUrl = 'https://example.com/foo.git';
       assert.deepStrictEqual(
         appveyorUtils.parseAppveyorRepoUrl(testUrl),
-        {repositoryName: testUrl}
+        { repositoryName: testUrl },
       );
     });
 
@@ -188,7 +188,7 @@ describe('appveyorUtils', () => {
       const testUrl = 'user@example.com:foo.git';
       assert.deepStrictEqual(
         appveyorUtils.parseAppveyorRepoUrl(testUrl),
-        {repositoryName: testUrl}
+        { repositoryName: testUrl },
       );
     });
   });
@@ -197,30 +197,30 @@ describe('appveyorUtils', () => {
     it('parses bitBucket HTTPS URL', () => {
       const testAccount = 'foo';
       const testProject = 'bar';
-      const testUrl
-        = `https://bitbucket.org/${testAccount}/${testProject}.git`;
+      const testUrl =
+        `https://bitbucket.org/${testAccount}/${testProject}.git`;
       assert.deepStrictEqual(
         appveyorUtils.repoUrlToBadgeParams(testUrl),
         {
           badgeRepoProvider: 'bitBucket',
           repoAccountName: testAccount,
-          repoSlug: testProject
-        }
+          repoSlug: testProject,
+        },
       );
     });
 
     it('parses bitBucket SSH URL', () => {
       const testAccount = 'foo';
       const testProject = 'bar';
-      const testUrl
-        = `git@bitbucket.org:${testAccount}/${testProject}.git`;
+      const testUrl =
+        `git@bitbucket.org:${testAccount}/${testProject}.git`;
       assert.deepStrictEqual(
         appveyorUtils.repoUrlToBadgeParams(testUrl),
         {
           badgeRepoProvider: 'bitBucket',
           repoAccountName: testAccount,
-          repoSlug: testProject
-        }
+          repoSlug: testProject,
+        },
       );
     });
 
@@ -230,37 +230,37 @@ describe('appveyorUtils', () => {
       const testUrl = 'https://bitbucket.org/foo/bar/baz.git';
       assert.throws(
         () => { appveyorUtils.repoUrlToBadgeParams(testUrl); },
-        Error
+        Error,
       );
     });
 
     it('parses gitHub HTTPS URL', () => {
       const testAccount = 'foo';
       const testProject = 'bar';
-      const testUrl
-        = `https://github.com/${testAccount}/${testProject}.git`;
+      const testUrl =
+        `https://github.com/${testAccount}/${testProject}.git`;
       assert.deepStrictEqual(
         appveyorUtils.repoUrlToBadgeParams(testUrl),
         {
           badgeRepoProvider: 'gitHub',
           repoAccountName: testAccount,
-          repoSlug: testProject
-        }
+          repoSlug: testProject,
+        },
       );
     });
 
     it('parses gitHub SSH URL', () => {
       const testAccount = 'foo';
       const testProject = 'bar';
-      const testUrl
-        = `git@github.com:${testAccount}/${testProject}.git`;
+      const testUrl =
+        `git@github.com:${testAccount}/${testProject}.git`;
       assert.deepStrictEqual(
         appveyorUtils.repoUrlToBadgeParams(testUrl),
         {
           badgeRepoProvider: 'gitHub',
           repoAccountName: testAccount,
-          repoSlug: testProject
-        }
+          repoSlug: testProject,
+        },
       );
     });
 
@@ -269,7 +269,7 @@ describe('appveyorUtils', () => {
       const testUrl = 'https://gitlab.com/foo/bar.git';
       assert.throws(
         () => { appveyorUtils.repoUrlToBadgeParams(testUrl); },
-        Error
+        Error,
       );
     });
 
@@ -278,7 +278,7 @@ describe('appveyorUtils', () => {
       const testUrl = 'git@gitlab.com:foo/bar.git';
       assert.throws(
         () => { appveyorUtils.repoUrlToBadgeParams(testUrl); },
-        Error
+        Error,
       );
     });
 
@@ -287,17 +287,17 @@ describe('appveyorUtils', () => {
       const testUrl = 'https://kevinoid.visualstudio.com/_git/TestProj';
       assert.throws(
         () => { appveyorUtils.repoUrlToBadgeParams(testUrl); },
-        Error
+        Error,
       );
     });
 
     // Not supported by AppVeyor
     it('throws for vso SSH URL', () => {
-      const testUrl
-        = 'ssh://kevinoid@kevinoid.visualstudio.com:22/_git/TestProj';
+      const testUrl =
+        'ssh://kevinoid@kevinoid.visualstudio.com:22/_git/TestProj';
       assert.throws(
         () => { appveyorUtils.repoUrlToBadgeParams(testUrl); },
-        Error
+        Error,
       );
     });
 
@@ -305,7 +305,7 @@ describe('appveyorUtils', () => {
       const testUrl = 'https://example.com/foo.git';
       assert.throws(
         () => { appveyorUtils.repoUrlToBadgeParams(testUrl); },
-        Error
+        Error,
       );
     });
 
@@ -313,7 +313,7 @@ describe('appveyorUtils', () => {
       const testUrl = 'user@example.com:foo.git';
       assert.throws(
         () => { appveyorUtils.repoUrlToBadgeParams(testUrl); },
-        Error
+        Error,
       );
     });
   });
@@ -326,29 +326,29 @@ describe('appveyorUtils', () => {
         appveyorUtils.projectFromString(`${accountName}/${slug}`),
         {
           accountName,
-          slug
-        }
+          slug,
+        },
       );
     });
 
     it('throws for string with 1 path part', () => {
       assert.throws(
         () => { appveyorUtils.projectFromString('foo'); },
-        Error
+        Error,
       );
     });
 
     it('throws for string with 3 path part', () => {
       assert.throws(
         () => { appveyorUtils.projectFromString('foo/bar/baz'); },
-        Error
+        Error,
       );
     });
 
     it('throws for non-string', () => {
       assert.throws(
         () => { appveyorUtils.projectFromString(null); },
-        Error
+        Error,
       );
     });
   });
@@ -357,11 +357,11 @@ describe('appveyorUtils', () => {
     it('joins account name and slug', () => {
       const testProj = {
         accountName: 'foo',
-        slug: 'bar'
+        slug: 'bar',
       };
       assert.deepStrictEqual(
         appveyorUtils.projectToString(testProj),
-        'foo/bar'
+        'foo/bar',
       );
     });
   });

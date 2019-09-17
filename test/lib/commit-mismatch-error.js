@@ -13,19 +13,19 @@ describe('CommitMismatchError', () => {
   it('sets .actual and .expected from arguments', () => {
     const testOptions = {
       actual: 'abc',
-      expected: '123'
+      expected: '123',
     };
     const err = new CommitMismatchError(testOptions);
     assert.strictEqual(err.actual, testOptions.actual);
     assert.strictEqual(err.expected, testOptions.expected);
     assert.strictEqual(err.operator, '===');
     assert(
-      err.message.indexOf(testOptions.actual) >= 0,
-      'constructs message with actual'
+      err.message.includes(testOptions.actual),
+      'constructs message with actual',
     );
     assert(
-      err.message.indexOf(testOptions.expected) >= 0,
-      'constructs message with expected'
+      err.message.includes(testOptions.expected),
+      'constructs message with expected',
     );
   });
 
@@ -33,7 +33,7 @@ describe('CommitMismatchError', () => {
     const testOptions = {
       actual: 'abc',
       expected: '123',
-      message: 'test'
+      message: 'test',
     };
     const err = new CommitMismatchError(testOptions);
     assert.strictEqual(err.actual, testOptions.actual);
@@ -45,26 +45,26 @@ describe('CommitMismatchError', () => {
   it('can be instantiated without new', () => {
     const testOptions = {
       actual: 'abc',
-      expected: '123'
+      expected: '123',
     };
     const err = CommitMismatchError(testOptions);
     assert.strictEqual(err.actual, testOptions.actual);
     assert.strictEqual(err.expected, testOptions.expected);
     assert.strictEqual(err.operator, '===');
     assert(
-      err.message.indexOf(testOptions.actual) >= 0,
-      'constructs message with actual'
+      err.message.includes(testOptions.actual),
+      'constructs message with actual',
     );
     assert(
-      err.message.indexOf(testOptions.expected) >= 0,
-      'constructs message with expected'
+      err.message.includes(testOptions.expected),
+      'constructs message with expected',
     );
   });
 
   it('inherits from Error', () => {
     const testOptions = {
       actual: 'abc',
-      expected: '123'
+      expected: '123',
     };
     const err = new CommitMismatchError(testOptions);
     assert(err instanceof Error);

@@ -80,8 +80,8 @@ function getResponseJson(response) {
  * @private
  */
 function getResponseSvg(response) {
-  const contentType
-    = (response.headers['content-type'] || '(none)').toLowerCase();
+  const contentType =
+    (response.headers['content-type'] || '(none)').toLowerCase();
   const svgType = 'image/svg+xml';
   if (contentType.lastIndexOf(svgType, 0) !== 0) {
     throw new Error(`Expected ${svgType} got ${contentType}`);
@@ -204,7 +204,7 @@ function canonicalizeOptions(options, apiFunc) {
     }
   }
 
-  options = Object.assign({}, options);
+  options = { ...options };
 
   options.err = options.err || process.stderr;
   if (!options.err || typeof options.err.write !== 'function') {
@@ -264,20 +264,20 @@ function canonicalizeOptions(options, apiFunc) {
   if (!appveyorClientP) {
     const appveyorClientOptions = {
       connectionAgent: options.agent,
-      spec: appveyorSwagger
+      spec: appveyorSwagger,
     };
 
     // If unspecified by caller, use an HTTP Agent with keep-alive enabled for
     // requests to avoid reconnection overhead and reduce latency for multiple
     // API calls.
     if (options.agent === undefined || options.agent === null) {
-      newAgent = new https.Agent({keepAlive: true});
+      newAgent = new https.Agent({ keepAlive: true });
       appveyorClientOptions.connectionAgent = newAgent;
     }
 
     if (options.token) {
       appveyorClientOptions.authorizations = {
-        apiToken: `Bearer ${options.token}`
+        apiToken: `Bearer ${options.token}`,
       };
     }
     // Note: The constructor returns a Promise for the SwaggerClient rather
@@ -296,7 +296,7 @@ function canonicalizeOptions(options, apiFunc) {
     appveyorClientP,
     branchP,
     commitP,
-    remoteUrlP || options.repo
+    remoteUrlP || options.repo,
   ])
     .then(([appveyorClient, branch, commit, repo]) => {
       options.appveyorClient = appveyorClient;
@@ -311,7 +311,7 @@ function canonicalizeOptions(options, apiFunc) {
     resultP = promiseFinally(
       resultP,
       // Avoid holding connections open when caller does not expect it.
-      () => { newAgent.destroy(); }
+      () => { newAgent.destroy(); },
     );
   }
 
@@ -367,12 +367,12 @@ function getLastBuildNoWait(options) {
       && (!options.branch || options.branch === buildFromProject.branch)) {
     lastBuildP = Promise.resolve({
       project: options.project,
-      build: buildFromProject
+      build: buildFromProject,
     });
   } else {
     const params = {
       accountName: options.project.accountName,
-      projectSlug: options.project.slug
+      projectSlug: options.project.slug,
     };
 
     const client = options.appveyorClient;
@@ -395,7 +395,7 @@ function getLastBuildNoWait(options) {
       if (projectBuild.build.commitId !== options.commit) {
         const err = new CommitMismatchError({
           actual: projectBuild.build.commitId,
-          expected: options.commit
+          expected: options.commit,
         });
         err.build = projectBuild.build;
         err.project = projectBuild.project;
@@ -425,7 +425,7 @@ function getLastBuildForProject(options) {
 
   function checkRetry(projectBuild, prevDelay) {
     const buildStatus = appveyorUtils.projectBuildToStatus(projectBuild);
-    if (['cancelling', 'queued', 'running'].indexOf(buildStatus) < 0) {
+    if (!['cancelling', 'queued', 'running'].includes(buildStatus)) {
       return projectBuild;
     }
 
@@ -438,13 +438,13 @@ function getLastBuildForProject(options) {
     const delay = Math.min(
       prevDelay * RETRY_DELAY_FACTOR_MS,
       remaining,
-      RETRY_DELAY_MAX_MS
+      RETRY_DELAY_MAX_MS,
     );
 
     if (options.verbosity > 0) {
       options.err.write(
         'DEBUG: AppVeyor build queued.  '
-        + `Waiting ${delay / 1000} seconds before retrying...\n`
+        + `Waiting ${delay / 1000} seconds before retrying...\n`,
       );
     }
 
@@ -482,7 +482,7 @@ function getMatchingProject(options) {
     .then(getResponseJson)
     .then((projects) => {
       const repoProjects = projects.filter(
-        (project) => shallowStrictCommonEqual(avRepo, project)
+        (project) => shallowStrictCommonEqual(avRepo, project),
       );
 
       if (repoProjects.length === 0) {
@@ -494,7 +494,7 @@ function getMatchingProject(options) {
         throw new AmbiguousProjectError(
           `Multiple AppVeyor projects matching ${JSON.stringify(avRepo)}: ${
             repoProjectStrs.join(', ')}`,
-          repoProjectStrs
+          repoProjectStrs,
         );
       }
 
@@ -519,7 +519,7 @@ function getLastBuildInternal(options) {
 
   return getMatchingProject(options)
     .then((project) => {
-      const optionsWithProject = Object.assign({}, options);
+      const optionsWithProject = { ...options };
       optionsWithProject.project = project;
       optionsWithProject.useProjectBuilds = true;
       return getLastBuildForProject(optionsWithProject);
@@ -564,7 +564,7 @@ function getStatusBadgeInternal(options) {
     failingText: 'failed',
     passingText: 'success',
     pendingText: 'queued',
-    svg: true
+    svg: true,
   };
 
   const client = options.appveyorClient;

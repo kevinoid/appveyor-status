@@ -51,7 +51,7 @@ describe('execFileOut', () => {
   it('returns a Promise with stdout as Buffer', () => {
     const testOut = 'stdout content';
     const testArgs = ['-e', makeScript(testOut)];
-    const options = {encoding: 'buffer'};
+    const options = { encoding: 'buffer' };
     return execFileOut(process.execPath, testArgs, options)
       .then((stdout) => {
         assert.deepStrictEqual(stdout, Buffer.from(testOut));
@@ -67,12 +67,12 @@ describe('execFileOut', () => {
       (err) => {
         assert.strictEqual(
           err.cmd,
-          [process.execPath].concat(testArgs).join(' ')
+          [process.execPath].concat(testArgs).join(' '),
         );
         assert.strictEqual(err.code, testCode);
         assert.strictEqual(err.stderr, '');
         assert.strictEqual(err.stdout, testOut);
-      }
+      },
     );
   });
 
@@ -83,15 +83,15 @@ describe('execFileOut', () => {
     return execFileOut(process.execPath, testArgs).then(
       neverCalled,
       (err) => {
-        assert(err.message.indexOf(testErr) >= 0, 'stderr is in message');
+        assert(err.message.includes(testErr), 'stderr is in message');
         assert.strictEqual(
           err.cmd,
-          [process.execPath].concat(testArgs).join(' ')
+          [process.execPath].concat(testArgs).join(' '),
         );
         assert.strictEqual(err.code, 0);
         assert.strictEqual(err.stderr, testErr);
         assert.strictEqual(err.stdout, testOut);
-      }
+      },
     );
   });
 
@@ -99,19 +99,19 @@ describe('execFileOut', () => {
     const testOut = 'stdout content';
     const testErr = 'stderr content';
     const testArgs = ['-e', makeScript(testOut, testErr)];
-    const options = {encoding: 'buffer'};
+    const options = { encoding: 'buffer' };
     return execFileOut(process.execPath, testArgs, options).then(
       neverCalled,
       (err) => {
-        assert(err.message.indexOf(testErr) >= 0, 'stderr is in message');
+        assert(err.message.includes(testErr), 'stderr is in message');
         assert.strictEqual(
           err.cmd,
-          [process.execPath].concat(testArgs).join(' ')
+          [process.execPath].concat(testArgs).join(' '),
         );
         assert.strictEqual(err.code, 0);
         assert.deepStrictEqual(err.stderr, Buffer.from(testErr));
         assert.deepStrictEqual(err.stdout, Buffer.from(testOut));
-      }
+      },
     );
   });
 

@@ -34,7 +34,7 @@ const ExitCode = {
   /** Failed due to commit mismatch. */
   FAIL_COMMIT: 3,
   /** Failed due to invalid arguments. */
-  FAIL_ARGUMENTS: 4
+  FAIL_ARGUMENTS: 4,
 };
 
 // Add mapping from code to name
@@ -50,13 +50,13 @@ Object.keys(ExitCode).forEach((codeName) => {
  */
 const statusColor = {
   failed: 'red',
-  success: 'green'
+  success: 'green',
 };
 
 function coerceWait(arg) {
   const val = arg === true ? Infinity : Number(arg);
   if (Number.isNaN(val)) {
-    throw new Error(`Invalid number "${arg}"`);
+    throw new TypeError(`Invalid number "${arg}"`);
   }
   return val;
 }
@@ -85,14 +85,14 @@ function checkStatus(options, callback) {
     }
 
     if (options.verbosity >= 0) {
-      const chalk = new Chalk({enabled: options.color});
+      const chalk = new Chalk({ enabled: options.color });
       const colorName = statusColor[status] || 'gray';
       const statusColored = chalk[colorName](status);
       options.out.write(`AppVeyor build status: ${statusColored}\n`);
     }
     callback(
       null,
-      status === 'success' ? ExitCode.SUCCESS : ExitCode.FAIL_STATUS
+      status === 'success' ? ExitCode.SUCCESS : ExitCode.FAIL_STATUS,
     );
   });
 }
@@ -162,14 +162,12 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
       throw new TypeError('options must be an object');
     }
 
-    options = Object.assign(
-      {
-        in: process.stdin,
-        out: process.stdout,
-        err: process.stderr
-      },
-      options
-    );
+    options = {
+      in: process.stdin,
+      out: process.stdout,
+      err: process.stderr,
+      ...options,
+    };
 
     if (!options.in || typeof options.in.on !== 'function') {
       throw new TypeError('options.in must be a stream.Readable');
@@ -194,7 +192,7 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
     .parserConfiguration({
       'parse-numbers': false,
       'duplicate-arguments-array': false,
-      'flatten-duplicate-arrays': false
+      'flatten-duplicate-arrays': false,
     })
     .usage('Usage: $0 [options]')
     .help()
@@ -204,69 +202,69 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
       alias: 'B',
       describe:
         'Status Badge ID of project (from badge URL, exclusive with commit)',
-      nargs: 1
+      nargs: 1,
     })
     .option('branch', {
       alias: 'b',
       description: 'Query latest build for a branch',
-      defaultDescription: '(current)'
+      defaultDescription: '(current)',
     })
     .option('color', {
       description: 'Colorize the output',
       default: undefined,
       defaultDescription: '(to TTY)',
-      type: 'boolean'
+      type: 'boolean',
     })
     .option('commit', {
       alias: 'c',
       description:
         'Require build to be for named commit (requires project or token)',
-      defaultDescription: 'HEAD'
+      defaultDescription: 'HEAD',
     })
     .option('project', {
       alias: 'p',
       describe: 'AppVeyor project to query (as $user/$proj)',
-      nargs: 1
+      nargs: 1,
     })
     .option('quiet', {
       alias: 'q',
       describe: 'Print less output',
-      count: true
+      count: true,
     })
     .option('repo', {
       alias: 'r',
       describe: 'Repository to query (URL or path)',
       defaultDescription: '.',
-      nargs: 1
+      nargs: 1,
     })
     .option('token', {
       alias: 't',
       describe: 'API access token',
       defaultDescription: '$APPVEYOR_API_TOKEN env var',
-      nargs: 1
+      nargs: 1,
     })
     .option('token-file', {
       alias: 'T',
       describe: 'file containing API access token',
-      nargs: 1
+      nargs: 1,
     })
     .conflicts('token-file', 'token')
     .option('verbose', {
       alias: 'v',
       describe: 'Print more output',
-      count: true
+      count: true,
     })
     .option('wait', {
       alias: 'w',
       describe: 'Wait if build is pending (timeout in seconds)',
       defaultDescription: 'Infinity',
-      coerce: coerceWait
+      coerce: coerceWait,
     })
     .option('webhook', {
       alias: 'W',
       /* Undocumented.  Deprecated in favor of --badge
        * 'Webhook ID of project (from badge URL, exclusive with commit)' */
-      nargs: 1
+      nargs: 1,
     })
     .version(`${packageJson.name} ${packageJson.version}`)
     .alias('version', 'V')
@@ -317,7 +315,7 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
     argOpts.webhookId = argOpts.webhook;
     delete argOpts.webhook;
 
-    const statusOpts = Object.assign({}, options, argOpts);
+    const statusOpts = { ...options, ...argOpts };
 
     if (argOpts.tokenFile !== undefined) {
       const tokenFileStream = argOpts.tokenFile === '-' ? options.in
@@ -352,7 +350,7 @@ if (require.main === module) {
   const mainOptions = {
     in: process.stdin,
     out: process.stdout,
-    err: process.stderr
+    err: process.stderr,
   };
   module.exports(process.argv, mainOptions, (err, exitCode) => {
     if (err) {

@@ -26,11 +26,9 @@ function assignUpdate(target, ...args) {
     throw new TypeError('Cannot convert undefined or null to object');
   }
 
-  const to = Object(target);
+  const to = new Object(target);
 
-  for (let index = 0; index < args.length; index += 1) {
-    const nextSource = args[index];
-
+  for (const nextSource of args) {
     if (nextSource) {
       // eslint-disable-next-line no-restricted-syntax
       for (const nextKey in nextSource) {
@@ -73,8 +71,8 @@ exports.getProject = function getProject(options) {
         started: '2016-11-16T20:42:09.2109847+00:00',
         finished: '2016-11-16T20:42:59.486954+00:00',
         created: '2016-11-16T20:41:59.1683638+00:00',
-        updated: '2016-11-16T20:42:59.486954+00:00'
-      }
+        updated: '2016-11-16T20:42:59.486954+00:00',
+      },
     ],
     name: 'Test Project',
     slug: 'test-proj',
@@ -96,26 +94,26 @@ exports.getProject = function getProject(options) {
       accountId: 6789,
       projectId: 12345,
       publishingEnabled: false,
-      created: '2016-09-21T00:08:26.9522633+00:00'
+      created: '2016-09-21T00:08:26.9522633+00:00',
     },
     securityDescriptor: {
       accessRightDefinitions: [
         {
           name: 'View',
-          description: 'View'
+          description: 'View',
         },
         {
           name: 'RunBuild',
-          description: 'Run build'
+          description: 'Run build',
         },
         {
           name: 'Update',
-          description: 'Update settings'
+          description: 'Update settings',
         },
         {
           name: 'Delete',
-          description: 'Delete project'
-        }
+          description: 'Delete project',
+        },
       ],
       roleAces: [
         {
@@ -125,21 +123,21 @@ exports.getProject = function getProject(options) {
           accessRights: [
             {
               name: 'View',
-              allowed: true
+              allowed: true,
             },
             {
               name: 'RunBuild',
-              allowed: true
+              allowed: true,
             },
             {
               name: 'Update',
-              allowed: true
+              allowed: true,
             },
             {
               name: 'Delete',
-              allowed: true
-            }
-          ]
+              allowed: true,
+            },
+          ],
         },
         {
           roleId: 22222,
@@ -147,23 +145,23 @@ exports.getProject = function getProject(options) {
           isAdmin: false,
           accessRights: [
             {
-              name: 'View'
+              name: 'View',
             },
             {
-              name: 'RunBuild'
+              name: 'RunBuild',
             },
             {
-              name: 'Update'
+              name: 'Update',
             },
             {
-              name: 'Delete'
-            }
-          ]
-        }
-      ]
+              name: 'Delete',
+            },
+          ],
+        },
+      ],
     },
     created: '2016-09-21T00:08:25.2289648+00:00',
-    updated: '2016-09-21T00:29:31.1506705+00:00'
+    updated: '2016-09-21T00:29:31.1506705+00:00',
   };
   assignUpdate(project, options);
   project.builds.forEach((build) => {
@@ -201,26 +199,26 @@ exports.getProjectBuild = function getLastBuild(options) {
         accountId: 6789,
         projectId: 12345,
         publishingEnabled: false,
-        created: '2016-09-21T00:08:26.9522633+00:00'
+        created: '2016-09-21T00:08:26.9522633+00:00',
       },
       securityDescriptor: {
         accessRightDefinitions: [
           {
             name: 'View',
-            description: 'View'
+            description: 'View',
           },
           {
             name: 'RunBuild',
-            description: 'Run build'
+            description: 'Run build',
           },
           {
             name: 'Update',
-            description: 'Update settings'
+            description: 'Update settings',
           },
           {
             name: 'Delete',
-            description: 'Delete project'
-          }
+            description: 'Delete project',
+          },
         ],
         roleAces: [
           {
@@ -230,21 +228,21 @@ exports.getProjectBuild = function getLastBuild(options) {
             accessRights: [
               {
                 name: 'View',
-                allowed: true
+                allowed: true,
               },
               {
                 name: 'RunBuild',
-                allowed: true
+                allowed: true,
               },
               {
                 name: 'Update',
-                allowed: true
+                allowed: true,
               },
               {
                 name: 'Delete',
-                allowed: true
-              }
-            ]
+                allowed: true,
+              },
+            ],
           },
           {
             roleId: 22222,
@@ -252,23 +250,23 @@ exports.getProjectBuild = function getLastBuild(options) {
             isAdmin: false,
             accessRights: [
               {
-                name: 'View'
+                name: 'View',
               },
               {
-                name: 'RunBuild'
+                name: 'RunBuild',
               },
               {
-                name: 'Update'
+                name: 'Update',
               },
               {
-                name: 'Delete'
-              }
-            ]
-          }
-        ]
+                name: 'Delete',
+              },
+            ],
+          },
+        ],
       },
       created: '2016-09-21T00:08:25.2289648+00:00',
-      updated: '2016-09-21T00:29:31.1506705+00:00'
+      updated: '2016-09-21T00:29:31.1506705+00:00',
     },
     build: {
       buildId: 9876543,
@@ -289,7 +287,7 @@ exports.getProjectBuild = function getLastBuild(options) {
           started: '2016-11-16T20:42:09.1953605+00:00',
           finished: '2016-11-16T20:42:32.2101666+00:00',
           created: '2016-11-16T20:42:01.183924+00:00',
-          updated: '2016-11-16T20:42:32.2257992+00:00'
+          updated: '2016-11-16T20:42:32.2257992+00:00',
         },
         {
           jobId: 'u4c732mxowrfkwaq',
@@ -307,8 +305,8 @@ exports.getProjectBuild = function getLastBuild(options) {
           started: '2016-11-16T20:42:38.1432759+00:00',
           finished: '2016-11-16T20:42:59.2526017+00:00',
           created: '2016-11-16T20:42:01.5433296+00:00',
-          updated: '2016-11-16T20:42:59.2682185+00:00'
-        }
+          updated: '2016-11-16T20:42:59.2682185+00:00',
+        },
       ],
       buildNumber: 63,
       version: '0.0.63',
@@ -327,8 +325,8 @@ exports.getProjectBuild = function getLastBuild(options) {
       started: '2016-11-16T20:42:09.2109847+00:00',
       finished: '2016-11-16T20:42:59.486954+00:00',
       created: '2016-11-16T20:41:59.1683638+00:00',
-      updated: '2016-11-16T20:42:59.486954+00:00'
-    }
+      updated: '2016-11-16T20:42:59.486954+00:00',
+    },
   };
   assignUpdate(projectBuild.project, options);
   assignUpdate(projectBuild.build, options);
@@ -341,8 +339,8 @@ exports.getProjectBuild = function getLastBuild(options) {
 exports.getStatusBadge = function getStatusBadge(status) {
   if (!badgeData) {
     const badgeDataPath = path.join(__dirname, '..', 'test-data', 'badge.svg');
-    badgeData
-      = fs.readFileSync(badgeDataPath, {encoding: 'utf-8'});
+    badgeData =
+      fs.readFileSync(badgeDataPath, { encoding: 'utf-8' });
   }
 
   return badgeData.replace(/\bpassing\b/g, status);

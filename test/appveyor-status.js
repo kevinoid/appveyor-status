@@ -7,7 +7,7 @@
 
 const SwaggerClient = require('swagger-client');
 const appveyorSwagger = require('appveyor-swagger');
-const {assert} = require('chai');
+const { assert } = require('chai');
 const nock = require('nock');
 const sinon = require('sinon');
 const stream = require('stream');
@@ -21,11 +21,11 @@ const AmbiguousProjectError = require('../lib/ambiguous-project-error');
 
 const apiUrl = url.format({
   protocol: appveyorSwagger.schemes[0],
-  host: appveyorSwagger.host
+  host: appveyorSwagger.host,
 });
-const {badgeToStatus} = appveyorUtils;
-const {match} = sinon;
-const {projectBuildToStatus} = appveyorUtils;
+const { badgeToStatus } = appveyorUtils;
+const { match } = sinon;
+const { projectBuildToStatus } = appveyorUtils;
 
 describe('appveyorStatus', function() {
   // Increase timeout to cover slower CI environments.
@@ -57,12 +57,12 @@ describe('appveyorStatus', function() {
   let options;
   beforeEach(() => {
     options = {
-      err: new stream.PassThrough()
+      err: new stream.PassThrough(),
     };
   });
 
   const matchOptionsCwd = match({
-    cwd: match.same(undefined).or(match.same(null)).or(match.same('.'))
+    cwd: match.same(undefined).or(match.same(null)).or(match.same('.')),
   });
 
   describe('.getLastBuild', () => {
@@ -76,7 +76,7 @@ describe('appveyorStatus', function() {
       const ne = nock(apiUrl)
         .get(`/api/projects/${testProject}`)
         .query(true)
-        .reply(200, apiResponses.getProjectBuild({status: testStatus}));
+        .reply(200, apiResponses.getProjectBuild({ status: testStatus }));
       options.project = testProject;
       return appveyorStatus.getLastBuild(options)
         .then((projectBuild) => {
@@ -96,7 +96,7 @@ describe('appveyorStatus', function() {
       const ne = nock(apiUrl)
         .get(`/api/projects/${testProject}/branch/${testBranch}`)
         .query(true)
-        .reply(200, apiResponses.getProjectBuild({status: testStatus}));
+        .reply(200, apiResponses.getProjectBuild({ status: testStatus }));
       options.branch = testBranch;
       options.project = testProject;
       return appveyorStatus.getLastBuild(options)
@@ -125,8 +125,8 @@ describe('appveyorStatus', function() {
             branch: testBranch,
             repositoryType: 'git',
             repositoryName: testRemoteUrl,
-            status: testStatus
-          })
+            status: testStatus,
+          }),
         ]);
       options.branch = testBranch;
       return appveyorStatus.getLastBuild(options)
@@ -158,8 +158,8 @@ describe('appveyorStatus', function() {
             repositoryType: 'git',
             repositoryName: testRemoteUrl,
             slug: testProject[1],
-            status: testStatus
-          })
+            status: testStatus,
+          }),
         ])
         .get(`/api/projects/${testProject.join('/')}/branch/${testBranch}`)
         .query(true)
@@ -167,7 +167,7 @@ describe('appveyorStatus', function() {
           branch: testBranch,
           repositoryType: 'git',
           repositoryName: testRemoteUrl,
-          status: testStatus
+          status: testStatus,
         }));
       options.branch = testBranch;
       return appveyorStatus.getLastBuild(options)
@@ -190,7 +190,7 @@ describe('appveyorStatus', function() {
         .query(true)
         .reply(200, apiResponses.getProjectBuild({
           commitId: testCommit,
-          status: testStatus
+          status: testStatus,
         }));
       options.commit = testCommit;
       options.project = testProject;
@@ -215,7 +215,7 @@ describe('appveyorStatus', function() {
         .query(true)
         .reply(200, apiResponses.getProjectBuild({
           commitId: '12345',
-          status: testStatus
+          status: testStatus,
         }));
       options.commit = testCommit;
       options.project = testProject;
@@ -224,7 +224,7 @@ describe('appveyorStatus', function() {
         (err) => {
           assert.strictEqual(err.name, 'CommitMismatchError');
           ne.done();
-        }
+        },
       );
     });
 
@@ -234,7 +234,7 @@ describe('appveyorStatus', function() {
       const ne = nock(apiUrl)
         .get(`/api/projects/${testProject}`)
         .query(true)
-        .reply(200, apiResponses.getProjectBuild({status: testStatus}));
+        .reply(200, apiResponses.getProjectBuild({ status: testStatus }));
       options.project = testProject;
       return appveyorStatus.getLastBuild(options)
         .then((projectBuild) => {
@@ -253,8 +253,8 @@ describe('appveyorStatus', function() {
             'clearTimeout',
             'setInterval',
             'clearInterval',
-            'Date'
-          ]
+            'Date',
+          ],
         });
       });
       afterEach(() => {
@@ -293,11 +293,11 @@ describe('appveyorStatus', function() {
         const expectQueued = nock(apiUrl)
           .get(`/api/projects/${testProject}`)
           .query(true)
-          .reply(200, apiResponses.getProjectBuild({status: 'queued'}));
+          .reply(200, apiResponses.getProjectBuild({ status: 'queued' }));
         const expectSuccess = nock(apiUrl)
           .get(`/api/projects/${testProject}`)
           .query(true)
-          .reply(200, apiResponses.getProjectBuild({status: testStatus}));
+          .reply(200, apiResponses.getProjectBuild({ status: testStatus }));
 
         let retriesDone = false;
         afterFirstRequest(() => {
@@ -321,7 +321,7 @@ describe('appveyorStatus', function() {
             assert.strictEqual(
               options.err.read(),
               null,
-              'does not print wait messages by default'
+              'does not print wait messages by default',
             );
           });
       });
@@ -339,13 +339,13 @@ describe('appveyorStatus', function() {
               repositoryType: 'git',
               repositoryName: testRepoUrl,
               slug: testProjectParts[1],
-              status: 'running'
-            })
+              status: 'running',
+            }),
           ]);
         const expectSuccess = nock(apiUrl)
           .get(`/api/projects/${testProjectParts.join('/')}`)
           .query(true)
-          .reply(200, apiResponses.getProjectBuild({status: testStatus}));
+          .reply(200, apiResponses.getProjectBuild({ status: testStatus }));
 
         let retriesDone = false;
         afterFirstRequest(() => {
@@ -370,7 +370,7 @@ describe('appveyorStatus', function() {
             assert.match(
               String(options.err.read()),
               /\bwait/i,
-              'prints wait message when verbose'
+              'prints wait message when verbose',
             );
           });
       });
@@ -381,7 +381,7 @@ describe('appveyorStatus', function() {
         const expectQueued = nock(apiUrl)
           .get(`/api/projects/${testProject}`)
           .query(true)
-          .reply(200, apiResponses.getProjectBuild({status: 'queued'}));
+          .reply(200, apiResponses.getProjectBuild({ status: 'queued' }));
         const expectSuccess = nock(apiUrl)
           .get(`/api/projects/${testProject}`)
           .query(true)
@@ -407,7 +407,7 @@ describe('appveyorStatus', function() {
           (err) => {
             assert.include(err.message, testErrMsg);
             assert(retriesDone, 'Retries completed');
-          }
+          },
         );
       });
 
@@ -416,17 +416,17 @@ describe('appveyorStatus', function() {
         const expectQueued1 = nock(apiUrl)
           .get(`/api/projects/${testProject}`)
           .query(true)
-          .reply(200, apiResponses.getProjectBuild({status: 'queued'}));
+          .reply(200, apiResponses.getProjectBuild({ status: 'queued' }));
         const expectQueued2 = nock(apiUrl)
           .get(`/api/projects/${testProject}`)
           .query(true)
-          .reply(200, apiResponses.getProjectBuild({status: 'queued'}));
+          .reply(200, apiResponses.getProjectBuild({ status: 'queued' }));
         // This test does not specify specifics of exponential backoff
         nock(apiUrl)
           .persist()
           .get(`/api/projects/${testProject}`)
           .query(true)
-          .reply(200, apiResponses.getProjectBuild({status: 'queued'}));
+          .reply(200, apiResponses.getProjectBuild({ status: 'queued' }));
 
         let retriesDone = false;
         afterFirstRequest(() => {
@@ -468,8 +468,8 @@ describe('appveyorStatus', function() {
           apiResponses.getProject({
             repositoryType: 'git',
             repositoryName: testRemoteUrl,
-            status: testStatus
-          })
+            status: testStatus,
+          }),
         ]);
       return appveyorStatus.getLastBuild(options)
         .then((projectBuild) => {
@@ -486,7 +486,7 @@ describe('appveyorStatus', function() {
       const testRemoteUrl = 'git://foo.bar/baz';
       const testRepo = 'foo/bar';
       const testStatus = 'success';
-      const matchRepoCwd = match({cwd: testRepo});
+      const matchRepoCwd = match({ cwd: testRepo });
       gitUtilsMock.expects('getBranch')
         .once().withArgs(matchRepoCwd).resolves(testBranch);
       gitUtilsMock.expects('getRemote')
@@ -503,8 +503,8 @@ describe('appveyorStatus', function() {
             commitId: testCommitHash,
             repositoryType: 'git',
             repositoryName: testRemoteUrl,
-            status: testStatus
-          })
+            status: testStatus,
+          }),
         ]);
       options.branch = true;
       options.commit = testCommit;
@@ -531,8 +531,8 @@ describe('appveyorStatus', function() {
           apiResponses.getProject({
             repositoryType: 'git',
             repositoryName: testRemoteUrl,
-            status: testStatus
-          })
+            status: testStatus,
+          }),
         ]);
       return appveyorStatus.getLastBuild(options)
         .then((projectBuild) => {
@@ -559,8 +559,8 @@ describe('appveyorStatus', function() {
           apiResponses.getProject({
             repositoryType: 'git',
             repositoryName: testRemoteUrl,
-            status: testStatus
-          })
+            status: testStatus,
+          }),
         ]);
       options.verbosity = 1;
       return appveyorStatus.getLastBuild(options)
@@ -587,8 +587,8 @@ describe('appveyorStatus', function() {
           apiResponses.getProject({
             repositoryType: 'git',
             repositoryName: `${testRepo}/quux`,
-            status: testStatus
-          })
+            status: testStatus,
+          }),
         ]);
       options.repo = testRepo;
       return appveyorStatus.getLastBuild(options).then(
@@ -597,7 +597,7 @@ describe('appveyorStatus', function() {
           assert.instanceOf(err, Error);
           assert.include(err.message, testRepo);
           ne.done();
-        }
+        },
       );
     });
 
@@ -619,15 +619,15 @@ describe('appveyorStatus', function() {
             repositoryType: 'git',
             repositoryName: testRepo,
             slug: testProject1[1],
-            status: testStatus
+            status: testStatus,
           }),
           apiResponses.getProject({
             accountName: testProject2[0],
             repositoryType: 'git',
             repositoryName: testRepo,
             slug: testProject2[1],
-            status: testStatus
-          })
+            status: testStatus,
+          }),
         ]);
       options.repo = testRepo;
       return appveyorStatus.getLastBuild(options).then(
@@ -636,10 +636,10 @@ describe('appveyorStatus', function() {
           assert.instanceOf(err, AmbiguousProjectError);
           assert.deepEqual(
             err.projects,
-            [testProject1.join('/'), testProject2.join('/')]
+            [testProject1.join('/'), testProject2.join('/')],
           );
           ne.done();
-        }
+        },
       );
     });
 
@@ -653,7 +653,7 @@ describe('appveyorStatus', function() {
       const ne = nock(apiUrl)
         .get(`/api/projects/${testProject}`)
         .query(true)
-        .reply(400, {message: testErrMsg});
+        .reply(400, { message: testErrMsg });
       options.project = testProject;
       return appveyorStatus.getLastBuild(options).then(
         sinon.mock().never(),
@@ -662,7 +662,7 @@ describe('appveyorStatus', function() {
           assert.include(err.message, testErrMsg);
           assert.strictEqual(err.status, 400);
           ne.done();
-        }
+        },
       );
     });
 
@@ -675,14 +675,14 @@ describe('appveyorStatus', function() {
       const ne = nock(apiUrl)
         .get(`/api/projects/${testProject}`)
         .query(true)
-        .reply(200, 'invalid', {'Content-Type': 'text/plain'});
+        .reply(200, 'invalid', { 'Content-Type': 'text/plain' });
       options.project = testProject;
       return appveyorStatus.getLastBuild(options).then(
         sinon.mock().never(),
         (err) => {
           assert.include(err.message, 'JSON');
           ne.done();
-        }
+        },
       );
     });
 
@@ -703,7 +703,7 @@ describe('appveyorStatus', function() {
         (err) => {
           assert.include(err.message, testErrMsg);
           ne.done();
-        }
+        },
       );
     });
 
@@ -722,14 +722,14 @@ describe('appveyorStatus', function() {
         .reply(200, function(uri, requestBody) {
           assert.deepEqual(
             this.req.headers.authorization,
-            [`Bearer ${testToken}`]
+            [`Bearer ${testToken}`],
           );
           return [
             apiResponses.getProject({
               repositoryType: 'git',
               repositoryName: testRepo,
-              status: testStatus
-            })
+              status: testStatus,
+            }),
           ];
         });
       options.repo = testRepo;
@@ -757,21 +757,21 @@ describe('appveyorStatus', function() {
         .reply(200, function(uri, requestBody) {
           assert.deepEqual(
             this.req.headers.authorization,
-            [`Bearer ${testToken2}`]
+            [`Bearer ${testToken2}`],
           );
           return [
             apiResponses.getProject({
               repositoryType: 'git',
               repositoryName: testRepo,
-              status: testStatus
-            })
+              status: testStatus,
+            }),
           ];
         });
       options.appveyorClient = new SwaggerClient({
         authorizations: {
-          apiToken: `Bearer ${testToken2}`
+          apiToken: `Bearer ${testToken2}`,
         },
-        spec: appveyorSwagger
+        spec: appveyorSwagger,
       });
       options.repo = testRepo;
       options.token = testToken1;
@@ -792,7 +792,7 @@ describe('appveyorStatus', function() {
         sinon.mock().never(),
         (err) => {
           assert.match(err.message, /required|supported/i);
-        }
+        },
       );
     });
 
@@ -806,7 +806,7 @@ describe('appveyorStatus', function() {
         sinon.mock().never(),
         (err) => {
           assert.match(err.message, /required|supported/i);
-        }
+        },
       );
     });
   });
@@ -826,7 +826,7 @@ describe('appveyorStatus', function() {
         .reply(
           200,
           apiResponses.getStatusBadge(testStatus),
-          {'Content-Type': 'image/svg+xml'}
+          { 'Content-Type': 'image/svg+xml' },
         );
       options.repo = testRepoUrl;
       return appveyorStatus.getStatusBadge(options)
@@ -851,7 +851,7 @@ describe('appveyorStatus', function() {
         .reply(
           200,
           apiResponses.getStatusBadge(testStatus),
-          {'Content-Type': 'image/svg+xml'}
+          { 'Content-Type': 'image/svg+xml' },
         );
       options.branch = testBranch;
       options.repo = testRepoUrl;
@@ -875,7 +875,7 @@ describe('appveyorStatus', function() {
         .reply(
           200,
           apiResponses.getStatusBadge(testStatus),
-          {'Content-Type': 'image/svg+xml'}
+          { 'Content-Type': 'image/svg+xml' },
         );
       options.statusBadgeId = testStatusBadgeId;
       return appveyorStatus.getStatusBadge(options)
@@ -898,7 +898,7 @@ describe('appveyorStatus', function() {
         .reply(
           200,
           apiResponses.getStatusBadge(testStatus),
-          {'Content-Type': 'image/svg+xml'}
+          { 'Content-Type': 'image/svg+xml' },
         );
       options.webhookId = testWebhookId;
       return appveyorStatus.getStatusBadge(options)
@@ -922,7 +922,7 @@ describe('appveyorStatus', function() {
         .reply(
           200,
           apiResponses.getStatusBadge(testStatus),
-          {'Content-Type': 'image/svg+xml'}
+          { 'Content-Type': 'image/svg+xml' },
         );
       options.branch = testBranch;
       options.statusBadgeId = testStatusBadgeId;
@@ -947,7 +947,7 @@ describe('appveyorStatus', function() {
         .reply(
           200,
           apiResponses.getStatusBadge(testStatus),
-          {'Content-Type': 'image/svg+xml'}
+          { 'Content-Type': 'image/svg+xml' },
         );
       options.branch = testBranch;
       options.webhookId = testWebhookId;
@@ -971,7 +971,7 @@ describe('appveyorStatus', function() {
         .reply(
           400,
           apiResponses.getStatusBadge(testStatus),
-          {'Content-Type': 'image/svg+xml'}
+          { 'Content-Type': 'image/svg+xml' },
         );
       options.statusBadgeId = testWebhookId;
       return appveyorStatus.getStatusBadge(options).then(
@@ -980,7 +980,7 @@ describe('appveyorStatus', function() {
           assert.match(err.message, /400|Bad Request/i);
           assert.strictEqual(err.status, 400);
           ne.done();
-        }
+        },
       );
     });
 
@@ -993,14 +993,14 @@ describe('appveyorStatus', function() {
       const ne = nock(apiUrl)
         .get(`/api/projects/status/${testWebhookId}`)
         .query(true)
-        .reply(200, 'invalid', {'Content-Type': 'text/plain'});
+        .reply(200, 'invalid', { 'Content-Type': 'text/plain' });
       options.statusBadgeId = testWebhookId;
       return appveyorStatus.getStatusBadge(options).then(
         sinon.mock().never(),
         (err) => {
           assert.match(err.message, /svg/i);
           ne.done();
-        }
+        },
       );
     });
 
@@ -1013,14 +1013,14 @@ describe('appveyorStatus', function() {
       const ne = nock(apiUrl)
         .get(`/api/projects/status/${testStatusBadgeId}`)
         .query(true)
-        .reply(200, 'invalid', {'Content-Type': undefined});
+        .reply(200, 'invalid', { 'Content-Type': undefined });
       options.statusBadgeId = testStatusBadgeId;
       return appveyorStatus.getStatusBadge(options).then(
         sinon.mock().never(),
         (err) => {
           assert.match(err.message, /svg/i);
           ne.done();
-        }
+        },
       );
     });
 
@@ -1034,7 +1034,7 @@ describe('appveyorStatus', function() {
         sinon.mock().never(),
         (err) => {
           assert.match(err.message, /required|supported/i);
-        }
+        },
       );
     });
   });
@@ -1049,7 +1049,7 @@ describe('appveyorStatus', function() {
       gitUtilsMock.expects('resolveCommit').never();
       const ne = nock(apiUrl)
         .get(`/api/projects/${testProject}`)
-        .reply(200, apiResponses.getProjectBuild({status: testStatus}));
+        .reply(200, apiResponses.getProjectBuild({ status: testStatus }));
       options.project = testProject;
       return appveyorStatus.getStatus(options)
         .then((status) => {
@@ -1072,7 +1072,7 @@ describe('appveyorStatus', function() {
         .reply(
           200,
           apiResponses.getStatusBadge(testStatus),
-          {'Content-Type': 'image/svg+xml'}
+          { 'Content-Type': 'image/svg+xml' },
         );
       options.repo = testRepo;
       return appveyorStatus.getStatus(options)
@@ -1101,7 +1101,7 @@ describe('appveyorStatus', function() {
         .reply(
           200,
           apiResponses.getStatusBadge(testStatus),
-          {'Content-Type': 'image/svg+xml'}
+          { 'Content-Type': 'image/svg+xml' },
         );
       appveyorStatus.getStatus((err, status) => {
         assert.ifError(err);
@@ -1114,7 +1114,7 @@ describe('appveyorStatus', function() {
     it('throws TypeError for non-function callback', () => {
       assert.throws(
         () => { appveyorStatus.getStatus(options, true); },
-        TypeError
+        TypeError,
       );
     });
 
@@ -1124,7 +1124,7 @@ describe('appveyorStatus', function() {
         (err) => {
           assert.instanceOf(err, TypeError);
           assert.match(err.message, /\boptions\b/);
-        }
+        },
       ));
 
     it('rejects project and repo with Error', () => {
@@ -1136,7 +1136,7 @@ describe('appveyorStatus', function() {
           assert.instanceOf(err, Error);
           assert.match(err.message, /\bproject\b/);
           assert.match(err.message, /\brepo\b/);
-        }
+        },
       );
     });
 
@@ -1149,7 +1149,7 @@ describe('appveyorStatus', function() {
           assert.instanceOf(err, Error);
           assert.match(err.message, /\bproject\b/);
           assert.match(err.message, /\bstatusBadgeId\b/);
-        }
+        },
       );
     });
 
@@ -1162,7 +1162,7 @@ describe('appveyorStatus', function() {
           assert.instanceOf(err, Error);
           assert.match(err.message, /\brepo\b/);
           assert.match(err.message, /\bstatusBadgeId\b/);
-        }
+        },
       );
     });
 
@@ -1175,7 +1175,7 @@ describe('appveyorStatus', function() {
           assert.instanceOf(err, Error);
           assert.match(err.message, /\bproject\b/);
           assert.match(err.message, /\bwebhookId\b/);
-        }
+        },
       );
     });
 
@@ -1188,17 +1188,17 @@ describe('appveyorStatus', function() {
           assert.instanceOf(err, Error);
           assert.match(err.message, /\brepo\b/);
           assert.match(err.message, /\bwebhookId\b/);
-        }
+        },
       );
     });
 
     it('rejects non-Writable err with TypeError',
-      () => appveyorStatus.getStatus({err: new stream.Readable()}).then(
+      () => appveyorStatus.getStatus({ err: new stream.Readable() }).then(
         sinon.mock().never(),
         (err) => {
           assert.instanceOf(err, TypeError);
           assert.match(err.message, /\berr\b/);
-        }
+        },
       ));
 
     it('rejects non-numeric wait with TypeError', () => {
@@ -1208,7 +1208,7 @@ describe('appveyorStatus', function() {
         (err) => {
           assert.instanceOf(err, TypeError);
           assert.match(err.message, /\bwait\b/);
-        }
+        },
       );
     });
 
@@ -1219,13 +1219,13 @@ describe('appveyorStatus', function() {
         (err) => {
           assert.instanceOf(err, RangeError);
           assert.match(err.message, /\bwait\b/);
-        }
+        },
       );
     });
 
     it('rejects project without accountName with Error', () => {
       options.project = {
-        slug: 'foo'
+        slug: 'foo',
       };
       return appveyorStatus.getStatus(options).then(
         sinon.mock().never(),
@@ -1233,13 +1233,13 @@ describe('appveyorStatus', function() {
           assert.instanceOf(err, Error);
           assert.match(err.message, /\bproject\b/);
           assert.match(err.message, /\baccountName\b/);
-        }
+        },
       );
     });
 
     it('rejects project without slug with Error', () => {
       options.project = {
-        accountName: 'foo'
+        accountName: 'foo',
       };
       return appveyorStatus.getStatus(options).then(
         sinon.mock().never(),
@@ -1247,7 +1247,7 @@ describe('appveyorStatus', function() {
           assert.instanceOf(err, Error);
           assert.match(err.message, /\bproject\b/);
           assert.match(err.message, /\bslug\b/);
-        }
+        },
       );
     });
   });

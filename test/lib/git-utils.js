@@ -6,7 +6,7 @@
 'use strict';
 
 const fileUrl = require('file-url');
-const {assert} = require('chai');
+const { assert } = require('chai');
 const path = require('path');
 const rimraf = require('rimraf');
 const url = require('url');
@@ -25,19 +25,19 @@ const BRANCH_REMOTES = {
   branch2: 'remote2/rbranch6',
   branchnoremote: false,
   branchnourl: 'nourl/rbranch2',
-  branchnotslug: 'notslug/rbranch3'
+  branchnotslug: 'notslug/rbranch3',
 };
 const REMOTES = {
   notslug: 'foo',
   origin: 'https://github.com/owner/repo',
   remote1: 'git@github.com:owner1/repo1.git',
-  remote2: 'https://github.com/owner2/repo2.git'
+  remote2: 'https://github.com/owner2/repo2.git',
 };
 const TAGS = ['tag1'];
 /** Path to repository in which tests are run. */
 const TEST_REPO_PATH = path.join(__dirname, '..', '..', 'test-repo');
 
-const options = Object.freeze({cwd: TEST_REPO_PATH});
+const options = Object.freeze({ cwd: TEST_REPO_PATH });
 
 function neverCalled() {
   throw new Error('should not be called');
@@ -53,35 +53,35 @@ before('setup test repository', function() {
     // to work.  On Travis CI (and probably others) there is no global config
     .then(() => execFileOut(
       'git',
-      ['-C', TEST_REPO_PATH, 'config', 'user.name', 'Test User']
+      ['-C', TEST_REPO_PATH, 'config', 'user.name', 'Test User'],
     ))
     .then(() => execFileOut(
       'git',
-      ['-C', TEST_REPO_PATH, 'config', 'user.email', 'test@example.com']
+      ['-C', TEST_REPO_PATH, 'config', 'user.email', 'test@example.com'],
     ))
     .then(() => execFileOut(
       'git',
       ['-C', TEST_REPO_PATH, 'commit', '-q', '-m', 'Initial Commit',
-        '--allow-empty']
+        '--allow-empty'],
     ))
     .then(() => execFileOut('git', ['-C', TEST_REPO_PATH, 'tag', TAGS[0]]))
     .then(() => execFileOut(
       'git',
       ['-C', TEST_REPO_PATH, 'commit', '-q', '-m', 'Second Commit',
-        '--allow-empty']
+        '--allow-empty'],
     ))
     .then(() => Object.keys(REMOTES).reduce((p, remoteName) => p.then(() => {
       const remoteUrl = REMOTES[remoteName];
       return execFileOut(
         'git',
-        ['-C', TEST_REPO_PATH, 'remote', 'add', remoteName, remoteUrl]
+        ['-C', TEST_REPO_PATH, 'remote', 'add', remoteName, remoteUrl],
       );
     }), Promise.resolve()))
     .then(() => Object.keys(BRANCH_REMOTES)
       .filter((branchName) => branchName !== 'master')
       .reduce((p, branchName) => p.then(() => execFileOut(
         'git',
-        ['-C', TEST_REPO_PATH, 'branch', branchName]
+        ['-C', TEST_REPO_PATH, 'branch', branchName],
       )), Promise.resolve()))
     .then(() => Object.keys(BRANCH_REMOTES)
       .reduce((p, branchName) => p.then(() => {
@@ -100,12 +100,12 @@ before('setup test repository', function() {
         const configRemote = `${configBranch}.remote`;
         return execFileOut(
           'git',
-          ['-C', TEST_REPO_PATH, 'config', '--add', configRemote, remoteName]
+          ['-C', TEST_REPO_PATH, 'config', '--add', configRemote, remoteName],
         )
           .then(() => execFileOut(
             'git',
             ['-C', TEST_REPO_PATH,
-              'config', '--add', configMerge, remoteRef]
+              'config', '--add', configMerge, remoteRef],
           ));
       }), Promise.resolve()));
 });
@@ -140,7 +140,7 @@ describe('gitUtils', () => {
           (err) => {
             assert.instanceOf(err, Error);
             assert.match(err.message, /branch/i);
-          }
+          },
         ));
   });
 
@@ -164,7 +164,7 @@ describe('gitUtils', () => {
         neverCalled,
         (err) => {
           assert.instanceOf(err, Error);
-        }
+        },
       ));
   });
 
@@ -183,7 +183,7 @@ describe('gitUtils', () => {
         neverCalled,
         (err) => {
           assert.instanceOf(err, Error);
-        }
+        },
       ));
 
     it('uses ls-remote default for unspecified remote',
@@ -195,19 +195,19 @@ describe('gitUtils', () => {
 
   describe('.gitUrlIsLocalNotSsh', () => {
     [
-      {url: '.', result: true},
-      {url: '/foo/bar', result: true},
-      {url: 'http://example.com', result: false},
-      {url: 'git://example.com', result: false},
-      {url: 'git@example.com:foo', result: false},
-      {url: 'file:///foo/bar', result: false},
-      {url: '/foo:bar', result: true},
-      {url: 'foo:bar', result: false}
+      { url: '.', result: true },
+      { url: '/foo/bar', result: true },
+      { url: 'http://example.com', result: false },
+      { url: 'git://example.com', result: false },
+      { url: 'git@example.com:foo', result: false },
+      { url: 'file:///foo/bar', result: false },
+      { url: '/foo:bar', result: true },
+      { url: 'foo:bar', result: false },
     ].forEach((testCase) => {
       it(`${testCase.url} is ${testCase.result}`, () => {
         assert.strictEqual(
           gitUtils.gitUrlIsLocalNotSsh(testCase.url),
-          testCase.result
+          testCase.result,
         );
       });
     });
@@ -217,14 +217,14 @@ describe('gitUtils', () => {
       it(`${drivePath} is true on Windows`, () => {
         assert.strictEqual(
           gitUtils.gitUrlIsLocalNotSsh(drivePath),
-          true
+          true,
         );
       });
     } else {
       it(`${drivePath} is false on non-Windows`, () => {
         assert.strictEqual(
           gitUtils.gitUrlIsLocalNotSsh(drivePath),
-          false
+          false,
         );
       });
     }
@@ -235,7 +235,7 @@ describe('gitUtils', () => {
       const testUrl = 'http://user@example.com/foo/bar';
       assert.deepStrictEqual(
         gitUtils.parseGitUrl(testUrl),
-        Object.assign(url.parse(testUrl), {helper: undefined})
+        Object.assign(url.parse(testUrl), { helper: undefined }),
       );
     });
 
@@ -243,7 +243,7 @@ describe('gitUtils', () => {
       const testUrl = 'git://user@example.com/foo/bar';
       assert.deepStrictEqual(
         gitUtils.parseGitUrl(testUrl),
-        Object.assign(url.parse(testUrl), {helper: undefined})
+        Object.assign(url.parse(testUrl), { helper: undefined }),
       );
     });
 
@@ -253,8 +253,8 @@ describe('gitUtils', () => {
         gitUtils.parseGitUrl(testUrl),
         Object.assign(
           url.parse('ssh://user@example.com/foo/bar.git'),
-          {helper: undefined}
-        )
+          { helper: undefined },
+        ),
       );
     });
 
@@ -262,7 +262,7 @@ describe('gitUtils', () => {
       const testPath = path.resolve(path.join('foo', 'bar'));
       assert.deepStrictEqual(
         gitUtils.parseGitUrl(testPath),
-        Object.assign(url.parse(fileUrl(testPath)), {helper: undefined})
+        Object.assign(url.parse(fileUrl(testPath)), { helper: undefined }),
       );
     });
 
@@ -270,7 +270,7 @@ describe('gitUtils', () => {
       const testPath = path.join('foo', 'bar');
       assert.deepStrictEqual(
         gitUtils.parseGitUrl(testPath),
-        Object.assign(url.parse(fileUrl(testPath)), {helper: undefined})
+        Object.assign(url.parse(fileUrl(testPath)), { helper: undefined }),
       );
     });
 
@@ -278,7 +278,7 @@ describe('gitUtils', () => {
       it('parses Windows path like file:// URL on Windows', () => {
         assert.deepStrictEqual(
           gitUtils.parseGitUrl('C:\\foo\\bar'),
-          Object.assign(url.parse('file:///C:/foo/bar'), {helper: undefined})
+          Object.assign(url.parse('file:///C:/foo/bar'), { helper: undefined }),
         );
       });
     } else {
@@ -286,7 +286,7 @@ describe('gitUtils', () => {
         const testPath = 'C:\\foo\\bar';
         assert.deepStrictEqual(
           gitUtils.parseGitUrl(testPath),
-          Object.assign(url.parse(testPath), {helper: undefined})
+          Object.assign(url.parse(testPath), { helper: undefined }),
         );
       });
     }
@@ -297,8 +297,8 @@ describe('gitUtils', () => {
         gitUtils.parseGitUrl(testUrl),
         Object.assign(
           url.parse('ssh://user@example.com/foo/bar.git'),
-          {helper: 'myhelper'}
-        )
+          { helper: 'myhelper' },
+        ),
       );
     });
   });
@@ -333,7 +333,7 @@ describe('gitUtils', () => {
         neverCalled,
         (err) => {
           assert(err instanceof Error);
-        }
+        },
       ));
   });
 });
