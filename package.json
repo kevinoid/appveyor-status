@@ -43,7 +43,7 @@
   },
   "dependencies": {
     "appveyor-swagger": "^1.0.0",
-    "chalk": "^2.0.0",
+    "chalk": "^3.0.0",
     "escape-string-regexp": "^2.0.0",
     "file-url": "^3.0.0",
     "get-exec-file": "^1.1.0",
