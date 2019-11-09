@@ -10,6 +10,7 @@ const appveyorSwagger = require('appveyor-swagger');
 const { assert } = require('chai');
 const escapeStringRegexp = require('escape-string-regexp');
 const fs = require('fs');
+const hasAnsi = require('has-ansi');
 const path = require('path');
 const sinon = require('sinon');
 const stream = require('stream');
@@ -28,6 +29,19 @@ const TEST_TOKEN_PATH =
   path.join(__dirname, '..', '..', 'test-data', 'token.txt');
 
 process.env.APPVEYOR_API_TOKEN = 'env-token';
+
+// supports-color checks $FORCE_COLOR in require.  Can't test if set.
+const colorIt =
+  hasOwnProperty.call(process.env, 'FORCE_COLOR') ? xit : it;
+
+const origTerm = process.env.TERM;
+function restoreTerm() {
+  if (origTerm === undefined) {
+    delete process.env.TERM;
+  } else {
+    process.env.TERM = origTerm;
+  }
+}
 
 describe('appveyor-status command', () => {
   // Ensure that expectations are not carried over between tests
@@ -114,8 +128,6 @@ describe('appveyor-status command', () => {
   expectArgsAs(['-b'], match({ branch: true }));
   expectArgsAs(['--branch', 'foo'], match({ branch: 'foo' }));
   expectArgsAs(['-b', 'foo'], match({ branch: 'foo' }));
-  // TODO: color default should be options.err.isTTY.  Test both states.
-  expectArgsAs([], match({ color: false }));
   expectArgsAs(['--color'], match({ color: true }));
   expectArgsAs(['--no-color'], match({ color: false }));
   expectArgsAs(['--commit'], match({ commit: 'HEAD' }));
@@ -221,7 +233,7 @@ describe('appveyor-status command', () => {
   });
   expectCodeForStatusCode(2, 'unrecognized');
 
-  it('prints status to stdout by default', (done) => {
+  colorIt('prints status to stdout by default', (done) => {
     appveyorStatusMock.expects('getStatus')
       .once().withArgs(match.object, match.func).yields(null, 'success');
     appveyorStatusCmd(RUNTIME_ARGS, options, (err, code) => {
@@ -237,25 +249,53 @@ describe('appveyor-status command', () => {
     });
   });
 
-  statusValues.forEach((status) => {
-    const colorName = status === 'success' ? 'green'
-      : status === 'failed' ? 'red'
-        : 'gray';
-    it(`prints ${status} in ${colorName} to TTY`, (done) => {
-      appveyorStatusMock.expects('getStatus')
-        .once().withArgs(match.object, match.func).yields(null, status);
-      options.out.isTTY = true;
-      appveyorStatusCmd(RUNTIME_ARGS, options, (err, code) => {
-        assert.ifError(err);
-        assert.strictEqual(code, status === 'success' ? 0 : 2);
-        const outString = String(options.out.read());
-        const ansiStyle = ansiStyles[colorName];
-        assert.include(
-          outString,
-          `${ansiStyle.open}status${ansiStyle.close}`,
-        );
-        assert.strictEqual(options.err.read(), null);
-        done();
+  // Test what happens when supports-color returns false
+  describe('with $TERM=xterm', () => {
+    before(() => { process.env.TERM = 'xterm'; });
+    after(restoreTerm);
+
+    statusValues.forEach((status) => {
+      const colorName = status === 'success' ? 'green'
+        : status === 'failed' ? 'red'
+          : 'gray';
+      colorIt(`prints ${status} in ${colorName} to TTY`, (done) => {
+        appveyorStatusMock.expects('getStatus')
+          .once().withArgs(match.object, match.func).yields(null, status);
+        options.out.isTTY = true;
+        appveyorStatusCmd(RUNTIME_ARGS, options, (err, code) => {
+          assert.ifError(err);
+          assert.strictEqual(code, status === 'success' ? 0 : 2);
+          const outString = String(options.out.read());
+          const ansiStyle = ansiStyles[colorName];
+          assert.include(
+            outString,
+            `${ansiStyle.open}status${ansiStyle.close}`,
+          );
+          assert.strictEqual(options.err.read(), null);
+          done();
+        });
+      });
+    });
+  });
+
+  // Test what happens when supports-color returns false
+  describe('with $TERM=dumb', () => {
+    before(() => { process.env.TERM = 'dumb'; });
+    after(restoreTerm);
+
+    statusValues.forEach((status) => {
+      colorIt(`prints ${status} without color to TTY`, (done) => {
+        appveyorStatusMock.expects('getStatus')
+          .once().withArgs(match.object, match.func).yields(null, status);
+        options.out.isTTY = true;
+        appveyorStatusCmd(RUNTIME_ARGS, options, (err, code) => {
+          assert.ifError(err);
+          assert.strictEqual(code, status === 'success' ? 0 : 2);
+          const outString = String(options.out.read());
+          assert(!hasAnsi(outString), 'does not have color escapes');
+          assert.strictEqual(options.err.read(), null);
+          done();
+        });
       });
     });
   });

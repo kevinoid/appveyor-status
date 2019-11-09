@@ -13,6 +13,7 @@ const ansiStyles = require('ansi-styles');
 const Yargs = require('yargs/yargs');
 const fs = require('fs');
 const readAllStream = require('read-all-stream');
+const { supportsColor } = require('supports-color');
 
 const appveyorStatus = require('..');
 
@@ -302,8 +303,7 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
     delete argOpts.verbose;
 
     if (argOpts.color === undefined) {
-      // Need cast to Boolean so undefined becomes false to disable Chalk
-      argOpts.color = Boolean(options.out.isTTY);
+      argOpts.color = supportsColor(options.out).hasBasic;
     }
 
     if (argOpts.commit === true) {
