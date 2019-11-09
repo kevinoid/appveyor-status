@@ -9,7 +9,7 @@
 
 'use strict';
 
-const Chalk = require('chalk').constructor;
+const ansiStyles = require('ansi-styles');
 const Yargs = require('yargs/yargs');
 const fs = require('fs');
 const readAllStream = require('read-all-stream');
@@ -43,7 +43,7 @@ Object.keys(ExitCode).forEach((codeName) => {
   ExitCode[code] = codeName;
 });
 
-/** Maps AppVeyor build status to a chalk color name.
+/** Maps AppVeyor build status to an ansi-styles color name.
  * @const
  * @type {Object<string, string>}
  * @private
@@ -85,9 +85,15 @@ function checkStatus(options, callback) {
     }
 
     if (options.verbosity >= 0) {
-      const chalk = new Chalk({ enabled: options.color });
-      const colorName = statusColor[status] || 'gray';
-      const statusColored = chalk[colorName](status);
+      let statusColored;
+      if (options.color) {
+        const colorName = statusColor[status] || 'gray';
+        const ansiStyle = ansiStyles[colorName];
+        statusColored = `${ansiStyle.open}status${ansiStyle.close}`;
+      } else {
+        statusColored = status;
+      }
+
       options.out.write(`AppVeyor build status: ${statusColored}\n`);
     }
     callback(

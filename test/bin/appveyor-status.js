@@ -5,7 +5,7 @@
 
 'use strict';
 
-const Chalk = require('chalk').constructor;
+const ansiStyles = require('ansi-styles');
 const appveyorSwagger = require('appveyor-swagger');
 const { assert } = require('chai');
 const escapeStringRegexp = require('escape-string-regexp');
@@ -19,7 +19,6 @@ const appveyorStatus = require('../..');
 const appveyorStatusCmd = require('../../bin/appveyor-status');
 const CommitMismatchError = require('../../lib/commit-mismatch-error');
 
-const chalk = new Chalk({ enabled: true });
 const { match } = sinon;
 const statusValues = appveyorSwagger.definitions.Status.enum;
 
@@ -250,9 +249,10 @@ describe('appveyor-status command', () => {
         assert.ifError(err);
         assert.strictEqual(code, status === 'success' ? 0 : 2);
         const outString = String(options.out.read());
+        const ansiStyle = ansiStyles[colorName];
         assert.include(
           outString,
-          chalk[colorName](status),
+          `${ansiStyle.open}status${ansiStyle.close}`,
         );
         assert.strictEqual(options.err.read(), null);
         done();
