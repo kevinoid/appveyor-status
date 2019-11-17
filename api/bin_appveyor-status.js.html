@@ -30,18 +30,20 @@
 /**
  * The appveyor-status command.
  *
- * @copyright Copyright 2017 Kevin Locke &lt;kevin@kevinlocke.name>
+ * @copyright Copyright 2017-2019 Kevin Locke &lt;kevin@kevinlocke.name>
  * @license MIT
  * @module appveyor-status/bin/appveyor-status
  */
 
 'use strict';
 
-const Chalk = require('chalk').constructor;
+const ansiStyles = require('ansi-styles');
 const Yargs = require('yargs/yargs');
-const appveyorStatus = require('..');
 const fs = require('fs');
 const readAllStream = require('read-all-stream');
+const { supportsColor } = require('supports-color');
+
+const appveyorStatus = require('..');
 
 const packageJson = require('../package.json');
 
@@ -61,7 +63,7 @@ const ExitCode = {
   /** Failed due to commit mismatch. */
   FAIL_COMMIT: 3,
   /** Failed due to invalid arguments. */
-  FAIL_ARGUMENTS: 4
+  FAIL_ARGUMENTS: 4,
 };
 
 // Add mapping from code to name
@@ -70,46 +72,22 @@ Object.keys(ExitCode).forEach((codeName) => {
   ExitCode[code] = codeName;
 });
 
-/** Maps AppVeyor build status to a chalk color name.
+/** Maps AppVeyor build status to an ansi-styles color name.
  * @const
  * @type {Object&lt;string, string>}
  * @private
  */
 const statusColor = {
   failed: 'red',
-  success: 'green'
+  success: 'green',
 };
 
 function coerceWait(arg) {
   const val = arg === true ? Infinity : Number(arg);
   if (Number.isNaN(val)) {
-    throw new Error(`Invalid number "${arg}"`);
+    throw new TypeError(`Invalid number "${arg}"`);
   }
   return val;
-}
-
-/** Calls &lt;code>yargs.parse&lt;/code> and passes any thrown errors to the callback.
- * Workaround for https://github.com/yargs/yargs/issues/755
- * @private
- */
-function parseYargs(yargs, args, callback) {
-  // Since yargs doesn't nextTick its callback, this function must be careful
-  // that exceptions thrown from callback (which propagate through yargs.parse)
-  // are not caught and passed to a second invocation of callback.
-  let called = false;
-  try {
-    yargs.parse(args, function(...cbargs) {
-      called = true;
-      return callback.apply(this, cbargs);
-    });
-  } catch (err) {
-    if (called) {
-      // err was thrown after or by callback.  Let it propagate.
-      throw err;
-    } else {
-      callback(err);
-    }
-  }
 }
 
 /** Gets the AppVeyor build status, handles errors, and writes the result to
@@ -136,14 +114,20 @@ function checkStatus(options, callback) {
     }
 
     if (options.verbosity >= 0) {
-      const chalk = new Chalk({enabled: options.color});
-      const colorName = statusColor[status] || 'gray';
-      const statusColored = chalk[colorName](status);
+      let statusColored;
+      if (options.color) {
+        const colorName = statusColor[status] || 'gray';
+        const ansiStyle = ansiStyles[colorName];
+        statusColored = `${ansiStyle.open}status${ansiStyle.close}`;
+      } else {
+        statusColored = status;
+      }
+
       options.out.write(`AppVeyor build status: ${statusColored}\n`);
     }
     callback(
       null,
-      status === 'success' ? ExitCode.SUCCESS : ExitCode.FAIL_STATUS
+      status === 'success' ? ExitCode.SUCCESS : ExitCode.FAIL_STATUS,
     );
   });
 }
@@ -185,7 +169,6 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
   }
 
   if (!callback &amp;&amp; typeof Promise === 'function') {
-    // eslint-disable-next-line no-undef
     return new Promise((resolve, reject) => {
       appveyorStatusCmd(args, options, (err, result) => {
         if (err) { reject(err); } else { resolve(result); }
@@ -213,14 +196,12 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
       throw new TypeError('options must be an object');
     }
 
-    options = Object.assign(
-      {
-        in: process.stdin,
-        out: process.stdout,
-        err: process.stderr
-      },
-      options
-    );
+    options = {
+      in: process.stdin,
+      out: process.stdout,
+      err: process.stderr,
+      ...options,
+    };
 
     if (!options.in || typeof options.in.on !== 'function') {
       throw new TypeError('options.in must be a stream.Readable');
@@ -239,8 +220,14 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
   }
 
   // Workaround for https://github.com/yargs/yargs/issues/783
+  // Necessary because mocha package.json overrides .parserConfiguration()
   require.main = module;
   const yargs = new Yargs(null, null, require)
+    .parserConfiguration({
+      'parse-numbers': false,
+      'duplicate-arguments-array': false,
+      'flatten-duplicate-arrays': false,
+    })
     .usage('Usage: $0 [options]')
     .help()
     .alias('help', 'h')
@@ -249,74 +236,74 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
       alias: 'B',
       describe:
         'Status Badge ID of project (from badge URL, exclusive with commit)',
-      nargs: 1
+      nargs: 1,
     })
     .option('branch', {
       alias: 'b',
       description: 'Query latest build for a branch',
-      defaultDescription: '(current)'
+      defaultDescription: '(current)',
     })
     .option('color', {
       description: 'Colorize the output',
       default: undefined,
       defaultDescription: '(to TTY)',
-      type: 'boolean'
+      type: 'boolean',
     })
     .option('commit', {
       alias: 'c',
       description:
         'Require build to be for named commit (requires project or token)',
-      defaultDescription: 'HEAD'
+      defaultDescription: 'HEAD',
     })
     .option('project', {
       alias: 'p',
       describe: 'AppVeyor project to query (as $user/$proj)',
-      nargs: 1
+      nargs: 1,
     })
     .option('quiet', {
       alias: 'q',
       describe: 'Print less output',
-      count: true
+      count: true,
     })
     .option('repo', {
       alias: 'r',
       describe: 'Repository to query (URL or path)',
       defaultDescription: '.',
-      nargs: 1
+      nargs: 1,
     })
     .option('token', {
       alias: 't',
       describe: 'API access token',
       defaultDescription: '$APPVEYOR_API_TOKEN env var',
-      nargs: 1
+      nargs: 1,
     })
     .option('token-file', {
       alias: 'T',
       describe: 'file containing API access token',
-      nargs: 1
+      nargs: 1,
     })
     .conflicts('token-file', 'token')
     .option('verbose', {
       alias: 'v',
       describe: 'Print more output',
-      count: true
+      count: true,
     })
     .option('wait', {
       alias: 'w',
       describe: 'Wait if build is pending (timeout in seconds)',
       defaultDescription: 'Infinity',
-      coerce: coerceWait
+      coerce: coerceWait,
     })
     .option('webhook', {
       alias: 'W',
       /* Undocumented.  Deprecated in favor of --badge
        * 'Webhook ID of project (from badge URL, exclusive with commit)' */
-      nargs: 1
+      nargs: 1,
     })
     .version(`${packageJson.name} ${packageJson.version}`)
     .alias('version', 'V')
     .strict();
-  parseYargs(yargs, args, (err, argOpts, output) => {
+  yargs.parse(args, (err, argOpts, output) => {
     if (err) {
       options.err.write(output ? `${output}\n`
         : `${err.name}: ${err.message}\n`);
@@ -344,8 +331,7 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
     delete argOpts.verbose;
 
     if (argOpts.color === undefined) {
-      // Need cast to Boolean so undefined becomes false to disable Chalk
-      argOpts.color = Boolean(options.out.isTTY);
+      argOpts.color = supportsColor(options.out).hasBasic;
     }
 
     if (argOpts.commit === true) {
@@ -362,7 +348,7 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
     argOpts.webhookId = argOpts.webhook;
     delete argOpts.webhook;
 
-    const statusOpts = Object.assign({}, options, argOpts);
+    const statusOpts = { ...options, ...argOpts };
 
     if (argOpts.tokenFile !== undefined) {
       const tokenFileStream = argOpts.tokenFile === '-' ? options.in
@@ -397,7 +383,7 @@ if (require.main === module) {
   const mainOptions = {
     in: process.stdin,
     out: process.stdout,
-    err: process.stderr
+    err: process.stderr,
   };
   module.exports(process.argv, mainOptions, (err, exitCode) => {
     if (err) {
@@ -424,7 +410,7 @@ if (require.main === module) {
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Sun Sep 09 2018 21:09:44 GMT-0600 (MDT)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.3</a> on Sat Nov 16 2019 17:25:52 GMT-0700 (Mountain Standard Time)
 </footer>
 
 <script> prettyPrint(); </script>

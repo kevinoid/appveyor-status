@@ -132,7 +132,7 @@ AppVeyor project was not uniquely matched by <code>options</code> and
             <td class="type">
             
                 
-<span class="param-type"><a href="module-appveyor-status.html#.AppveyorStatusOptions">module:appveyor-status.AppveyorStatusOptions</a></span>
+<span class="param-type">module:appveyor-status.AppveyorStatusOptions</span>
 
 
             
@@ -232,7 +232,7 @@ could not be retrieved.</td>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line547">line 547</a>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line549">line 549</a>
     </li></ul></dd>
     
 
@@ -242,6 +242,8 @@ could not be retrieved.</td>
 
     
 </dl>
+
+
 
 
 
@@ -352,7 +354,7 @@ AppVeyor project was not uniquely matched by <code>options</code> and
             <td class="type">
             
                 
-<span class="param-type"><a href="module-appveyor-status.html#.AppveyorStatusOptions">module:appveyor-status.AppveyorStatusOptions</a></span>
+<span class="param-type">module:appveyor-status.AppveyorStatusOptions</span>
 
 
             
@@ -452,7 +454,7 @@ with the current build status from the AppVeyor API, or an
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line647">line 647</a>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line649">line 649</a>
     </li></ul></dd>
     
 
@@ -462,6 +464,8 @@ with the current build status from the AppVeyor API, or an
 
     
 </dl>
+
+
 
 
 
@@ -566,7 +570,7 @@ API, or <code>Error</code> if it could not be retrieved.  Otherwise
             <td class="type">
             
                 
-<span class="param-type"><a href="module-appveyor-status.html#.AppveyorStatusOptions">module:appveyor-status.AppveyorStatusOptions</a></span>
+<span class="param-type">module:appveyor-status.AppveyorStatusOptions</span>
 
 
             
@@ -669,7 +673,7 @@ it could not be retrieved.</td>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line609">line 609</a>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line611">line 611</a>
     </li></ul></dd>
     
 
@@ -679,6 +683,8 @@ it could not be retrieved.</td>
 
     
 </dl>
+
+
 
 
 
@@ -729,511 +735,6 @@ Otherwise <code>undefined</code>.
     
 
     
-        <h3 class="subsection-title">Type Definitions</h3>
-
-        
-                
-<h4 class="name" id=".AppveyorStatusOptions">AppveyorStatusOptions</h4>
-
-
-
-
-<div class="description">
-    Options for appveyorStatus functions.
-</div>
-
-
-
-    <h5>Type:</h5>
-    <ul>
-        <li>
-            
-<span class="param-type">Object</span>
-
-
-        </li>
-    </ul>
-
-
-
-
-
-    <h5 class="subsection-title">Properties:</h5>
-
-    
-
-<table class="props">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-        <th>Attributes</th>
-        
-
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>agent</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">http.Agent</span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-                </td>
-            
-
-            
-
-            <td class="description last">Agent to use for HTTP requests (useful for
-inter-call keep-alive and request sharing) (ignored if appveyorClient is
-set).</td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>appveyorClient</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">SwaggerClient</span>
-|
-
-<span class="param-type">Promise.&lt;SwaggerClient></span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-                </td>
-            
-
-            
-
-            <td class="description last">client
-used to query the AppVeyor API.</td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>branch</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">string</span>
-|
-
-<span class="param-type">boolean</span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-                </td>
-            
-
-            
-
-            <td class="description last">query latest build for named branch,
-or the current branch</td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>commit</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">string</span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-                </td>
-            
-
-            
-
-            <td class="description last">require build to be for a specific commit.
-Named commits are resolved in <code>options.repo</code> or current dir.
-(requires token or project)</td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>err</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">stream.Writable</span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-                </td>
-            
-
-            
-
-            <td class="description last">Stream to which errors (and non-output
-status messages) are written. (default: <code>process.stderr</code>)</td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>project</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">string</span>
-|
-
-<span class="param-type">Project</span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-                </td>
-            
-
-            
-
-            <td class="description last">AppVeyor project to query (default:
-auto-detect) (exclusive with repo, statusBadgeId, and webhookId)</td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>repo</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">string</span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-                </td>
-            
-
-            
-
-            <td class="description last">repository to query (as
-{bitbucket,github}/$user/$proj) (default: auto-detect)
-(exclusive with project, statusBadgeId, and webhookId)</td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>statusBadgeId</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">string</span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-                </td>
-            
-
-            
-
-            <td class="description last">Status badge ID to query
-(exclusive with project, repo, and webhookId)</td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>token</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">string</span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-                </td>
-            
-
-            
-
-            <td class="description last">AppVeyor API access token.</td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>verbosity</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">number</span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-                </td>
-            
-
-            
-
-            <td class="description last">Amount of diagnostic information to print
-(0 is default, larger yields more output).</td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>wait</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">number</span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-                </td>
-            
-
-            
-
-            <td class="description last">Length of time to wait (in milliseconds) for build
-to complete.  If wait time is reached, incomplete build is returned.
-(default: no polling)</td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>webhookId</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">string</span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-                </td>
-            
-
-            
-
-            <td class="description last">*Deprecated* Webhook ID to query.  The
-webhookId has been replaced by statusBadgeId as the path parameter in the
-status badge URL.  This name is kept for backwards-compatibility only.
-(default: auto-detect) (exclusive with project, statusBadgeId, and repo)</td>
-        </tr>
-
-    
-    </tbody>
-</table>
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line129">line 129</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-            
-    
 
     
 </article>
@@ -1252,7 +753,7 @@ status badge URL.  This name is kept for backwards-compatibility only.
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Sun Sep 09 2018 21:09:44 GMT-0600 (MDT)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.3</a> on Sat Nov 16 2019 17:25:52 GMT-0700 (Mountain Standard Time)
 </footer>
 
 <script> prettyPrint(); </script>
