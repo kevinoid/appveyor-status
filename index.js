@@ -11,8 +11,6 @@ const appveyorSwagger = require('appveyor-swagger');
 const https = require('https');
 const nodeify = require('promise-nodeify');
 const promiseFinally = require('promise-finally').default;
-// TODO [engine:node@>=10]: Use URL defined globally
-const { URL } = require('url'); // eslint-disable-line no-shadow
 
 const gitUtils = require('./lib/git-utils');
 const appveyorUtils = require('./lib/appveyor-utils');

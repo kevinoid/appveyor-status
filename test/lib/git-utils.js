@@ -9,8 +9,6 @@ const fileUrl = require('file-url');
 const { assert } = require('chai');
 const path = require('path');
 const rimraf = require('rimraf');
-// TODO [engine:node@>=10]: Use URL defined globally
-const { URL } = require('url'); // eslint-disable-line no-shadow
 const util = require('util');
 
 const gitUtils = require('../../lib/git-utils');
