@@ -5,10 +5,10 @@
 
 'use strict';
 
-const fileUrl = require('file-url');
 const { assert } = require('chai');
 const path = require('path');
 const rimraf = require('rimraf');
+const { pathToFileURL } = require('url');
 const util = require('util');
 
 const gitUtils = require('../../lib/git-utils');
@@ -261,7 +261,7 @@ describe('gitUtils', () => {
       const testPath = path.resolve(path.join('foo', 'bar'));
       assert.deepStrictEqual(
         gitUtils.parseGitUrl(testPath),
-        Object.assign(new URL(fileUrl(testPath)), { helper: undefined }),
+        Object.assign(pathToFileURL(testPath), { helper: undefined }),
       );
     });
 
@@ -269,7 +269,7 @@ describe('gitUtils', () => {
       const testPath = path.join('foo', 'bar');
       assert.deepStrictEqual(
         gitUtils.parseGitUrl(testPath),
-        Object.assign(new URL(fileUrl(testPath)), { helper: undefined }),
+        Object.assign(pathToFileURL(testPath), { helper: undefined }),
       );
     });
 
