@@ -244,7 +244,9 @@ describe('appveyorStatus', function() {
     });
 
     describe('with wait', () => {
-      let clock;
+      // Note: Initialize clock to work around
+      // https://github.com/sindresorhus/eslint-plugin-unicorn/issues/586
+      let clock = null;
       beforeEach(() => {
         // No need to mock setImmediate, which is used in this file.
         clock = sinon.useFakeTimers({
