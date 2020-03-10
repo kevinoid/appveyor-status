@@ -3142,13 +3142,13 @@ assert.deepStrictEqual(
             <dd><pre><code>const testPath = path.resolve(path.join(&#x27;foo&#x27;, &#x27;bar&#x27;));
 assert.deepStrictEqual(
   gitUtils.parseGitUrl(testPath),
-  Object.assign(new URL(fileUrl(testPath)), { helper: undefined }),
+  Object.assign(pathToFileURL(testPath), { helper: undefined }),
 );</code></pre></dd>
             <dt>parses relative path like file:// URL</dt>
             <dd><pre><code>const testPath = path.join(&#x27;foo&#x27;, &#x27;bar&#x27;);
 assert.deepStrictEqual(
   gitUtils.parseGitUrl(testPath),
-  Object.assign(new URL(fileUrl(testPath)), { helper: undefined }),
+  Object.assign(pathToFileURL(testPath), { helper: undefined }),
 );</code></pre></dd>
             <dt>parses Windows path like URL on non-Windows</dt>
             <dd><pre><code>const testPath = &#x27;C:\\foo\\bar&#x27;;
