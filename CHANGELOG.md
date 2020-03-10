@@ -1,4 +1,21 @@
-# Change Log
+# [5.0.0](https://github.com/kevinoid/appveyor-status/compare/v4.0.0...v5.0.0) (2020-03-10)
+
+
+### BREAKING CHANGES
+
+* Require Node.js >=10.13.
+
+
+### Features
+
+* Drop `file-url` dependency for native `url.pathToFileURL`.
+
+
+### Other Changes
+
+* Development dependency version updates.
+* Code style improvements.
+
 
 ## [4.0.0](https://github.com/kevinoid/appveyor-status/tree/v4.0.0) (2019-11-16)
 [Full Changelog](https://github.com/kevinoid/appveyor-status/compare/v3.0.2...v4.0.0)
