@@ -125,5 +125,7 @@ describe('execFileOut', () => {
       });
   });
 
+  // Note: use node (i.e. process.execPath) to test, since it will not exit
+  // until it reaches the end of stdin.
   it('closes stdin to prevent hanging', () => execFileOut(process.execPath));
 });
