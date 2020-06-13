@@ -27,6 +27,7 @@ describe('AmbiguousProjectError', () => {
   it('can be instantiated without new', () => {
     const testMsg = 'test message';
     const testProjects = [];
+    // eslint-disable-next-line new-cap
     const a = AmbiguousProjectError(testMsg, testProjects);
     assert(a instanceof AmbiguousProjectError);
     assert.strictEqual(a.message, testMsg);
