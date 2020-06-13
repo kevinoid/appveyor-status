@@ -76,10 +76,10 @@ function checkStatus(options, callback) {
         }
         options.err.write(`Error: Last build commit ${err.actual} `
                           + `did not match ${expected}\n`);
-        callback(null, ExitCode.FAIL_COMMIT);
+        callback(undefined, ExitCode.FAIL_COMMIT);
       } else {
         options.err.write(`${err}\n`);
-        callback(null, ExitCode.FAIL_OTHER);
+        callback(undefined, ExitCode.FAIL_OTHER);
       }
 
       return;
@@ -98,7 +98,7 @@ function checkStatus(options, callback) {
       options.out.write(`AppVeyor build status: ${statusColored}\n`);
     }
     callback(
-      null,
+      undefined,
       status === 'success' ? ExitCode.SUCCESS : ExitCode.FAIL_STATUS,
     );
   });
@@ -137,7 +137,7 @@ function checkStatus(options, callback) {
 module.exports = function appveyorStatusCmd(args, options, callback) {
   if (!callback && typeof options === 'function') {
     callback = options;
-    options = null;
+    options = undefined;
   }
 
   if (!callback && typeof Promise === 'function') {
@@ -194,7 +194,7 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
   // Workaround for https://github.com/yargs/yargs/issues/783
   // Necessary because mocha package.json overrides .parserConfiguration()
   require.main = module;
-  const yargs = new Yargs(null, null, require)
+  const yargs = new Yargs(undefined, undefined, require)
     .parserConfiguration({
       'parse-numbers': false,
       'duplicate-arguments-array': false,
@@ -279,7 +279,7 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
     if (err) {
       options.err.write(output ? `${output}\n`
         : `${err.name}: ${err.message}\n`);
-      callback(null, ExitCode.FAIL_ARGUMENTS);
+      callback(undefined, ExitCode.FAIL_ARGUMENTS);
       return;
     }
 
@@ -288,13 +288,13 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
     }
 
     if (argOpts.help || argOpts.version) {
-      callback(null, ExitCode.SUCCESS);
+      callback(undefined, ExitCode.SUCCESS);
       return;
     }
 
     if (argOpts._.length !== 0) {
       options.err.write('Error: Unexpected non-option arguments.\n');
-      callback(null, ExitCode.FAIL_ARGUMENTS);
+      callback(undefined, ExitCode.FAIL_ARGUMENTS);
       return;
     }
 
@@ -329,7 +329,7 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
         if (errRead) {
           options.err.write('Error: Unable to read API token file: '
                             + `${errRead.message}\n`);
-          callback(null, ExitCode.FAIL_ARGUMENTS);
+          callback(undefined, ExitCode.FAIL_ARGUMENTS);
           return;
         }
 

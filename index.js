@@ -241,7 +241,7 @@ function canonicalizeOptions(options, apiFunc) {
 
   const branchP = options.branch === true ? gitUtils.getBranch(gitOptions)
     : options.branch ? Promise.resolve(options.branch)
-      : null;
+      : undefined;
 
   let remoteUrlP;
   if (options.repo && gitUtils.gitUrlIsLocalNotSsh(options.repo)) {
@@ -335,7 +335,7 @@ function wrapApiFunc(apiFunc) {
   return function apiFunctionWrapper(options, callback) {
     if (!callback && typeof options === 'function') {
       callback = options;
-      options = null;
+      options = undefined;
     }
 
     if (callback && typeof callback !== 'function') {
