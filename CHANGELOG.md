@@ -1,3 +1,10 @@
+## [5.0.1](https://github.com/kevinoid/appveyor-status/compare/v5.0.0...v5.0.1) (2020-06-14)
+
+### Features
+
+* Drop dependency on `promise-finally` module for native `Promise.prototype.finally` on supported engine versions ([6bdef15](https://github.com/kevinoid/appveyor-status/commit/6bdef1501c2662d57a3cd96599133ab5fc54bd8c))
+
+
 # [5.0.0](https://github.com/kevinoid/appveyor-status/compare/v4.0.0...v5.0.0) (2020-03-10)
 
 
