@@ -21,7 +21,8 @@ const packageJson = require('../package.json');
 
 /** Exit codes returned by {@link module:appveyor-status/bin/appveyor-status}
  * (as a bi-directional map).
- * @const
+ *
+ * @constant
  * @static
  * @enum {number}
  */
@@ -45,8 +46,9 @@ Object.keys(ExitCode).forEach((codeName) => {
 });
 
 /** Maps AppVeyor build status to an ansi-styles color name.
- * @const
- * @type {Object<string, string>}
+ *
+ * @constant
+ * @type {object<string, string>}
  * @private
  */
 const statusColor = {
@@ -64,6 +66,7 @@ function coerceWait(arg) {
 
 /** Gets the AppVeyor build status, handles errors, and writes the result to
  * output or error streams.
+ *
  * @private
  */
 function checkStatus(options, callback) {
@@ -108,31 +111,33 @@ function checkStatus(options, callback) {
  *
  * @static
  * @typedef {{
- *   in: (stream.Readable|undefined),
- *   out: (stream.Writable|undefined),
- *   err: (stream.Writable|undefined)
+ *   in: (module:stream.Readable|undefined),
+ *   out: (module:stream.Writable|undefined),
+ *   err: (module:stream.Writable|undefined)
  * }} CommandOptions
- * @property {stream.Readable=} in Stream from which input is read. (default:
- * <code>process.stdin</code>)
- * @property {stream.Writable=} out Stream to which output is written.
+ * @property {module:stream.Readable=} in Stream from which input is read.
+ * (default: <code>process.stdin</code>)
+ * @property {module:stream.Writable=} out Stream to which output is written.
  * (default: <code>process.stdout</code>)
- * @property {stream.Writable=} err Stream to which errors (and non-output
- * status messages) are written. (default: <code>process.stderr</code>)
+ * @property {module:stream.Writable=} err Stream to which errors (and
+ * non-output status messages) are written.
+ * (default: <code>process.stderr</code>)
  */
 // var CommandOptions;
 
-/** Entry point for this command.
+/**
+ * Entry point for this command.
  *
  * @param {!Array<string>} args Command-line arguments.
  * @param {module:appveyor-status/bin/appveyor-status.CommandOptions=} options
  * Options.
- * @param {?function(Error, number=)=}
- * callback Callback for the exit code or an <code>Error</code>.  Required if
- * <code>global.Promise</code> is not defined.
- * @return
- * {Promise<module:appveyor-status/bin/appveyor-status.ExitCode>|undefined}
- * If <code>callback</code> is not given and <code>global.Promise</code> is
- * defined, a <code>Promise</code> with the exit code or <code>Error</code>.
+ * @param {?function(Error, number=)=} callback Callback for the exit code
+ * or an <code>Error</code>.  Required if <code>global.Promise</code> is
+ * not defined.
+ * @returns {Promise<module:appveyor-status/bin/appveyor-status.ExitCode>
+ * |undefined} If <code>callback</code> is not given and
+ * <code>global.Promise</code> is defined, a <code>Promise</code> with the
+ * exit code or <code>Error</code>.
  */
 module.exports = function appveyorStatusCmd(args, options, callback) {
   if (!callback && typeof options === 'function') {

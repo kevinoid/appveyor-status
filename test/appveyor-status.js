@@ -263,13 +263,16 @@ describe('appveyorStatus', function() {
         clock.restore();
       });
 
-      /** Runs a function after the first mocked request has completed.
+      /**
+       * Runs a function after the first mocked request has completed.
        *
        * Because of intermediate Promises, setTimeout will not have been
        * called when getLastBuild returns.  It is further complicated by
        * gratuitous use of setTimeout by SwaggerClient
        * https://github.com/swagger-api/swagger-js/blob/v2.1.32/lib/client.js#L264-L266
        * and by use of setImmediate in nock.  This function is a workaround.
+       *
+       * @private
        */
       function afterFirstRequest(cb) {
         // Wait for any Promises to resolve

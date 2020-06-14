@@ -23,8 +23,11 @@ function quote(str) {
   }'`;
 }
 
-/** Creates a JavaScript test script which prints the given strings to stdout
+/**
+ * Creates a JavaScript test script which prints the given strings to stdout
  * and stderr then exits with the given code.
+ *
+ * @private
  */
 function makeScript(outStr, errStr, exitCode) {
   let script = '';

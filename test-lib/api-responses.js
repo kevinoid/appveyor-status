@@ -17,9 +17,9 @@ let badgeData;
  * Implementation based on
  * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/assign
  *
- * @param {!Object} target Object to be updated.
- * @param {...Object} args Objects from which to copy updated properties.
  * @private
+ * @param {!object} target Object to be updated.
+ * @param {...object} args Objects from which to copy updated properties.
  */
 function assignUpdate(target, ...args) {
   if (target === undefined || target === null) {
@@ -46,7 +46,11 @@ function assignUpdate(target, ...args) {
   return to;
 }
 
-/** Gets a Project API response.
+/**
+ * Gets a Project API response.
+ *
+ * @param {object} options Property values to update in the response.
+ * @returns {object} Mock getProject API response.
  */
 exports.getProject = function getProject(options) {
   const project = {
@@ -173,7 +177,11 @@ exports.getProject = function getProject(options) {
   return project;
 };
 
-/** Gets a ProjectBuild API response with a given status.
+/**
+ * Gets a ProjectBuild API response with a given status.
+ *
+ * @param {object} options Property values to update in the response.
+ * @returns {object} Mock getLastBuild API response.
  */
 exports.getProjectBuild = function getLastBuild(options) {
   const projectBuild = {
@@ -339,6 +347,12 @@ exports.getProjectBuild = function getLastBuild(options) {
   return projectBuild;
 };
 
+/**
+ * Gets a status badge API response with a given status.
+ *
+ * @param {string} status Status string in the response.
+ * @returns {string} Mock getStatusBadge API response SVG.
+ */
 exports.getStatusBadge = function getStatusBadge(status) {
   if (!badgeData) {
     const badgeDataPath = path.join(__dirname, '..', 'test-data', 'badge.svg');
