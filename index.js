@@ -10,7 +10,6 @@ const SwaggerClient = require('swagger-client');
 const appveyorSwagger = require('appveyor-swagger');
 const https = require('https');
 const nodeify = require('promise-nodeify');
-const promiseFinally = require('promise-finally').default;
 
 const gitUtils = require('./lib/git-utils');
 const appveyorUtils = require('./lib/appveyor-utils');
@@ -317,11 +316,8 @@ function canonicalizeOptions(options, apiFunc) {
     });
 
   if (newAgent) {
-    resultP = promiseFinally(
-      resultP,
-      // Avoid holding connections open when caller does not expect it.
-      () => { newAgent.destroy(); },
-    );
+    // Avoid holding connections open when caller does not expect it.
+    resultP = resultP.finally(() => { newAgent.destroy(); });
   }
 
   return resultP;
