@@ -79,10 +79,12 @@ function checkStatus(options, callback) {
         }
         options.err.write(`Error: Last build commit ${err.actual} `
                           + `did not match ${expected}\n`);
-        callback(undefined, ExitCode.FAIL_COMMIT);
+        // eslint-disable-next-line unicorn/no-null
+        callback(null, ExitCode.FAIL_COMMIT);
       } else {
         options.err.write(`${err}\n`);
-        callback(undefined, ExitCode.FAIL_OTHER);
+        // eslint-disable-next-line unicorn/no-null
+        callback(null, ExitCode.FAIL_OTHER);
       }
 
       return;
@@ -101,7 +103,7 @@ function checkStatus(options, callback) {
       options.out.write(`AppVeyor build status: ${statusColored}\n`);
     }
     callback(
-      undefined,
+      null, // eslint-disable-line unicorn/no-null
       status === 'success' ? ExitCode.SUCCESS : ExitCode.FAIL_STATUS,
     );
   });
@@ -284,7 +286,8 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
     if (err) {
       options.err.write(output ? `${output}\n`
         : `${err.name}: ${err.message}\n`);
-      callback(undefined, ExitCode.FAIL_ARGUMENTS);
+      // eslint-disable-next-line unicorn/no-null
+      callback(null, ExitCode.FAIL_ARGUMENTS);
       return;
     }
 
@@ -293,13 +296,15 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
     }
 
     if (argOpts.help || argOpts.version) {
-      callback(undefined, ExitCode.SUCCESS);
+      // eslint-disable-next-line unicorn/no-null
+      callback(null, ExitCode.SUCCESS);
       return;
     }
 
     if (argOpts._.length !== 0) {
       options.err.write('Error: Unexpected non-option arguments.\n');
-      callback(undefined, ExitCode.FAIL_ARGUMENTS);
+      // eslint-disable-next-line unicorn/no-null
+      callback(null, ExitCode.FAIL_ARGUMENTS);
       return;
     }
 
@@ -334,7 +339,8 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
         if (errRead) {
           options.err.write('Error: Unable to read API token file: '
                             + `${errRead.message}\n`);
-          callback(undefined, ExitCode.FAIL_ARGUMENTS);
+          // eslint-disable-next-line unicorn/no-null
+          callback(null, ExitCode.FAIL_ARGUMENTS);
           return;
         }
 
