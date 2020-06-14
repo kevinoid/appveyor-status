@@ -74,7 +74,7 @@
     
 
     
-    <h4 class="name" id=".getLastBuild"><span class="type-signature">(static) </span>getLastBuild<span class="signature">(options<span class="signature-attributes">opt, nullable</span>, callback<span class="signature-attributes">opt, nullable</span>)</span><span class="type-signature"> &rarr; {!Promise.&lt;!ProjectBuild>|undefined}</span></h4>
+    <h4 class="name" id=".getLastBuild"><span class="type-signature">(static) </span>getLastBuild<span class="signature">(options<span class="signature-attributes">opt, nullable</span>, callback<span class="signature-attributes">opt, nullable</span>)</span><span class="type-signature"> &rarr; {!Promise.&lt;!appveyorSwagger.ProjectBuild>|undefined}</span></h4>
     
 
     
@@ -132,7 +132,7 @@ AppVeyor project was not uniquely matched by <code>options</code> and
             <td class="type">
             
                 
-<span class="param-type">module:appveyor-status.AppveyorStatusOptions</span>
+<span class="param-type"><a href="module-appveyor-status.html#.AppveyorStatusOptions">module:appveyor-status.AppveyorStatusOptions</a></span>
 
 
             
@@ -232,7 +232,7 @@ could not be retrieved.</td>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line547">line 547</a>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line559">line 559</a>
     </li></ul></dd>
     
 
@@ -261,10 +261,10 @@ could not be retrieved.</td>
 
         
 <div class="param-desc">
-    If <code>callback</code> is not
-given, a <code>Promise</code> with the current build information from the
-AppVeyor API, or <code>Error</code> if it could not be retrieved.  Otherwise
-<code>undefined</code>.
+    If
+<code>callback</code> is not given, a <code>Promise</code> with the current
+build information from the AppVeyor API, or <code>Error</code> if it could
+not be retrieved.  Otherwise <code>undefined</code>.
 </div>
 
 
@@ -275,7 +275,7 @@ AppVeyor API, or <code>Error</code> if it could not be retrieved.  Otherwise
     </dt>
     <dd>
         
-<span class="param-type">!Promise.&lt;!ProjectBuild></span>
+<span class="param-type">!Promise.&lt;!appveyorSwagger.ProjectBuild></span>
 |
 
 <span class="param-type">undefined</span>
@@ -354,7 +354,7 @@ AppVeyor project was not uniquely matched by <code>options</code> and
             <td class="type">
             
                 
-<span class="param-type">module:appveyor-status.AppveyorStatusOptions</span>
+<span class="param-type"><a href="module-appveyor-status.html#.AppveyorStatusOptions">module:appveyor-status.AppveyorStatusOptions</a></span>
 
 
             
@@ -454,7 +454,7 @@ with the current build status from the AppVeyor API, or an
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line647">line 647</a>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line661">line 661</a>
     </li></ul></dd>
     
 
@@ -570,7 +570,7 @@ API, or <code>Error</code> if it could not be retrieved.  Otherwise
             <td class="type">
             
                 
-<span class="param-type">module:appveyor-status.AppveyorStatusOptions</span>
+<span class="param-type"><a href="module-appveyor-status.html#.AppveyorStatusOptions">module:appveyor-status.AppveyorStatusOptions</a></span>
 
 
             
@@ -673,7 +673,7 @@ it could not be retrieved.</td>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line609">line 609</a>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line622">line 622</a>
     </li></ul></dd>
     
 
@@ -735,6 +735,513 @@ Otherwise <code>undefined</code>.
     
 
     
+        <h3 class="subsection-title">Type Definitions</h3>
+
+        
+                
+<h4 class="name" id=".AppveyorStatusOptions">AppveyorStatusOptions</h4>
+
+
+
+
+<div class="description">
+    Options for appveyorStatus functions.
+</div>
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">Object</span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+    <h5 class="subsection-title">Properties:</h5>
+
+    
+
+<table class="props">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>agent</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">module:http.Agent</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">Agent to use for HTTP requests (useful
+for inter-call keep-alive and request sharing) (ignored if appveyorClient
+is set).</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>appveyorClient</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">SwaggerClient</span>
+|
+
+<span class="param-type">Promise.&lt;SwaggerClient></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">client
+used to query the AppVeyor API.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>branch</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+|
+
+<span class="param-type">boolean</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">query latest build for named branch,
+or the current branch</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>commit</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">require build to be for a specific commit.
+Named commits are resolved in <code>options.repo</code> or current dir.
+(requires token or project)</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>err</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">module:stream.Writable</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">Stream to which errors (and
+non-output status messages) are written.
+(default: <code>process.stderr</code>)</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>project</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+|
+
+<span class="param-type">appveyorSwagger.Project</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">AppVeyor project to
+query (default: auto-detect) (exclusive with repo, statusBadgeId, and
+webhookId)</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>repo</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">repository to query (as
+{bitbucket,github}/$user/$proj) (default: auto-detect)
+(exclusive with project, statusBadgeId, and webhookId)</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>statusBadgeId</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">Status badge ID to query
+(exclusive with project, repo, and webhookId)</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>token</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">AppVeyor API access token.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>verbosity</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">number</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">Amount of diagnostic information to print
+(0 is default, larger yields more output).</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>wait</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">number</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">Length of time to wait (in milliseconds) for build
+to complete.  If wait time is reached, incomplete build is returned.
+(default: no polling)</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>webhookId</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">*Deprecated* Webhook ID to query.  The
+webhookId has been replaced by statusBadgeId as the path parameter in the
+status badge URL.  This name is kept for backwards-compatibility only.
+(default: auto-detect) (exclusive with project, statusBadgeId, and repo)</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line134">line 134</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+            
+    
 
     
 </article>
@@ -753,7 +1260,7 @@ Otherwise <code>undefined</code>.
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.3</a> on Tue Mar 10 2020 16:02:31 GMT-0600 (Mountain Daylight Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.3</a> on Sun Jun 14 2020 13:36:58 GMT-0600 (Mountain Daylight Time)
 </footer>
 
 <script> prettyPrint(); </script>

@@ -38,7 +38,6 @@ const SwaggerClient = require('swagger-client');
 const appveyorSwagger = require('appveyor-swagger');
 const https = require('https');
 const nodeify = require('promise-nodeify');
-const promiseFinally = require('promise-finally').default;
 
 const gitUtils = require('./lib/git-utils');
 const appveyorUtils = require('./lib/appveyor-utils');
@@ -46,27 +45,31 @@ const CommitMismatchError = require('./lib/commit-mismatch-error');
 const AmbiguousProjectError = require('./lib/ambiguous-project-error');
 
 /** Multiplicative increase in delay between retries.
- * @const
+ *
+ * @constant
  * @private
  */
 const RETRY_DELAY_FACTOR_MS = 2;
 
 /** Minimum/Initial delay between retries (in milliseconds).
- * @const
+ *
+ * @constant
  * @private
  */
 const RETRY_DELAY_MIN_MS = 4000;
 
 /** Maximum delay between retries (in milliseconds).
- * @const
+ *
+ * @constant
  * @private
  */
 const RETRY_DELAY_MAX_MS = 60000;
 
 /** Shallow, strict equality of properties in common between two objects.
- * @param {!Object} obj1 Object to compare.
- * @param {!Object} obj2 Object to compare.
- * @return {boolean} &lt;code>true&lt;/code> if the own-properties in common between
+ *
+ * @param {!object} obj1 Object to compare.
+ * @param {!object} obj2 Object to compare.
+ * @returns {boolean} &lt;code>true&lt;/code> if the own-properties in common between
  * &lt;code>obj1&lt;/code> and &lt;code>obj2&lt;/code> are strictly equal.
  * @private
  */
@@ -75,10 +78,10 @@ function shallowStrictCommonEqual(obj1, obj2) {
     .every((key) => !hasOwnProperty.call(obj2, key) || obj1[key] === obj2[key]);
 }
 
-
 /** Gets JSON body of a SwaggerClient response as an Object.
- * @param {!Object} response SwaggerClient response object.
- * @return {!Object} JSON-decoded body of response.
+ *
+ * @param {!object} response SwaggerClient response object.
+ * @returns {!object} JSON-decoded body of response.
  * @throws {Error} If the response does not contain JSON or can not be decoded.
  * @private
  */
@@ -101,8 +104,9 @@ function getResponseJson(response) {
 }
 
 /** Gets SVG body of a SwaggerClient response as a string.
- * @param {!Object} response SwaggerClient response object.
- * @return {string} SVG body of response.
+ *
+ * @param {!object} response SwaggerClient response object.
+ * @returns {string} SVG body of response.
  * @throws {Error} If the response does not contain SVG.
  * @private
  */
@@ -119,8 +123,9 @@ function getResponseSvg(response) {
 
 /** Makes a function to catch SwaggerClient errors from operations and add
  * additional information.
+ *
  * @param {string} msgPrefix String to be prepended to error message.
- * @return {function(Object): Promise} Function which creates an Error from the
+ * @returns {function(object): Promise} Function which creates an Error from the
  * SwaggerClient result object and returns a rejected Promise with the error.
  * @private
  */
@@ -158,12 +163,12 @@ function makeClientErrorHandler(msgPrefix) {
  *
  * @static
  * @typedef {{
- *   agent: http.Agent|undefined,
+ *   agent: module:http.Agent|undefined,
  *   appveyorClient: SwaggerClient|Promise&lt;SwaggerClient>|undefined,
  *   branch: string|boolean|undefined,
  *   commit: string|undefined,
- *   err: stream.Writable|undefined,
- *   out: stream.Writable|undefined,
+ *   err: module:stream.Writable|undefined,
+ *   out: module:stream.Writable|undefined,
  *   project: string|undefined,
  *   repo: string|undefined,
  *   statusBadgeId: string|undefined,
@@ -172,9 +177,9 @@ function makeClientErrorHandler(msgPrefix) {
  *   wait: boolean|number|undefined,
  *   webhookId: string|undefined
  * }} AppveyorStatusOptions
- * @property {http.Agent=} agent Agent to use for HTTP requests (useful for
- * inter-call keep-alive and request sharing) (ignored if appveyorClient is
- * set).
+ * @property {module:http.Agent=} agent Agent to use for HTTP requests (useful
+ * for inter-call keep-alive and request sharing) (ignored if appveyorClient
+ * is set).
  * @property {(SwaggerClient|Promise&lt;SwaggerClient>)=} appveyorClient client
  * used to query the AppVeyor API.
  * @property {(string|boolean)=} branch query latest build for named branch,
@@ -182,10 +187,12 @@ function makeClientErrorHandler(msgPrefix) {
  * @property {string=} commit require build to be for a specific commit.
  * Named commits are resolved in &lt;code>options.repo&lt;/code> or current dir.
  * (requires token or project)
- * @property {stream.Writable=} err Stream to which errors (and non-output
- * status messages) are written. (default: &lt;code>process.stderr&lt;/code>)
- * @property {(string|Project)=} project AppVeyor project to query (default:
- * auto-detect) (exclusive with repo, statusBadgeId, and webhookId)
+ * @property {module:stream.Writable=} err Stream to which errors (and
+ * non-output status messages) are written.
+ * (default: &lt;code>process.stderr&lt;/code>)
+ * @property {(string|appveyorSwagger.Project)=} project AppVeyor project to
+ * query (default: auto-detect) (exclusive with repo, statusBadgeId, and
+ * webhookId)
  * @property {string=} repo repository to query (as
  * {bitbucket,github}/$user/$proj) (default: auto-detect)
  * (exclusive with project, statusBadgeId, and webhookId)
@@ -207,13 +214,14 @@ function makeClientErrorHandler(msgPrefix) {
 /** Checks and canonicalizes a caller-provided options object so that it
  * contains required information in the expected form then calls the API
  * function.
- * @ template T
+ *
+ * @template T
  * @param {module:appveyor-status.AppveyorStatusOptions=} options
  * Caller-provided options.
  * @param {function(!module:appveyor-status.AppveyorStatusOptions): !Promise&lt;T>}
  * apiFunc Function to
  * call with canonicalized &lt;code>options&lt;/code>.
- * @return {!Promise&lt;T>} Return value from &lt;code>apiFunc&lt;/code>.
+ * @returns {!Promise&lt;T>} Return value from &lt;code>apiFunc&lt;/code>.
  * @throws {Error} If &lt;code>options&lt;/code> is invalid, inconsistent, or can not
  * be canonicalized.
  * @private
@@ -269,7 +277,7 @@ function canonicalizeOptions(options, apiFunc) {
 
   const branchP = options.branch === true ? gitUtils.getBranch(gitOptions)
     : options.branch ? Promise.resolve(options.branch)
-      : null;
+      : undefined;
 
   let remoteUrlP;
   if (options.repo &amp;&amp; gitUtils.gitUrlIsLocalNotSsh(options.repo)) {
@@ -336,11 +344,8 @@ function canonicalizeOptions(options, apiFunc) {
     });
 
   if (newAgent) {
-    resultP = promiseFinally(
-      resultP,
-      // Avoid holding connections open when caller does not expect it.
-      () => { newAgent.destroy(); },
-    );
+    // Avoid holding connections open when caller does not expect it.
+    resultP = resultP.finally(() => { newAgent.destroy(); });
   }
 
   return resultP;
@@ -348,10 +353,11 @@ function canonicalizeOptions(options, apiFunc) {
 
 /** Wraps a function exposed as part of the module API with argument checking,
  * option canonicalization, and callback support.
- * @ template T
+ *
+ * @template T
  * @param {function(module:appveyor-status.AppveyorStatusOptions=,
  * function(Error, T=)): Promise&lt;T>} apiFunc API function to wrap.
- * @return {function(module:appveyor-status.AppveyorStatusOptions=,
+ * @returns {function(module:appveyor-status.AppveyorStatusOptions=,
  * function(Error, T=)): Promise&lt;T>} Function which calls
  * {@link canonicalizeOptions} with its argument and
  * &lt;code>apiFunc&lt;/code>.
@@ -363,7 +369,7 @@ function wrapApiFunc(apiFunc) {
   return function apiFunctionWrapper(options, callback) {
     if (!callback &amp;&amp; typeof options === 'function') {
       callback = options;
-      options = null;
+      options = undefined;
     }
 
     if (callback &amp;&amp; typeof callback !== 'function') {
@@ -382,9 +388,11 @@ function wrapApiFunc(apiFunc) {
 
 /** Gets the last build and checks that the commit matches
  * &lt;code>options.commit&lt;/code>, ignores &lt;code>options.wait&lt;/code>.
+ *
  * @param {!module:appveyor-status.AppveyorStatusOptions} options Options.
- * @return {Promise&lt;!ProjectBuild>} The AppVeyor last build or an error if the
- * build can not be fetched or does not match &lt;code>options.commit&lt;/code>.
+ * @returns {Promise&lt;!appveyorSwagger.ProjectBuild>} The AppVeyor last build
+ * or an error if the build can not be fetched or does not match
+ * &lt;code>options.commit&lt;/code>.
  * @private
  */
 function getLastBuildNoWait(options) {
@@ -439,10 +447,12 @@ function getLastBuildNoWait(options) {
 }
 
 /** Implements {@link getLastBuild} for options with non-null .project.
+ *
+ * @private
  * @param {!module:appveyor-status.AppveyorStatusOptions} options Options
  * object with non-null &lt;code>.project&lt;/code>.
- * @return {!Promise&lt;!ProjectBuild>} Last AppVeyor build for project.
- * @private
+ * @returns {!Promise&lt;!appveyorSwagger.ProjectBuild>} Last AppVeyor build for
+ * project.
  */
 function getLastBuildForProject(options) {
   if (!options.wait) {
@@ -495,10 +505,11 @@ function getLastBuildForProject(options) {
 }
 
 /** Gets the AppVeyor project which matches the given options.
- * @param {!Object} options Options, which must include .repo.
- * @return {!Promise&lt;!Project>} AppVeyor project with the same repository
- * or statusBadgeId as &lt;code>options&lt;/code> or an Error if there is no single
- * project which matches or another error occurs.
+ *
+ * @param {!object} options Options, which must include .repo.
+ * @returns {!Promise&lt;!appveyorSwagger.Project>} AppVeyor project with the
+ * same repository or statusBadgeId as &lt;code>options&lt;/code> or an Error if
+ * there is no single project which matches or another error occurs.
  * @private
  */
 function getMatchingProject(options) {
@@ -531,9 +542,10 @@ function getMatchingProject(options) {
 }
 
 /** Implements {@link getLastBuild}.
+ *
  * @param {!module:appveyor-status.AppveyorStatusOptions} options Options.
- * @return {!Promise&lt;!ProjectBuild>} Last AppVeyor build for project matching
- * &lt;code>options&lt;/code>.
+ * @returns {!Promise&lt;!appveyorSwagger.ProjectBuild>} Last AppVeyor build for
+ * project matching &lt;code>options&lt;/code>.
  * @private
  */
 function getLastBuildInternal(options) {
@@ -564,19 +576,20 @@ function getLastBuildInternal(options) {
  *
  * @function
  * @param {?module:appveyor-status.AppveyorStatusOptions=} options Options.
- * @param {?function(Error, Object=)=} callback Callback function called
+ * @param {?function(Error, object=)=} callback Callback function called
  * with the last build from the AppVeyor API, or an &lt;code>Error&lt;/code> if it
  * could not be retrieved.
- * @return {!Promise&lt;!ProjectBuild>|undefined} If &lt;code>callback&lt;/code> is not
- * given, a &lt;code>Promise&lt;/code> with the current build information from the
- * AppVeyor API, or &lt;code>Error&lt;/code> if it could not be retrieved.  Otherwise
- * &lt;code>undefined&lt;/code>.
+ * @returns {!Promise&lt;!appveyorSwagger.ProjectBuild>|undefined} If
+ * &lt;code>callback&lt;/code> is not given, a &lt;code>Promise&lt;/code> with the current
+ * build information from the AppVeyor API, or &lt;code>Error&lt;/code> if it could
+ * not be retrieved.  Otherwise &lt;code>undefined&lt;/code>.
  */
 exports.getLastBuild = wrapApiFunc(getLastBuildInternal);
 
 /** Implements {@link getStatusBadge}.
+ *
  * @param {!module:appveyor-status.AppveyorStatusOptions} options Options.
- * @return {!Promise&lt;string>} The current SVG status badge.
+ * @returns {!Promise&lt;string>} The current SVG status badge.
  * @private
  */
 function getStatusBadgeInternal(options) {
@@ -629,7 +642,7 @@ function getStatusBadgeInternal(options) {
  * @param {?function(Error, string=)=} callback Callback function called
  * with the SVG status badge from the AppVeyor API, or an &lt;code>Error&lt;/code> if
  * it could not be retrieved.
- * @return {!Promise&lt;string>|undefined} If &lt;code>callback&lt;/code> is not given,
+ * @returns {!Promise&lt;string>|undefined} If &lt;code>callback&lt;/code> is not given,
  * a &lt;code>Promise&lt;/code> with the current SVG status badge (as a string) from
  * the AppVeyor API, or &lt;code>Error&lt;/code> if it could not be retrieved.
  * Otherwise &lt;code>undefined&lt;/code>.
@@ -637,8 +650,9 @@ function getStatusBadgeInternal(options) {
 exports.getStatusBadge = wrapApiFunc(getStatusBadgeInternal);
 
 /** Implements {@link getStatus}.
+ *
  * @param {!module:appveyor-status.AppveyorStatusOptions} options Options.
- * @return {!Promise&lt;string>} The current build status.
+ * @returns {!Promise&lt;string>} The current build status.
  * @private
  */
 function getStatusInternal(options) {
@@ -667,7 +681,7 @@ function getStatusInternal(options) {
  * @param {?function(Error, string=)=} callback Callback function called
  * with the current build status from the AppVeyor API, or an
  * &lt;code>Error&lt;/code> if it could not be retrieved.
- * @return {!Promise&lt;string>|undefined} If &lt;code>callback&lt;/code> is not given,
+ * @returns {!Promise&lt;string>|undefined} If &lt;code>callback&lt;/code> is not given,
  * a &lt;code>Promise&lt;/code> with the current build status from the AppVeyor
  * API, or &lt;code>Error&lt;/code> if it could not be retrieved.  Otherwise
  * &lt;code>undefined&lt;/code>.
@@ -692,7 +706,7 @@ exports.CommitMismatchError = CommitMismatchError;
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.3</a> on Tue Mar 10 2020 16:02:31 GMT-0600 (Mountain Daylight Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.3</a> on Sun Jun 14 2020 13:36:58 GMT-0600 (Mountain Daylight Time)
 </footer>
 
 <script> prettyPrint(); </script>

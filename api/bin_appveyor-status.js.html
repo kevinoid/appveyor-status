@@ -49,7 +49,8 @@ const packageJson = require('../package.json');
 
 /** Exit codes returned by {@link module:appveyor-status/bin/appveyor-status}
  * (as a bi-directional map).
- * @const
+ *
+ * @constant
  * @static
  * @enum {number}
  */
@@ -73,8 +74,9 @@ Object.keys(ExitCode).forEach((codeName) => {
 });
 
 /** Maps AppVeyor build status to an ansi-styles color name.
- * @const
- * @type {Object&lt;string, string>}
+ *
+ * @constant
+ * @type {object&lt;string, string>}
  * @private
  */
 const statusColor = {
@@ -92,6 +94,7 @@ function coerceWait(arg) {
 
 /** Gets the AppVeyor build status, handles errors, and writes the result to
  * output or error streams.
+ *
  * @private
  */
 function checkStatus(options, callback) {
@@ -104,9 +107,11 @@ function checkStatus(options, callback) {
         }
         options.err.write(`Error: Last build commit ${err.actual} `
                           + `did not match ${expected}\n`);
+        // eslint-disable-next-line unicorn/no-null
         callback(null, ExitCode.FAIL_COMMIT);
       } else {
         options.err.write(`${err}\n`);
+        // eslint-disable-next-line unicorn/no-null
         callback(null, ExitCode.FAIL_OTHER);
       }
 
@@ -126,7 +131,7 @@ function checkStatus(options, callback) {
       options.out.write(`AppVeyor build status: ${statusColored}\n`);
     }
     callback(
-      null,
+      null, // eslint-disable-line unicorn/no-null
       status === 'success' ? ExitCode.SUCCESS : ExitCode.FAIL_STATUS,
     );
   });
@@ -136,36 +141,38 @@ function checkStatus(options, callback) {
  *
  * @static
  * @typedef {{
- *   in: (stream.Readable|undefined),
- *   out: (stream.Writable|undefined),
- *   err: (stream.Writable|undefined)
+ *   in: (module:stream.Readable|undefined),
+ *   out: (module:stream.Writable|undefined),
+ *   err: (module:stream.Writable|undefined)
  * }} CommandOptions
- * @property {stream.Readable=} in Stream from which input is read. (default:
- * &lt;code>process.stdin&lt;/code>)
- * @property {stream.Writable=} out Stream to which output is written.
+ * @property {module:stream.Readable=} in Stream from which input is read.
+ * (default: &lt;code>process.stdin&lt;/code>)
+ * @property {module:stream.Writable=} out Stream to which output is written.
  * (default: &lt;code>process.stdout&lt;/code>)
- * @property {stream.Writable=} err Stream to which errors (and non-output
- * status messages) are written. (default: &lt;code>process.stderr&lt;/code>)
+ * @property {module:stream.Writable=} err Stream to which errors (and
+ * non-output status messages) are written.
+ * (default: &lt;code>process.stderr&lt;/code>)
  */
 // var CommandOptions;
 
-/** Entry point for this command.
+/**
+ * Entry point for this command.
  *
  * @param {!Array&lt;string>} args Command-line arguments.
  * @param {module:appveyor-status/bin/appveyor-status.CommandOptions=} options
  * Options.
- * @param {?function(Error, number=)=}
- * callback Callback for the exit code or an &lt;code>Error&lt;/code>.  Required if
- * &lt;code>global.Promise&lt;/code> is not defined.
- * @return
- * {Promise&lt;module:appveyor-status/bin/appveyor-status.ExitCode>|undefined}
- * If &lt;code>callback&lt;/code> is not given and &lt;code>global.Promise&lt;/code> is
- * defined, a &lt;code>Promise&lt;/code> with the exit code or &lt;code>Error&lt;/code>.
+ * @param {?function(Error, number=)=} callback Callback for the exit code
+ * or an &lt;code>Error&lt;/code>.  Required if &lt;code>global.Promise&lt;/code> is
+ * not defined.
+ * @returns {Promise&lt;module:appveyor-status/bin/appveyor-status.ExitCode>
+ * |undefined} If &lt;code>callback&lt;/code> is not given and
+ * &lt;code>global.Promise&lt;/code> is defined, a &lt;code>Promise&lt;/code> with the
+ * exit code or &lt;code>Error&lt;/code>.
  */
 module.exports = function appveyorStatusCmd(args, options, callback) {
   if (!callback &amp;&amp; typeof options === 'function') {
     callback = options;
-    options = null;
+    options = undefined;
   }
 
   if (!callback &amp;&amp; typeof Promise === 'function') {
@@ -222,7 +229,7 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
   // Workaround for https://github.com/yargs/yargs/issues/783
   // Necessary because mocha package.json overrides .parserConfiguration()
   require.main = module;
-  const yargs = new Yargs(null, null, require)
+  const yargs = new Yargs(undefined, undefined, require)
     .parserConfiguration({
       'parse-numbers': false,
       'duplicate-arguments-array': false,
@@ -307,6 +314,7 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
     if (err) {
       options.err.write(output ? `${output}\n`
         : `${err.name}: ${err.message}\n`);
+      // eslint-disable-next-line unicorn/no-null
       callback(null, ExitCode.FAIL_ARGUMENTS);
       return;
     }
@@ -316,12 +324,14 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
     }
 
     if (argOpts.help || argOpts.version) {
+      // eslint-disable-next-line unicorn/no-null
       callback(null, ExitCode.SUCCESS);
       return;
     }
 
     if (argOpts._.length !== 0) {
       options.err.write('Error: Unexpected non-option arguments.\n');
+      // eslint-disable-next-line unicorn/no-null
       callback(null, ExitCode.FAIL_ARGUMENTS);
       return;
     }
@@ -357,6 +367,7 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
         if (errRead) {
           options.err.write('Error: Unable to read API token file: '
                             + `${errRead.message}\n`);
+          // eslint-disable-next-line unicorn/no-null
           callback(null, ExitCode.FAIL_ARGUMENTS);
           return;
         }
@@ -410,7 +421,7 @@ if (require.main === module) {
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.3</a> on Tue Mar 10 2020 16:02:31 GMT-0600 (Mountain Daylight Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.3</a> on Sun Jun 14 2020 13:36:58 GMT-0600 (Mountain Daylight Time)
 </footer>
 
 <script> prettyPrint(); </script>
