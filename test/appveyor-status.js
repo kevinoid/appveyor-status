@@ -9,15 +9,35 @@ const SwaggerClient = require('swagger-client');
 const appveyorSwagger = require('appveyor-swagger');
 const { assert } = require('chai');
 const nock = require('nock');
+const proxyquire = require('proxyquire');
 const sinon = require('sinon');
 const stream = require('stream');
 const url = require('url');
 
-const appveyorStatus = require('..');
 const gitUtils = require('../lib/git-utils');
 const appveyorUtils = require('../lib/appveyor-utils');
 const apiResponses = require('../test-lib/api-responses');
 const AmbiguousProjectError = require('../lib/ambiguous-project-error');
+
+const fakeTimers = { Date };
+const clock = sinon.useFakeTimers({
+  target: fakeTimers,
+  toFake: [
+    'Date',
+    'clearImmediate',
+    'clearInterval',
+    'clearTimeout',
+    'setImmediate',
+    'setInterval',
+    'setTimeout',
+  ],
+});
+const appveyorStatus = proxyquire(
+  '..',
+  {
+    timers: fakeTimers,
+  },
+);
 
 const apiUrl = url.format({
   protocol: appveyorSwagger.schemes[0],
@@ -26,6 +46,33 @@ const apiUrl = url.format({
 const { badgeToStatus } = appveyorUtils;
 const { match } = sinon;
 const { projectBuildToStatus } = appveyorUtils;
+
+/** Waits for a timer to be registered with sinon.
+ *
+ * For most connections, nock calls setImmediate and setTimeout x2:
+ * https://github.com/nock/nock/blob/v13.0.2/lib/playback_interceptor.js#L313
+ * https://github.com/nock/nock/blob/v13.0.2/lib/playback_interceptor.js#L306
+ * https://github.com/nock/nock/blob/v13.0.2/lib/playback_interceptor.js#L302
+ * so the timer queue (whether real or mocked) must be pumped until nock
+ * finishes the request.
+ *
+ * @private
+ */
+function waitForTimer(maxRetries) {
+  return new Promise((resolve, reject) => {
+    function check(retries) {
+      if (clock.countTimers() > 0) {
+        resolve();
+      } else if (retries > 0) {
+        setTimeout(check, 0, retries - 1);
+      } else {
+        reject(new Error(`No timers after ${maxRetries} retries`));
+      }
+    }
+
+    check(maxRetries);
+  });
+}
 
 describe('appveyorStatus', function() {
   // Increase timeout to cover slower CI environments.
@@ -244,54 +291,6 @@ describe('appveyorStatus', function() {
     });
 
     describe('with wait', () => {
-      // Note: Initialize clock to work around
-      // https://github.com/sindresorhus/eslint-plugin-unicorn/issues/586
-      let clock = null;
-      beforeEach(() => {
-        // No need to mock setImmediate, which is used in this file.
-        clock = sinon.useFakeTimers({
-          toFake: [
-            'setTimeout',
-            'clearTimeout',
-            'setInterval',
-            'clearInterval',
-            'Date',
-          ],
-        });
-      });
-      afterEach(() => {
-        clock.restore();
-      });
-
-      /**
-       * Runs a function after the first mocked request has completed.
-       *
-       * Because of intermediate Promises, setTimeout will not have been
-       * called when getLastBuild returns.  It is further complicated by
-       * gratuitous use of setTimeout by SwaggerClient
-       * https://github.com/swagger-api/swagger-js/blob/v2.1.32/lib/client.js#L264-L266
-       * and by use of setImmediate in nock.  This function is a workaround.
-       *
-       * @private
-       */
-      function afterFirstRequest(cb) {
-        // Wait for any Promises to resolve
-        setImmediate(() => {
-          // SwaggerClient constructor has been called.
-          // Tick for SwaggerClient.buildFromSpec.
-          clock.tick(10);
-          // Wait for Promises to resolve
-          setImmediate(() => {
-            // First (mocked) request has been made.
-            // Wait for response to propagate and callback to be called.
-            setImmediate(() => {
-              // Still propagating...
-              setImmediate(cb);
-            });
-          });
-        });
-      }
-
       it('true retries queued status', () => {
         const testProject = 'foo/bar';
         const testStatus = 'success';
@@ -304,25 +303,32 @@ describe('appveyorStatus', function() {
           .query(true)
           .reply(200, apiResponses.getProjectBuild({ status: testStatus }));
 
-        let retriesDone = false;
-        afterFirstRequest(() => {
-          assert(expectQueued.isDone(), 'First call is made immediately.');
-          assert(!expectSuccess.isDone(), 'Retry is not done immediately.');
-
-          clock.tick(900);
-          assert(!expectSuccess.isDone(), 'Retry is not done less than 1 sec.');
-
-          clock.tick(60000);
-          assert(expectSuccess.isDone(), 'Retry is done less than 1 minute.');
-          retriesDone = true;
-        });
-
         options.project = testProject;
         options.wait = true;
-        return appveyorStatus.getLastBuild(options)
+        const projectBuildP = appveyorStatus.getLastBuild(options);
+        return waitForTimer(10)
+          .then(() => {
+            assert(expectQueued.isDone(), 'First call is made immediately.');
+            assert(!expectSuccess.isDone(), 'Retry is not done immediately.');
+
+            clock.tick(900);
+            assert(
+              clock.countTimers() > 0 && !expectSuccess.isDone(),
+              'Retry not started after 900ms',
+            );
+
+            clock.tick(59100);
+            assert.strictEqual(
+              clock.countTimers(),
+              0,
+              'Retry started before 60,000ms',
+            );
+
+            return projectBuildP;
+          })
           .then((projectBuild) => {
             assert.strictEqual(projectBuildToStatus(projectBuild), testStatus);
-            assert(retriesDone, 'Retries completed');
+            assert.strictEqual(clock.countTimers(), 0, 'Retries completed');
             assert.strictEqual(
               options.err.read(),
               null,
@@ -352,26 +358,33 @@ describe('appveyorStatus', function() {
           .query(true)
           .reply(200, apiResponses.getProjectBuild({ status: testStatus }));
 
-        let retriesDone = false;
-        afterFirstRequest(() => {
-          assert(expectQueued.isDone(), 'First call is made immediately.');
-          assert(!expectSuccess.isDone(), 'Retry is not done immediately.');
-
-          clock.tick(900);
-          assert(!expectSuccess.isDone(), 'Retry is not done less than 1 sec.');
-
-          clock.tick(60000);
-          assert(expectSuccess.isDone(), 'Retry is done less than 1 minute.');
-          retriesDone = true;
-        });
-
         options.repo = testRepoUrl;
         options.wait = true;
         options.verbosity = 1;
-        return appveyorStatus.getLastBuild(options)
+        const projectBuildP = appveyorStatus.getLastBuild(options);
+        return waitForTimer(10)
+          .then(() => {
+            assert(expectQueued.isDone(), 'First call is made immediately.');
+            assert(!expectSuccess.isDone(), 'Retry is not done immediately.');
+
+            clock.tick(900);
+            assert(
+              clock.countTimers() > 0 && !expectSuccess.isDone(),
+              'Retry not started after 900ms',
+            );
+
+            clock.tick(59100);
+            assert.strictEqual(
+              clock.countTimers(),
+              0,
+              'Retry started before 60,000ms',
+            );
+
+            return projectBuildP;
+          })
           .then((projectBuild) => {
             assert.strictEqual(projectBuildToStatus(projectBuild), testStatus);
-            assert(retriesDone, 'Retries completed');
+            assert.strictEqual(clock.countTimers(), 0, 'Retries completed');
             assert.match(
               String(options.err.read()),
               /\bwait/i,
@@ -392,28 +405,36 @@ describe('appveyorStatus', function() {
           .query(true)
           .replyWithError(testErrMsg);
 
-        let retriesDone = false;
-        afterFirstRequest(() => {
-          assert(expectQueued.isDone(), 'First call is made immediately.');
-          assert(!expectSuccess.isDone(), 'Retry is not done immediately.');
-
-          clock.tick(900);
-          assert(!expectSuccess.isDone(), 'Retry is not done less than 1 sec.');
-
-          clock.tick(60000);
-          assert(expectSuccess.isDone(), 'Retry is done less than 1 minute.');
-          retriesDone = true;
-        });
-
         options.project = testProject;
         options.wait = true;
-        return appveyorStatus.getLastBuild(options).then(
-          sinon.mock().never(),
-          (err) => {
-            assert.include(err.message, testErrMsg);
-            assert(retriesDone, 'Retries completed');
-          },
-        );
+        const projectBuildP = appveyorStatus.getLastBuild(options);
+        return waitForTimer(10)
+          .then(() => {
+            assert(expectQueued.isDone(), 'First call is made immediately.');
+            assert(!expectSuccess.isDone(), 'Retry is not done immediately.');
+
+            clock.tick(900);
+            assert(
+              clock.countTimers() > 0 && !expectSuccess.isDone(),
+              'Retry not started after 900ms',
+            );
+
+            clock.tick(59100);
+            assert.strictEqual(
+              clock.countTimers(),
+              0,
+              'Retry started before 60,000ms',
+            );
+
+            return projectBuildP;
+          })
+          .then(
+            sinon.mock().never(),
+            (err) => {
+              assert.include(err.message, testErrMsg);
+              assert.strictEqual(clock.countTimers(), 0, 'Retries completed');
+            },
+          );
       });
 
       it('returns queued status if wait elapses', () => {
@@ -433,25 +454,32 @@ describe('appveyorStatus', function() {
           .query(true)
           .reply(200, apiResponses.getProjectBuild({ status: 'queued' }));
 
-        let retriesDone = false;
-        afterFirstRequest(() => {
-          assert(expectQueued1.isDone(), 'First call is made immediately.');
-          assert(!expectQueued2.isDone(), 'Retry is not done immediately.');
-
-          clock.tick(900);
-          assert(!expectQueued2.isDone(), 'Retry is not done less than 1 sec.');
-
-          clock.tick(60000);
-          assert(expectQueued2.isDone(), 'Retry is done less than 1 minute.');
-          retriesDone = true;
-        });
-
         options.project = testProject;
         options.wait = 8000;
-        return appveyorStatus.getLastBuild(options)
+        const projectBuildP = appveyorStatus.getLastBuild(options);
+        return waitForTimer(10)
+          .then(() => {
+            assert(expectQueued1.isDone(), 'First call is made immediately.');
+            assert(!expectQueued2.isDone(), 'Retry is not done immediately.');
+
+            clock.tick(900);
+            assert(
+              clock.countTimers() > 0 && !expectQueued2.isDone(),
+              'Retry not started after 900ms',
+            );
+
+            clock.tick(7100);
+            assert.strictEqual(
+              clock.countTimers(),
+              0,
+              'Retry started before 8,000ms',
+            );
+
+            return projectBuildP;
+          })
           .then((projectBuild) => {
             assert.strictEqual(projectBuildToStatus(projectBuild), 'queued');
-            assert(retriesDone, 'Retries completed');
+            assert.strictEqual(clock.countTimers(), 0, 'Retries completed');
           });
       });
     });
