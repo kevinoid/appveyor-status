@@ -10,6 +10,7 @@ const SwaggerClient = require('swagger-client');
 const appveyorSwagger = require('appveyor-swagger');
 const https = require('https');
 const nodeify = require('promise-nodeify');
+const timers = require('timers');
 
 const gitUtils = require('./lib/git-utils');
 const appveyorUtils = require('./lib/appveyor-utils');
@@ -36,6 +37,9 @@ const RETRY_DELAY_MIN_MS = 4000;
  * @private
  */
 const RETRY_DELAY_MAX_MS = 60000;
+
+// Allow Date to be injected (via timers) for tests
+const { now } = timers.Date || Date;
 
 /** Shallow, strict equality of properties in common between two objects.
  *
@@ -431,7 +435,7 @@ function getLastBuildForProject(options) {
     return getLastBuildNoWait(options);
   }
 
-  const deadline = Date.now() + options.wait;
+  const deadline = now() + options.wait;
 
   function checkRetry(projectBuild, prevDelay) {
     const buildStatus = appveyorUtils.projectBuildToStatus(projectBuild);
@@ -439,7 +443,7 @@ function getLastBuildForProject(options) {
       return projectBuild;
     }
 
-    const remaining = deadline - Date.now();
+    const remaining = deadline - now();
     // Note:  If options.wait < RETRY_DELAY_MIN_MS, honor it
     if (remaining < Math.min(RETRY_DELAY_MIN_MS, options.wait)) {
       return projectBuild;
@@ -459,7 +463,7 @@ function getLastBuildForProject(options) {
     }
 
     return new Promise((resolve) => {
-      setTimeout(() => {
+      timers.setTimeout(() => {
         // Do not use options.project.builds after waiting
         delete options.useProjectBuilds;
 
