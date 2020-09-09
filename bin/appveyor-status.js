@@ -10,6 +10,9 @@
 'use strict';
 
 const ansiStyles = require('ansi-styles');
+// https://github.com/benmosher/eslint-plugin-import/issues/1810
+// https://github.com/mysticatea/eslint-plugin-node/issues/244
+// eslint-disable-next-line import/no-unresolved, node/no-missing-require
 const Yargs = require('yargs/yargs');
 const fs = require('fs');
 const readAllStream = require('read-all-stream');
@@ -198,10 +201,7 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
     return undefined;
   }
 
-  // Workaround for https://github.com/yargs/yargs/issues/783
-  // Necessary because mocha package.json overrides .parserConfiguration()
-  require.main = module;
-  const yargs = new Yargs(undefined, undefined, require)
+  const yargs = new Yargs()
     .parserConfiguration({
       'parse-numbers': false,
       'duplicate-arguments-array': false,
