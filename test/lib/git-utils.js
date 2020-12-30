@@ -47,7 +47,20 @@ before('setup test repository', function() {
   this.timeout(isWindows ? 8000 : 4000);
 
   return rimrafP(TEST_REPO_PATH)
-    .then(() => execFileOut('git', ['init', '-q', TEST_REPO_PATH]))
+    .then(async () => {
+      try {
+        await execFileOut(
+          'git',
+          // git-init(1) in 2.30.0 warns that default branch subject to change.
+          // It may also have non-default global- or user-configuration.
+          // Specify --initial-branch to avoid depending on default
+          ['init', '-q', '--initial-branch=master', TEST_REPO_PATH],
+        );
+      } catch {
+        // git < 2.28.0 doesn't understand --initial-branch, default is master
+        await execFileOut('git', ['init', '-q', TEST_REPO_PATH]);
+      }
+    })
     // The user name and email must be configured for the later git commands
     // to work.  On Travis CI (and probably others) there is no global config
     .then(() => execFileOut(
