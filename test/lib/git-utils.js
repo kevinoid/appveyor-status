@@ -14,12 +14,13 @@ const util = require('util');
 const gitUtils = require('../../lib/git-utils');
 const execFileOut = require('../../lib/exec-file-out');
 
+const defaultBranch = 'main';
 const isWindows = /^win/i.test(process.platform);
 const rimrafP = util.promisify(rimraf);
 
 const BRANCH_REMOTES = {
   // Note:  must be origin so ls-remote default is origin for all git versions
-  master: 'origin/master',
+  [defaultBranch]: `origin/${defaultBranch}`,
   branch1: 'remote1/rbranch5',
   branch2: 'remote2/rbranch6',
   branchnoremote: false,
@@ -49,16 +50,26 @@ before('setup test repository', function() {
   return rimrafP(TEST_REPO_PATH)
     .then(async () => {
       try {
+        throw new Error('HERE');
+        /*
         await execFileOut(
           'git',
           // git-init(1) in 2.30.0 warns that default branch subject to change.
           // It may also have non-default global- or user-configuration.
           // Specify --initial-branch to avoid depending on default
-          ['init', '-q', '--initial-branch=master', TEST_REPO_PATH],
+          ['init', '-q', `--initial-branch=${defaultBranch}`, TEST_REPO_PATH],
         );
+        */
       } catch {
         // git < 2.28.0 doesn't understand --initial-branch, default is master
         await execFileOut('git', ['init', '-q', TEST_REPO_PATH]);
+        if (defaultBranch !== 'master') {
+          await execFileOut(
+            'git',
+            ['symbolic-ref', 'HEAD', `refs/heads/${defaultBranch}`],
+            options,
+          );
+        }
       }
     })
     // The user name and email must be configured for the later git commands
@@ -90,7 +101,7 @@ before('setup test repository', function() {
       );
     }), Promise.resolve()))
     .then(() => Object.keys(BRANCH_REMOTES)
-      .filter((branchName) => branchName !== 'master')
+      .filter((branchName) => branchName !== defaultBranch)
       .reduce((p, branchName) => p.then(() => execFileOut(
         'git',
         ['-C', TEST_REPO_PATH, 'branch', branchName],
@@ -124,18 +135,19 @@ before('setup test repository', function() {
 
 after('remove test repository', () => rimrafP(TEST_REPO_PATH));
 
-function checkoutMaster() {
-  return execFileOut('git', ['checkout', '-q', 'master'], options);
+function checkoutDefault() {
+  return execFileOut('git', ['checkout', '-q', defaultBranch], options);
 }
 
 describe('gitUtils', () => {
   describe('.getBranch', () => {
-    after(checkoutMaster);
+    after(checkoutDefault);
 
-    it('resolves master on master', () => gitUtils.getBranch(options)
-      .then((branch) => {
-        assert.strictEqual(branch, 'master');
-      }));
+    it(`resolves ${defaultBranch} on ${defaultBranch}`,
+      () => gitUtils.getBranch(options)
+        .then((branch) => {
+          assert.strictEqual(branch, defaultBranch);
+        }));
 
     it('resolves branch1 on branch1',
       () => execFileOut('git', ['checkout', '-q', 'branch1'], options)
@@ -157,7 +169,7 @@ describe('gitUtils', () => {
   });
 
   describe('.getRemote', () => {
-    after(checkoutMaster);
+    after(checkoutDefault);
 
     Object.keys(BRANCH_REMOTES).forEach((branch) => {
       const remoteRef = BRANCH_REMOTES[branch];
