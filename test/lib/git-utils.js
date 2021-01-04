@@ -9,14 +9,14 @@ const { assert } = require('chai');
 const path = require('path');
 const rimraf = require('rimraf');
 const { pathToFileURL } = require('url');
-const util = require('util');
+const { promisify } = require('util');
 
 const gitUtils = require('../../lib/git-utils');
 const execFileOut = require('../../lib/exec-file-out');
 
 const defaultBranch = 'main';
 const isWindows = /^win/i.test(process.platform);
-const rimrafP = util.promisify(rimraf);
+const rimrafP = promisify(rimraf);
 
 const BRANCH_REMOTES = {
   // Note:  must be origin so ls-remote default is origin for all git versions
