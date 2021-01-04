@@ -553,7 +553,7 @@ describe('appveyorStatus', function() {
       const testRemoteUrl = 'git://foo.bar/baz';
       const testStatus = 'success';
       gitUtilsMock.expects('getBranch')
-        .once().withArgs(matchOptionsCwd).rejects(new Error());
+        .once().withArgs(matchOptionsCwd).rejects(new Error('test'));
       gitUtilsMock.expects('getRemote').never();
       gitUtilsMock.expects('getRemoteUrl')
         .once().withArgs('origin', matchOptionsCwd).resolves(testRemoteUrl);
@@ -582,7 +582,8 @@ describe('appveyorStatus', function() {
       gitUtilsMock.expects('getBranch')
         .once().withArgs(matchOptionsCwd).resolves(testBranch);
       gitUtilsMock.expects('getRemote')
-        .once().withArgs(testBranch, matchOptionsCwd).rejects(new Error());
+        .once().withArgs(testBranch, matchOptionsCwd)
+        .rejects(new Error('test'));
       gitUtilsMock.expects('getRemoteUrl')
         .once().withArgs('origin', matchOptionsCwd).resolves(testRemoteUrl);
       gitUtilsMock.expects('resolveCommit').never();
