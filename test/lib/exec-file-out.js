@@ -118,14 +118,26 @@ describe('execFileOut', () => {
     );
   });
 
-  it('does not reject stderr with only whitespace', () => {
+  // Previously ignored whitespace on stderr.
+  // Changed due to perf and maintenance cost of feature with no known use.
+  // If there is a need for this in the future, reconsider ignoring.
+  it('rejects stderr with only whitespace', () => {
     const testOut = 'stdout content';
     const testErr = '\n\t\t  \n';
     const testArgs = ['-e', makeScript(testOut, testErr)];
-    return execFileOut(process.execPath, testArgs)
-      .then((stdout) => {
-        assert.strictEqual(stdout, testOut);
-      });
+    return execFileOut(process.execPath, testArgs).then(
+      neverCalled,
+      (err) => {
+        assert(err.message.includes(testErr), 'stderr is in message');
+        assert.strictEqual(
+          err.cmd,
+          [process.execPath].concat(testArgs).join(' '),
+        );
+        assert.strictEqual(err.code, 0);
+        assert.deepStrictEqual(err.stderr, testErr);
+        assert.deepStrictEqual(err.stdout, testOut);
+      },
+    );
   });
 
   // Note: use node (i.e. process.execPath) to test, since it will not exit
