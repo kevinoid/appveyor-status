@@ -372,36 +372,23 @@ function wrapApiFunc(apiFunc) {
  * @private
  */
 function getLastBuildNoWait(options) {
-  let lastBuildP;
-  const buildFromProject = options.project.builds && options.project.builds[0];
-  if (options.useProjectBuilds
-      && buildFromProject
-      && (!options.branch || options.branch === buildFromProject.branch)) {
-    lastBuildP = Promise.resolve({
-      project: options.project,
-      build: buildFromProject,
-    });
+  const params = {
+    accountName: options.project.accountName,
+    projectSlug: options.project.slug,
+  };
+
+  const client = options.appveyorClient;
+  let responseP;
+  if (options.branch) {
+    params.buildBranch = options.branch;
+    responseP = client.apis.Project.getProjectLastBuildBranch(params);
   } else {
-    const params = {
-      accountName: options.project.accountName,
-      projectSlug: options.project.slug,
-    };
-
-    const client = options.appveyorClient;
-    let responseP;
-    if (options.branch) {
-      params.buildBranch = options.branch;
-      responseP = client.apis.Project.getProjectLastBuildBranch(params);
-    } else {
-      responseP = client.apis.Project.getProjectLastBuild(params);
-    }
-
-    lastBuildP = responseP
-      .catch(makeClientErrorHandler('Unable to get last project build: '))
-      .then(getResponseJson);
+    responseP = client.apis.Project.getProjectLastBuild(params);
   }
 
-  return lastBuildP;
+  return responseP
+    .catch(makeClientErrorHandler('Unable to get last project build: '))
+    .then(getResponseJson);
 }
 
 /** Checks if wait+retry should be attempted for a given build status.
@@ -458,9 +445,6 @@ function getLastBuildForProject(options) {
 
     return new Promise((resolve) => {
       timers.setTimeout(() => {
-        // Do not use options.project.builds after waiting
-        delete options.useProjectBuilds;
-
         resolve(getLastBuildNoWait(options)
           .then((result) => checkRetry(result, delay)));
       }, delay);
@@ -524,10 +508,22 @@ async function getLastBuildInternal(options) {
     lastBuild = await getLastBuildForProject(options);
   } else if (options.repo) {
     const project = await getMatchingProject(options);
-    const optionsWithProject = { ...options };
-    optionsWithProject.project = project;
-    optionsWithProject.useProjectBuilds = true;
-    lastBuild = await getLastBuildForProject(optionsWithProject);
+
+    // If project.builds contains a build for the requested branch (if any)
+    // and wait is not requested or not necessary, use it.
+    const build = project.builds
+      .find((b) => !options.branch || b.branch === options.branch);
+    if (build && (!options.wait || !shouldRetryForStatus(build.status))) {
+      lastBuild = {
+        project,
+        build,
+      };
+    } else {
+      lastBuild = await getLastBuildForProject({
+        ...options,
+        project,
+      });
+    }
   } else {
     throw new Error('project or repo is required');
   }
