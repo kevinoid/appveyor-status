@@ -404,6 +404,19 @@ function getLastBuildNoWait(options) {
   return lastBuildP;
 }
 
+/** Checks if wait+retry should be attempted for a given build status.
+ *
+ * @private
+ * @param {string} buildStatus Status of the build.
+ * @returns {boolean} <code>true</code> if the build status should be rechecked
+ * after waiting.
+ */
+function shouldRetryForStatus(buildStatus) {
+  return buildStatus === 'cancelling'
+    || buildStatus === 'queued'
+    || buildStatus === 'running';
+}
+
 /** Implements {@link getLastBuild} for options with non-null .project.
  *
  * @private
@@ -420,8 +433,7 @@ function getLastBuildForProject(options) {
   const deadline = now() + options.wait;
 
   function checkRetry(projectBuild, prevDelay) {
-    const buildStatus = appveyorUtils.projectBuildToStatus(projectBuild);
-    if (!['cancelling', 'queued', 'running'].includes(buildStatus)) {
+    if (!shouldRetryForStatus(projectBuild.build.status)) {
       return projectBuild;
     }
 
