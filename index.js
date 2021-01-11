@@ -401,25 +401,7 @@ function getLastBuildNoWait(options) {
       .then(getResponseJson);
   }
 
-  let checkedLastBuildP;
-  if (options.commit) {
-    checkedLastBuildP = lastBuildP.then((projectBuild) => {
-      if (projectBuild.build.commitId !== options.commit) {
-        const err = new CommitMismatchError({
-          actual: projectBuild.build.commitId,
-          expected: options.commit,
-        });
-        err.build = projectBuild.build;
-        err.project = projectBuild.project;
-        throw err;
-      }
-      return projectBuild;
-    });
-  } else {
-    checkedLastBuildP = lastBuildP;
-  }
-
-  return checkedLastBuildP;
+  return lastBuildP;
 }
 
 /** Implements {@link getLastBuild} for options with non-null .project.
@@ -536,6 +518,16 @@ async function getLastBuildInternal(options) {
     lastBuild = await getLastBuildForProject(optionsWithProject);
   } else {
     throw new Error('project or repo is required');
+  }
+
+  if (options.commit && lastBuild.build.commitId !== options.commit) {
+    const err = new CommitMismatchError({
+      actual: lastBuild.build.commitId,
+      expected: options.commit,
+    });
+    err.build = lastBuild.build;
+    err.project = lastBuild.project;
+    throw err;
   }
 
   return lastBuild;
