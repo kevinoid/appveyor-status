@@ -524,22 +524,21 @@ function getMatchingProject(options) {
  * project matching <code>options</code>.
  * @private
  */
-function getLastBuildInternal(options) {
+async function getLastBuildInternal(options) {
+  let lastBuild;
   if (options.project) {
-    return getLastBuildForProject(options);
-  }
-
-  if (!options.repo) {
+    lastBuild = await getLastBuildForProject(options);
+  } else if (options.repo) {
+    const project = await getMatchingProject(options);
+    const optionsWithProject = { ...options };
+    optionsWithProject.project = project;
+    optionsWithProject.useProjectBuilds = true;
+    lastBuild = await getLastBuildForProject(optionsWithProject);
+  } else {
     throw new Error('project or repo is required');
   }
 
-  return getMatchingProject(options)
-    .then((project) => {
-      const optionsWithProject = { ...options };
-      optionsWithProject.project = project;
-      optionsWithProject.useProjectBuilds = true;
-      return getLastBuildForProject(optionsWithProject);
-    });
+  return lastBuild;
 }
 
 /** Gets the last AppVeyor build for a repo/branch.
