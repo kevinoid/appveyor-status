@@ -13,6 +13,7 @@ const proxyquire = require('proxyquire');
 const sinon = require('sinon');
 const stream = require('stream');
 const url = require('url');
+const { promisify: { custom: promisifyCustom } } = require('util');
 
 const gitUtils = require('../lib/git-utils');
 const appveyorUtils = require('../lib/appveyor-utils');
@@ -32,6 +33,19 @@ const clock = sinon.useFakeTimers({
     'setTimeout',
   ],
 });
+// Ensure fakeTimer functions can be promisified
+// https://github.com/sinonjs/fake-timers/issues/347
+Object.keys(fakeTimers).forEach((methodName) => {
+  const method = clock[methodName];
+  const promisified = method && method[promisifyCustom];
+  if (promisified) {
+    const fakeMethod = fakeTimers[methodName];
+    if (!fakeMethod[promisifyCustom]) {
+      fakeMethod[promisifyCustom] = promisified;
+    }
+  }
+});
+
 const appveyorStatus = proxyquire(
   '..',
   {
