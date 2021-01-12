@@ -520,6 +520,11 @@ async function getLastBuildInternal(options) {
         build,
       };
     } else {
+      // If build from project requires waiting, wait before first retry.
+      if (build) {
+        await setTimeoutP(RETRY_DELAY_MIN_MS);
+      }
+
       lastBuild = await getLastBuildForProject({
         ...options,
         project,
