@@ -11,6 +11,7 @@ const appveyorSwagger = require('appveyor-swagger');
 const https = require('https');
 const nodeify = require('promise-nodeify');
 const timers = require('timers');
+const { promisify } = require('util');
 
 const gitUtils = require('./lib/git-utils');
 const appveyorUtils = require('./lib/appveyor-utils');
@@ -40,6 +41,9 @@ const RETRY_DELAY_MAX_MS = 60000;
 
 // Allow Date to be injected (via timers) for tests
 const { now } = timers.Date || Date;
+
+// TODO [engine:node@>=15]: import { setTimeout } from 'timers/promises';
+const setTimeoutP = promisify(timers.setTimeout);
 
 /** Shallow, strict equality of properties in common between two objects.
  *
@@ -443,12 +447,9 @@ function getLastBuildForProject(options) {
       );
     }
 
-    return new Promise((resolve) => {
-      timers.setTimeout(() => {
-        resolve(getLastBuildNoWait(options)
-          .then((result) => checkRetry(result, delay)));
-      }, delay);
-    });
+    return setTimeoutP(delay)
+      .then(() => getLastBuildNoWait(options))
+      .then((result) => checkRetry(result, delay));
   }
 
   return getLastBuildNoWait(options)
