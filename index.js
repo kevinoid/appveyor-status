@@ -522,7 +522,12 @@ async function getLastBuildInternal(options) {
     } else {
       // If build from project requires waiting, wait before first retry.
       if (build) {
-        await setTimeoutP(RETRY_DELAY_MIN_MS);
+        const delay = RETRY_DELAY_MIN_MS;
+        options.err.write(
+          `DEBUG: AppVeyor build ${build.status}.  Waiting ${
+            delay / 1000} seconds before retrying...\n`,
+        );
+        await setTimeoutP(delay);
       }
 
       lastBuild = await getLastBuildForProject({
