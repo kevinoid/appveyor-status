@@ -17,27 +17,7 @@ const gitUtils = require('./lib/git-utils');
 const appveyorUtils = require('./lib/appveyor-utils');
 const CommitMismatchError = require('./lib/commit-mismatch-error');
 const AmbiguousProjectError = require('./lib/ambiguous-project-error');
-
-/** Multiplicative increase in delay between retries.
- *
- * @constant
- * @private
- */
-const RETRY_DELAY_FACTOR_MS = 2;
-
-/** Minimum/Initial delay between retries (in milliseconds).
- *
- * @constant
- * @private
- */
-const RETRY_DELAY_MIN_MS = 4000;
-
-/** Maximum delay between retries (in milliseconds).
- *
- * @constant
- * @private
- */
-const RETRY_DELAY_MAX_MS = 60000;
+const retryAsync = require('./lib/retry-async');
 
 // Allow Date to be injected (via timers) for tests
 const { now } = timers.Date || Date;
@@ -421,42 +401,24 @@ function getLastBuildForProject(options) {
     return getLastBuildNoWait(options);
   }
 
-  const deadline = now() + options.wait;
-
-  function checkRetry(projectBuild, prevDelay) {
-    if (!shouldRetryForStatus(projectBuild.build.status)) {
-      return projectBuild;
-    }
-
-    const remaining = deadline - now();
-    // Note:  If options.wait < RETRY_DELAY_MIN_MS, honor it
-    if (remaining < Math.min(RETRY_DELAY_MIN_MS, options.wait)) {
-      return projectBuild;
-    }
-
-    const delay = Math.min(
-      prevDelay * RETRY_DELAY_FACTOR_MS,
-      remaining,
-      RETRY_DELAY_MAX_MS,
-    );
-
-    if (options.verbosity > 0) {
+  const retryOptions = {
+    maxTotalMs: options.wait,
+    // Pass through injected now+setTimeout for testing
+    now,
+    setTimeout: setTimeoutP,
+    shouldRetry:
+      (projectBuild) => shouldRetryForStatus(projectBuild.build.status),
+  };
+  if (options.verbosity > 0) {
+    retryOptions.setTimeout = (delay, value, opts) => {
       options.err.write(
         'DEBUG: AppVeyor build queued.  '
         + `Waiting ${delay / 1000} seconds before retrying...\n`,
       );
-    }
-
-    return setTimeoutP(delay)
-      .then(() => getLastBuildNoWait(options))
-      .then((result) => checkRetry(result, delay));
+      return setTimeoutP(delay, value, opts);
+    };
   }
-
-  return getLastBuildNoWait(options)
-    .then((result) => {
-      const seedDelay = RETRY_DELAY_MIN_MS / RETRY_DELAY_FACTOR_MS;
-      return checkRetry(result, seedDelay);
-    });
+  return retryAsync(getLastBuildNoWait, retryOptions, options);
 }
 
 /** Gets the AppVeyor project which matches the given options.
@@ -522,7 +484,7 @@ async function getLastBuildInternal(options) {
     } else {
       // If build from project requires waiting, wait before first retry.
       if (build) {
-        const delay = RETRY_DELAY_MIN_MS;
+        const delay = retryAsync.DEFAULT_OPTIONS.minWaitMs;
         options.err.write(
           `DEBUG: AppVeyor build ${build.status}.  Waiting ${
             delay / 1000} seconds before retrying...\n`,
