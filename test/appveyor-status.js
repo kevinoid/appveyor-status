@@ -351,6 +351,53 @@ describe('appveyorStatus', function() {
           });
       });
 
+      it('true retries queued status verbosely', () => {
+        const testProject = 'foo/bar';
+        const testStatus = 'success';
+        const expectQueued = nock(apiUrl)
+          .get(`/api/projects/${testProject}`)
+          .query(true)
+          .reply(200, apiResponses.getProjectBuild({ status: 'queued' }));
+        const expectSuccess = nock(apiUrl)
+          .get(`/api/projects/${testProject}`)
+          .query(true)
+          .reply(200, apiResponses.getProjectBuild({ status: testStatus }));
+
+        options.project = testProject;
+        options.verbosity = 1;
+        options.wait = true;
+        const projectBuildP = appveyorStatus.getLastBuild(options);
+        return waitForTimer(10)
+          .then(() => {
+            assert(expectQueued.isDone(), 'First call is made immediately.');
+            assert(!expectSuccess.isDone(), 'Retry is not done immediately.');
+
+            clock.tick(900);
+            assert(
+              clock.countTimers() > 0 && !expectSuccess.isDone(),
+              'Retry not started after 900ms',
+            );
+
+            clock.tick(59100);
+            assert.strictEqual(
+              clock.countTimers(),
+              0,
+              'Retry started before 60,000ms',
+            );
+
+            return projectBuildP;
+          })
+          .then((projectBuild) => {
+            assert.strictEqual(projectBuildToStatus(projectBuild), testStatus);
+            assert.strictEqual(clock.countTimers(), 0, 'Retries completed');
+            assert.match(
+              String(options.err.read()),
+              /\bwait/i,
+              'prints wait message when verbose',
+            );
+          });
+      });
+
       it('true retries running status from project', () => {
         const testProjectParts = ['foo', 'bar'];
         const testRepoUrl = 'git://foo.bar/baz';
