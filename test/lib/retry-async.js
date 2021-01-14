@@ -278,6 +278,119 @@ describe('retryAsync', () => {
     stub.alwaysCalledWithExactly();
   });
 
+  it('returns after maxTotalMs', async () => {
+    const stubResult = false;
+    const stub = sinon.stub();
+    stub.onFirstCall().returns(undefined);
+    stub.onSecondCall().returns(stubResult);
+    const maxTotalMs = 10000;
+    const waitMs = maxTotalMs;
+    const result = retryAsync(
+      stub,
+      {
+        ...timeOptions,
+        maxTotalMs,
+        waitMs,
+      },
+    );
+    assert.strictEqual(stub.callCount, 1);
+
+    await setImmediateP();
+    assert.strictEqual(stub.callCount, 1);
+    assert.strictEqual(clock.countTimers(), 1);
+
+    clock.tick(maxTotalMs);
+    await setImmediateP();
+    assert.strictEqual(stub.callCount, 2);
+    assert.strictEqual(clock.countTimers(), 0);
+
+    assert.strictEqual(await result, stubResult);
+    assert.strictEqual(stub.callCount, 2);
+    stub.alwaysCalledWithExactly();
+  });
+
+  it('reduces last wait time to avoid exceeding maxTotalMs', async () => {
+    const stubResult = false;
+    const stub = sinon.stub();
+    stub.onFirstCall().returns(undefined);
+    stub.onSecondCall().returns(stubResult);
+    const maxTotalMs = 5000;
+    const waitMs = 10000;
+    const result = retryAsync(
+      stub,
+      {
+        ...timeOptions,
+        maxTotalMs,
+        waitMs,
+      },
+    );
+    assert.strictEqual(stub.callCount, 1);
+
+    await setImmediateP();
+    assert.strictEqual(stub.callCount, 1);
+    assert.strictEqual(clock.countTimers(), 1);
+
+    clock.tick(maxTotalMs);
+    await setImmediateP();
+    assert.strictEqual(stub.callCount, 2);
+    assert.strictEqual(clock.countTimers(), 0);
+
+    assert.strictEqual(await result, stubResult);
+    assert.strictEqual(stub.callCount, 2);
+    stub.alwaysCalledWithExactly();
+  });
+
+  it('does not wait less than minWaitMs', async () => {
+    const stubResult = false;
+    const stub = sinon.stub();
+    stub.onFirstCall().returns(undefined);
+    stub.onSecondCall().returns(stubResult);
+    const minWaitMs = 500;
+    const maxTotalMs = 1100;
+    const waitMs = 1000;
+    const result = retryAsync(
+      stub,
+      {
+        ...timeOptions,
+        maxTotalMs,
+        minWaitMs,
+        waitMs,
+      },
+    );
+    assert.strictEqual(stub.callCount, 1);
+
+    await setImmediateP();
+    assert.strictEqual(stub.callCount, 1);
+    assert.strictEqual(clock.countTimers(), 1);
+
+    clock.tick(waitMs);
+    await setImmediateP();
+    assert.strictEqual(stub.callCount, 2);
+    assert.strictEqual(clock.countTimers(), 0);
+
+    assert.strictEqual(await result, stubResult);
+    assert.strictEqual(stub.callCount, 2);
+    stub.alwaysCalledWithExactly();
+  });
+
+  it('does not wait at all if maxTotalMs < minWaitMs', async () => {
+    const stubResult = false;
+    const stub = sinon.stub().returns(stubResult);
+    const result = retryAsync(
+      stub,
+      {
+        setTimeout: neverCalled,
+        maxTotalMs: 500,
+        minWaitMs: 1000,
+        waitMs: 1000,
+      },
+    );
+    assert.strictEqual(stub.callCount, 1);
+    assert.strictEqual(await result, stubResult);
+    assert.strictEqual(stub.callCount, 1);
+    stub.alwaysCalledWithExactly();
+  });
+
   // Prefer consistent formatting of arrow functions passed to it()
   /* eslint-disable arrow-body-style */
 
