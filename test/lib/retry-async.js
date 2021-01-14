@@ -76,6 +76,48 @@ describe('retryAsync', () => {
     shouldRetry.calledOnceWithExactly(stubResult);
   });
 
+  it('returns immediately with rejection', async () => {
+    const stubCause = new Error('test');
+    const stub = sinon.stub().rejects(stubCause);
+    const result = retryAsync(
+      stub,
+      {
+        setTimeout: neverCalled,
+        shouldRetry: neverCalled,
+      },
+    );
+    stub.calledOnceWithExactly();
+    await assert.rejects(
+      () => result,
+      (cause) => {
+        assert.strictEqual(cause, stubCause);
+        return true;
+      },
+    );
+    stub.calledOnceWithExactly();
+  });
+
+  it('returns immediately with exception', async () => {
+    const stubCause = new Error('test');
+    const stub = sinon.stub().throws(stubCause);
+    const result = retryAsync(
+      stub,
+      {
+        setTimeout: neverCalled,
+        shouldRetry: neverCalled,
+      },
+    );
+    stub.calledOnceWithExactly();
+    await assert.rejects(
+      () => result,
+      (cause) => {
+        assert.strictEqual(cause, stubCause);
+        return true;
+      },
+    );
+    stub.calledOnceWithExactly();
+  });
+
   it('handles non-Promise return values', async () => {
     const stubResult = undefined;
     const stub = sinon.stub().returns(stubResult);
