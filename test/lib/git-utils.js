@@ -7,6 +7,7 @@
 
 const { assert } = require('chai');
 const path = require('path');
+// TODO [engine:node@>=12.10]: Use fs.rmdir({recursive: true})
 const rimraf = require('rimraf');
 const { pathToFileURL } = require('url');
 const { promisify } = require('util');
