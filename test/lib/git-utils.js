@@ -50,8 +50,6 @@ before('setup test repository', function() {
   return rimrafP(TEST_REPO_PATH)
     .then(async () => {
       try {
-        throw new Error('HERE');
-        /*
         await execFileOut(
           'git',
           // git-init(1) in 2.30.0 warns that default branch subject to change.
@@ -59,7 +57,6 @@ before('setup test repository', function() {
           // Specify --initial-branch to avoid depending on default
           ['init', '-q', `--initial-branch=${defaultBranch}`, TEST_REPO_PATH],
         );
-        */
       } catch {
         // git < 2.28.0 doesn't understand --initial-branch, default is master
         await execFileOut('git', ['init', '-q', TEST_REPO_PATH]);
