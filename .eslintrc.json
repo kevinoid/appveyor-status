@@ -23,6 +23,17 @@
       "rules": {
         "node/shebang": "off"
       }
+    },
+    {
+      // Match Node.js runtime rules to minimize changes to copied code.
+      "files": [
+        "test-lib/assert-backports.js"
+      ],
+      "rules": {
+        "comma-dangle": ["error", "only-multiline"],
+        "operator-linebreak": ["error", "after"],
+        "prefer-template": "off"
+      }
     }
   ]
 }
