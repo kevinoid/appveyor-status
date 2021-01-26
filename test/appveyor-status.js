@@ -35,7 +35,7 @@ const clock = sinon.useFakeTimers({
 });
 // Ensure fakeTimer functions can be promisified
 // https://github.com/sinonjs/fake-timers/issues/347
-Object.keys(fakeTimers).forEach((methodName) => {
+for (const methodName of Object.keys(fakeTimers)) {
   const method = clock[methodName];
   const promisified = method && method[promisifyCustom];
   if (promisified) {
@@ -44,7 +44,7 @@ Object.keys(fakeTimers).forEach((methodName) => {
       fakeMethod[promisifyCustom] = promisified;
     }
   }
-});
+}
 
 const appveyorStatus = proxyquire(
   '..',

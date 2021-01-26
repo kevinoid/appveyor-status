@@ -31,7 +31,7 @@ function assignUpdate(target, ...args) {
   // eslint-disable-next-line no-new-object
   const to = new Object(target);
 
-  args.forEach((nextSource) => {
+  for (const nextSource of args) {
     if (nextSource) {
       // eslint-disable-next-line no-restricted-syntax
       for (const nextKey in nextSource) {
@@ -41,7 +41,7 @@ function assignUpdate(target, ...args) {
         }
       }
     }
-  });
+  }
 
   return to;
 }
@@ -171,9 +171,9 @@ exports.getProject = function getProject(options) {
     updated: '2016-09-21T00:29:31.1506705+00:00',
   };
   assignUpdate(project, options);
-  project.builds.forEach((build) => {
+  for (const build of project.builds) {
     assignUpdate(build, options);
-  });
+  }
   return project;
 };
 
@@ -341,9 +341,9 @@ exports.getProjectBuild = function getLastBuild(options) {
   };
   assignUpdate(projectBuild.project, options);
   assignUpdate(projectBuild.build, options);
-  projectBuild.build.jobs.forEach((job) => {
+  for (const job of projectBuild.build.jobs) {
     assignUpdate(job, options);
-  });
+  }
   return projectBuild;
 };
 

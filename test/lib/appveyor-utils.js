@@ -12,13 +12,13 @@ const appveyorUtils = require('../../lib/appveyor-utils');
 
 describe('appveyorUtils', () => {
   describe('.badgeToStatus', () => {
-    ['success', 'failed'].forEach((status) => {
+    for (const status of ['success', 'failed']) {
       it(`extracts ${status} status`, () => {
         const badge = apiResponses.getStatusBadge(status);
         const result = appveyorUtils.badgeToStatus(badge);
         assert.strictEqual(result, status);
       });
-    });
+    }
 
     it('throws for unrecognized status', () => {
       const badge = apiResponses.getStatusBadge('whatever');

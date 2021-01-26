@@ -178,9 +178,9 @@ function makeClientErrorHandler(msgPrefix) {
  * @template T
  * @param {module:appveyor-status.AppveyorStatusOptions=} options
  * Caller-provided options.
- * @param {function(!module:appveyor-status.AppveyorStatusOptions): !Promise<T>}
- * apiFunc Function to
- * call with canonicalized <code>options</code>.
+ * @param {function(!module:appveyor-status.AppveyorStatusOptions):
+ * !Promise<T>} apiFunc Function to call with canonicalized
+ * <code>options</code>.
  * @returns {!Promise<T>} Return value from <code>apiFunc</code>.
  * @throws {Error} If <code>options</code> is invalid, inconsistent, or can not
  * be canonicalized.

@@ -84,7 +84,7 @@ describe('appveyor-status command', () => {
           match.func,
         )
         .yields(null, 'success');
-      const allArgs = RUNTIME_ARGS.concat(args);
+      const allArgs = [...RUNTIME_ARGS, ...args];
       appveyorStatusCmd(allArgs, options, (err) => {
         assert.ifError(err);
         appveyorStatusMock.verify();
@@ -96,7 +96,7 @@ describe('appveyor-status command', () => {
   function expectArgsResult(args, expectCode, expectOutMsg, expectErrMsg) {
     it(`prints error and exits for ${args.join(' ')}`, (done) => {
       appveyorStatusMock.expects('getStatus').never();
-      const allArgs = RUNTIME_ARGS.concat(args);
+      const allArgs = [...RUNTIME_ARGS, ...args];
       appveyorStatusCmd(allArgs, options, (err, code) => {
         assert.ifError(err);
         assert.strictEqual(code, expectCode);
@@ -207,7 +207,7 @@ describe('appveyor-status command', () => {
         match.func,
       )
       .yields(null, 'success');
-    const allArgs = RUNTIME_ARGS.concat('-T', '-');
+    const allArgs = [...RUNTIME_ARGS, '-T', '-'];
     options.in = fs.createReadStream(TEST_TOKEN_PATH);
     appveyorStatusCmd(allArgs, options, (err) => {
       assert.ifError(err);
@@ -228,9 +228,9 @@ describe('appveyor-status command', () => {
       });
     });
   }
-  statusValues.forEach((status) => {
+  for (const status of statusValues) {
     expectCodeForStatusCode(status === 'success' ? 0 : 2, status);
-  });
+  }
   expectCodeForStatusCode(2, 'unrecognized');
 
   colorIt('prints status to stdout by default', (done) => {
@@ -254,10 +254,11 @@ describe('appveyor-status command', () => {
     before(() => { process.env.TERM = 'xterm'; });
     after(restoreTerm);
 
-    statusValues.forEach((status) => {
+    for (const status of statusValues) {
       const colorName = status === 'success' ? 'green'
         : status === 'failed' ? 'red'
           : 'gray';
+      // eslint-disable-next-line no-loop-func
       colorIt(`prints ${status} in ${colorName} to TTY`, (done) => {
         appveyorStatusMock.expects('getStatus')
           .once().withArgs(match.object, match.func).yields(null, status);
@@ -275,7 +276,7 @@ describe('appveyor-status command', () => {
           done();
         });
       });
-    });
+    }
   });
 
   // Test what happens when supports-color returns false
@@ -283,7 +284,8 @@ describe('appveyor-status command', () => {
     before(() => { process.env.TERM = 'dumb'; });
     after(restoreTerm);
 
-    statusValues.forEach((status) => {
+    for (const status of statusValues) {
+      // eslint-disable-next-line no-loop-func
       colorIt(`prints ${status} without color to TTY`, (done) => {
         appveyorStatusMock.expects('getStatus')
           .once().withArgs(match.object, match.func).yields(null, status);
@@ -297,14 +299,15 @@ describe('appveyor-status command', () => {
           done();
         });
       });
-    });
+    }
   });
 
-  ['-q', '--quiet'].forEach((arg) => {
+  for (const arg of ['-q', '--quiet']) {
+    // eslint-disable-next-line no-loop-func
     it(`${arg} exits without printing status`, (done) => {
       appveyorStatusMock.expects('getStatus')
         .once().withArgs(match.object, match.func).yields(null, 'failed');
-      const allArgs = RUNTIME_ARGS.concat(arg);
+      const allArgs = [...RUNTIME_ARGS, arg];
       appveyorStatusCmd(allArgs, options, (err, code) => {
         assert.ifError(err);
         assert.strictEqual(code, 2);
@@ -313,7 +316,7 @@ describe('appveyor-status command', () => {
         done();
       });
     });
-  });
+  }
 
   // This tests exception handling in the parseYargs wrapper
   it('allows callback errors to propagate', () => {
@@ -323,7 +326,7 @@ describe('appveyor-status command', () => {
     let called = false;
     // Note:  Chai assert.throws does not accept comparison function like node
     try {
-      const allArgs = RUNTIME_ARGS.concat(['foo']);
+      const allArgs = [...RUNTIME_ARGS, 'foo'];
       appveyorStatusCmd(allArgs, options, () => {
         assert(!called, 'callback called exactly once');
         called = true;
@@ -434,7 +437,7 @@ describe('appveyor-status command', () => {
     });
     appveyorStatusMock.expects('getStatus')
       .once().withArgs(match.object, match.func).yields(errTest);
-    const allArgs = RUNTIME_ARGS.concat(['-c', testCommit]);
+    const allArgs = [...RUNTIME_ARGS, '-c', testCommit];
     appveyorStatusCmd(allArgs, options, (err, code) => {
       assert.ifError(err);
       assert.strictEqual(code, 3);
@@ -455,7 +458,7 @@ describe('appveyor-status command', () => {
     });
     appveyorStatusMock.expects('getStatus')
       .once().withArgs(match.object, match.func).yields(errTest);
-    const allArgs = RUNTIME_ARGS.concat(['-c', testTag]);
+    const allArgs = [...RUNTIME_ARGS, '-c', testTag];
     appveyorStatusCmd(allArgs, options, (err, code) => {
       assert.ifError(err);
       assert.strictEqual(code, 3);

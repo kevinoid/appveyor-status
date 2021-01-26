@@ -70,7 +70,7 @@ describe('execFileOut', () => {
       (err) => {
         assert.strictEqual(
           err.cmd,
-          [process.execPath].concat(testArgs).join(' '),
+          [process.execPath, ...testArgs].join(' '),
         );
         assert.strictEqual(err.code, testCode);
         assert.strictEqual(err.stderr, '');
@@ -89,7 +89,7 @@ describe('execFileOut', () => {
         assert(err.message.includes(testErr), 'stderr is in message');
         assert.strictEqual(
           err.cmd,
-          [process.execPath].concat(testArgs).join(' '),
+          [process.execPath, ...testArgs].join(' '),
         );
         assert.strictEqual(err.code, 0);
         assert.strictEqual(err.stderr, testErr);
@@ -109,7 +109,7 @@ describe('execFileOut', () => {
         assert(err.message.includes(testErr), 'stderr is in message');
         assert.strictEqual(
           err.cmd,
-          [process.execPath].concat(testArgs).join(' '),
+          [process.execPath, ...testArgs].join(' '),
         );
         assert.strictEqual(err.code, 0);
         assert.deepStrictEqual(err.stderr, Buffer.from(testErr));
@@ -131,7 +131,7 @@ describe('execFileOut', () => {
         assert(err.message.includes(testErr), 'stderr is in message');
         assert.strictEqual(
           err.cmd,
-          [process.execPath].concat(testArgs).join(' '),
+          [process.execPath, ...testArgs].join(' '),
         );
         assert.strictEqual(err.code, 0);
         assert.deepStrictEqual(err.stderr, testErr);

@@ -169,17 +169,16 @@ describe('gitUtils', () => {
   describe('.getRemote', () => {
     after(checkoutDefault);
 
-    Object.keys(BRANCH_REMOTES).forEach((branch) => {
+    for (const branch of Object.keys(BRANCH_REMOTES)) {
       const remoteRef = BRANCH_REMOTES[branch];
-      if (!remoteRef) {
-        return;
+      if (remoteRef) {
+        const remote = remoteRef.split('/')[0];
+        it(`resolves ${branch} to ${remote}`,
+          () => gitUtils.getRemote(branch, options).then((result) => {
+            assert.strictEqual(result, remote);
+          }));
       }
-      const remote = remoteRef.split('/')[0];
-      it(`resolves ${branch} to ${remote}`,
-        () => gitUtils.getRemote(branch, options).then((result) => {
-          assert.strictEqual(result, remote);
-        }));
-    });
+    }
 
     it('rejects branch without remote with Error',
       () => gitUtils.getRemote('branchnoremote', options).then(
@@ -191,14 +190,14 @@ describe('gitUtils', () => {
   });
 
   describe('.getRemoteUrl', () => {
-    Object.keys(REMOTES).forEach((remoteName) => {
+    for (const remoteName of Object.keys(REMOTES)) {
       const remoteUrl = REMOTES[remoteName];
       it(`resolves ${remoteName} to ${remoteUrl}`,
         () => gitUtils.getRemoteUrl(remoteName, options)
           .then((resultUrl) => {
             assert.strictEqual(resultUrl, remoteUrl);
           }));
-    });
+    }
 
     it('rejects invalid remote with Error',
       () => gitUtils.getRemoteUrl('invalidremote', options).then(
@@ -216,7 +215,7 @@ describe('gitUtils', () => {
   });
 
   describe('.gitUrlIsLocalNotSsh', () => {
-    [
+    for (const testCase of [
       { url: '.', result: true },
       { url: '/foo/bar', result: true },
       { url: 'http://example.com', result: false },
@@ -225,14 +224,14 @@ describe('gitUtils', () => {
       { url: 'file:///foo/bar', result: false },
       { url: '/foo:bar', result: true },
       { url: 'foo:bar', result: false },
-    ].forEach((testCase) => {
+    ]) {
       it(`${testCase.url} is ${testCase.result}`, () => {
         assert.strictEqual(
           gitUtils.gitUrlIsLocalNotSsh(testCase.url),
           testCase.result,
         );
       });
-    });
+    }
 
     const drivePath = 'C:/foo';
     if (isWindows) {

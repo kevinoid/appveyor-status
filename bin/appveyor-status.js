@@ -40,10 +40,10 @@ const ExitCode = {
 };
 
 // Add mapping from code to name
-Object.keys(ExitCode).forEach((codeName) => {
+for (const codeName of Object.keys(ExitCode)) {
   const code = ExitCode[codeName];
   ExitCode[code] = codeName;
-});
+}
 
 /** Maps AppVeyor build status to an ansi-styles color name.
  *
