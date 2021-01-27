@@ -7,7 +7,7 @@
 
 const SwaggerClient = require('swagger-client');
 const appveyorSwagger = require('appveyor-swagger');
-const { assert } = require('chai');
+const escapeStringRegexp = require('escape-string-regexp');
 const nock = require('nock');
 const proxyquire = require('proxyquire');
 const sinon = require('sinon');
@@ -15,6 +15,7 @@ const stream = require('stream');
 const url = require('url');
 const { promisify: { custom: promisifyCustom } } = require('util');
 
+const assert = require('../test-lib/assert-backports');
 const gitUtils = require('../lib/git-utils');
 const appveyorUtils = require('../lib/appveyor-utils');
 const apiResponses = require('../test-lib/api-responses');
@@ -60,6 +61,10 @@ const apiUrl = url.format({
 const { badgeToStatus } = appveyorUtils;
 const { match } = sinon;
 const { projectBuildToStatus } = appveyorUtils;
+
+function toRegExp(str) {
+  return new RegExp(escapeStringRegexp(str));
+}
 
 /** Waits for a timer to be registered with sinon.
  *
@@ -492,7 +497,7 @@ describe('appveyorStatus', function() {
           .then(
             sinon.mock().never(),
             (err) => {
-              assert.include(err.message, testErrMsg);
+              assert.match(err.message, toRegExp(testErrMsg));
               assert.strictEqual(clock.countTimers(), 0, 'Retries completed');
             },
           );
@@ -689,8 +694,8 @@ describe('appveyorStatus', function() {
       return appveyorStatus.getLastBuild(options).then(
         sinon.mock().never(),
         (err) => {
-          assert.instanceOf(err, Error);
-          assert.include(err.message, testRepo);
+          assert(err instanceof Error);
+          assert.match(err.message, toRegExp(testRepo));
           ne.done();
         },
       );
@@ -728,7 +733,7 @@ describe('appveyorStatus', function() {
       return appveyorStatus.getLastBuild(options).then(
         sinon.mock().never(),
         (err) => {
-          assert.instanceOf(err, AmbiguousProjectError);
+          assert(err instanceof AmbiguousProjectError);
           assert.deepEqual(
             err.projects,
             [testProject1.join('/'), testProject2.join('/')],
@@ -754,7 +759,7 @@ describe('appveyorStatus', function() {
         sinon.mock().never(),
         (err) => {
           assert.match(err.message, /400|Bad Request/i);
-          assert.include(err.message, testErrMsg);
+          assert.match(err.message, toRegExp(testErrMsg));
           assert.strictEqual(err.status, 400);
           ne.done();
         },
@@ -775,7 +780,7 @@ describe('appveyorStatus', function() {
       return appveyorStatus.getLastBuild(options).then(
         sinon.mock().never(),
         (err) => {
-          assert.include(err.message, 'JSON');
+          assert.match(err.message, /\bJSON\b/);
           ne.done();
         },
       );
@@ -796,7 +801,7 @@ describe('appveyorStatus', function() {
       return appveyorStatus.getLastBuild(options).then(
         sinon.mock().never(),
         (err) => {
-          assert.include(err.message, testErrMsg);
+          assert.match(err.message, toRegExp(testErrMsg));
           ne.done();
         },
       );
@@ -1217,7 +1222,7 @@ describe('appveyorStatus', function() {
       () => appveyorStatus.getStatus(true).then(
         sinon.mock().never(),
         (err) => {
-          assert.instanceOf(err, TypeError);
+          assert(err instanceof TypeError);
           assert.match(err.message, /\boptions\b/);
         },
       ));
@@ -1228,7 +1233,7 @@ describe('appveyorStatus', function() {
       return appveyorStatus.getStatus(options).then(
         sinon.mock().never(),
         (err) => {
-          assert.instanceOf(err, Error);
+          assert(err instanceof Error);
           assert.match(err.message, /\bproject\b/);
           assert.match(err.message, /\brepo\b/);
         },
@@ -1241,7 +1246,7 @@ describe('appveyorStatus', function() {
       return appveyorStatus.getStatus(options).then(
         sinon.mock().never(),
         (err) => {
-          assert.instanceOf(err, Error);
+          assert(err instanceof Error);
           assert.match(err.message, /\bproject\b/);
           assert.match(err.message, /\bstatusBadgeId\b/);
         },
@@ -1254,7 +1259,7 @@ describe('appveyorStatus', function() {
       return appveyorStatus.getStatus(options).then(
         sinon.mock().never(),
         (err) => {
-          assert.instanceOf(err, Error);
+          assert(err instanceof Error);
           assert.match(err.message, /\brepo\b/);
           assert.match(err.message, /\bstatusBadgeId\b/);
         },
@@ -1267,7 +1272,7 @@ describe('appveyorStatus', function() {
       return appveyorStatus.getStatus(options).then(
         sinon.mock().never(),
         (err) => {
-          assert.instanceOf(err, Error);
+          assert(err instanceof Error);
           assert.match(err.message, /\bproject\b/);
           assert.match(err.message, /\bwebhookId\b/);
         },
@@ -1280,7 +1285,7 @@ describe('appveyorStatus', function() {
       return appveyorStatus.getStatus(options).then(
         sinon.mock().never(),
         (err) => {
-          assert.instanceOf(err, Error);
+          assert(err instanceof Error);
           assert.match(err.message, /\brepo\b/);
           assert.match(err.message, /\bwebhookId\b/);
         },
@@ -1291,7 +1296,7 @@ describe('appveyorStatus', function() {
       () => appveyorStatus.getStatus({ err: new stream.Readable() }).then(
         sinon.mock().never(),
         (err) => {
-          assert.instanceOf(err, TypeError);
+          assert(err instanceof TypeError);
           assert.match(err.message, /\berr\b/);
         },
       ));
@@ -1301,7 +1306,7 @@ describe('appveyorStatus', function() {
       return appveyorStatus.getStatus(options).then(
         sinon.mock().never(),
         (err) => {
-          assert.instanceOf(err, TypeError);
+          assert(err instanceof TypeError);
           assert.match(err.message, /\bwait\b/);
         },
       );
@@ -1312,7 +1317,7 @@ describe('appveyorStatus', function() {
       return appveyorStatus.getStatus(options).then(
         sinon.mock().never(),
         (err) => {
-          assert.instanceOf(err, RangeError);
+          assert(err instanceof RangeError);
           assert.match(err.message, /\bwait\b/);
         },
       );
@@ -1325,7 +1330,7 @@ describe('appveyorStatus', function() {
       return appveyorStatus.getStatus(options).then(
         sinon.mock().never(),
         (err) => {
-          assert.instanceOf(err, Error);
+          assert(err instanceof Error);
           assert.match(err.message, /\bproject\b/);
           assert.match(err.message, /\baccountName\b/);
         },
@@ -1339,7 +1344,7 @@ describe('appveyorStatus', function() {
       return appveyorStatus.getStatus(options).then(
         sinon.mock().never(),
         (err) => {
-          assert.instanceOf(err, Error);
+          assert(err instanceof Error);
           assert.match(err.message, /\bproject\b/);
           assert.match(err.message, /\bslug\b/);
         },

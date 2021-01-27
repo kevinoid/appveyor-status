@@ -5,13 +5,13 @@
 
 'use strict';
 
-const { assert } = require('chai');
 const path = require('path');
 // TODO [engine:node@>=12.10]: Use fs.rmdir({recursive: true})
 const rimraf = require('rimraf');
 const { pathToFileURL } = require('url');
 const { promisify } = require('util');
 
+const assert = require('../../test-lib/assert-backports');
 const gitUtils = require('../../lib/git-utils');
 const execFileOut = require('../../lib/exec-file-out');
 
@@ -160,7 +160,7 @@ describe('gitUtils', () => {
         .then(
           neverCalled,
           (err) => {
-            assert.instanceOf(err, Error);
+            assert(err instanceof Error);
             assert.match(err.message, /branch/i);
           },
         ));
@@ -184,7 +184,7 @@ describe('gitUtils', () => {
       () => gitUtils.getRemote('branchnoremote', options).then(
         neverCalled,
         (err) => {
-          assert.instanceOf(err, Error);
+          assert(err instanceof Error);
         },
       ));
   });
@@ -203,7 +203,7 @@ describe('gitUtils', () => {
       () => gitUtils.getRemoteUrl('invalidremote', options).then(
         neverCalled,
         (err) => {
-          assert.instanceOf(err, Error);
+          assert(err instanceof Error);
         },
       ));
 

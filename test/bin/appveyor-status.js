@@ -7,7 +7,6 @@
 
 const ansiStyles = require('ansi-styles');
 const appveyorSwagger = require('appveyor-swagger');
-const { assert } = require('chai');
 const escapeStringRegexp = require('escape-string-regexp');
 const fs = require('fs');
 const hasAnsi = require('has-ansi');
@@ -18,6 +17,7 @@ const stream = require('stream');
 const packageJson = require('../../package.json');
 const appveyorStatus = require('../..');
 const appveyorStatusCmd = require('../../bin/appveyor-status');
+const assert = require('../../test-lib/assert-backports');
 const CommitMismatchError = require('../../lib/commit-mismatch-error');
 
 const { match } = sinon;
@@ -41,6 +41,10 @@ function restoreTerm() {
   } else {
     process.env.TERM = origTerm;
   }
+}
+
+function toRegExp(str) {
+  return new RegExp(escapeStringRegexp(str));
 }
 
 describe('appveyor-status command', () => {
@@ -268,9 +272,9 @@ describe('appveyor-status command', () => {
           assert.strictEqual(code, status === 'success' ? 0 : 2);
           const outString = String(options.out.read());
           const ansiStyle = ansiStyles[colorName];
-          assert.include(
+          assert.match(
             outString,
-            `${ansiStyle.open}status${ansiStyle.close}`,
+            toRegExp(`${ansiStyle.open}status${ansiStyle.close}`),
           );
           assert.strictEqual(options.err.read(), null);
           done();
@@ -344,7 +348,6 @@ describe('appveyor-status command', () => {
     assert.throws(
       () => { appveyorStatusCmd(RUNTIME_ARGS, {}, true); },
       TypeError,
-      /\bcallback\b/,
     );
   });
 
@@ -362,7 +365,7 @@ describe('appveyor-status command', () => {
   it('yields TypeError for non-Array-like args', (done) => {
     appveyorStatusMock.expects('getStatus').never();
     appveyorStatusCmd(true, options, (err) => {
-      assert.instanceOf(err, TypeError);
+      assert(err instanceof TypeError);
       assert.match(err.message, /\bArray\b/);
       done();
     });
@@ -371,7 +374,7 @@ describe('appveyor-status command', () => {
   it('yields RangeError for less than 2 args', (done) => {
     appveyorStatusMock.expects('getStatus').never();
     appveyorStatusCmd([], options, (err) => {
-      assert.instanceOf(err, RangeError);
+      assert(err instanceof RangeError);
       assert.match(err.message, /\bargs\b/);
       done();
     });
@@ -380,7 +383,7 @@ describe('appveyor-status command', () => {
   it('yields Error for non-object options', (done) => {
     appveyorStatusMock.expects('getStatus').never();
     appveyorStatusCmd(RUNTIME_ARGS, true, (err) => {
-      assert.instanceOf(err, TypeError);
+      assert(err instanceof TypeError);
       assert.match(err.message, /\boptions\b/);
       done();
     });
@@ -389,7 +392,7 @@ describe('appveyor-status command', () => {
   it('yields Error for non-Readable in', (done) => {
     appveyorStatusMock.expects('getStatus').never();
     appveyorStatusCmd(RUNTIME_ARGS, { in: true }, (err) => {
-      assert.instanceOf(err, TypeError);
+      assert(err instanceof TypeError);
       assert.match(err.message, /\boptions.in\b/);
       done();
     });
@@ -399,7 +402,7 @@ describe('appveyor-status command', () => {
     appveyorStatusMock.expects('getStatus').never();
     const badOptions = { out: new stream.Readable() };
     appveyorStatusCmd(RUNTIME_ARGS, badOptions, (err) => {
-      assert.instanceOf(err, TypeError);
+      assert(err instanceof TypeError);
       assert.match(err.message, /\boptions.out\b/);
       done();
     });
@@ -409,7 +412,7 @@ describe('appveyor-status command', () => {
     appveyorStatusMock.expects('getStatus').never();
     const badOptions = { err: new stream.Readable() };
     appveyorStatusCmd(RUNTIME_ARGS, badOptions, (err) => {
-      assert.instanceOf(err, TypeError);
+      assert(err instanceof TypeError);
       assert.match(err.message, /\boptions.err\b/);
       done();
     });
@@ -424,7 +427,7 @@ describe('appveyor-status command', () => {
       assert.strictEqual(code, 1);
       assert.strictEqual(options.out.read(), null);
       const errString = String(options.err.read());
-      assert.include(errString, errMsg);
+      assert.match(errString, toRegExp(errMsg));
       done();
     });
   });
@@ -443,8 +446,8 @@ describe('appveyor-status command', () => {
       assert.strictEqual(code, 3);
       assert.strictEqual(options.out.read(), null);
       const errString = String(options.err.read());
-      assert.include(errString, errTest.actual);
-      assert.include(errString, errTest.expected);
+      assert.match(errString, toRegExp(errTest.actual));
+      assert.match(errString, toRegExp(errTest.expected));
       done();
     });
   });
@@ -464,9 +467,9 @@ describe('appveyor-status command', () => {
       assert.strictEqual(code, 3);
       assert.strictEqual(options.out.read(), null);
       const errString = String(options.err.read());
-      assert.include(errString, errTest.actual);
-      assert.include(errString, errTest.expected);
-      assert.include(errString, testTag);
+      assert.match(errString, toRegExp(errTest.actual));
+      assert.match(errString, toRegExp(errTest.expected));
+      assert.match(errString, toRegExp(testTag));
       done();
     });
   });
@@ -492,7 +495,7 @@ describe('appveyor-status command', () => {
     const result = appveyorStatusCmd(RUNTIME_ARGS, true);
     return result.then(
       sinon.mock().never(),
-      (err) => { assert.instanceOf(err, TypeError); },
+      (err) => { assert(err instanceof TypeError); },
     );
   });
 });
