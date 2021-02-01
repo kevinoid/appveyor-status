@@ -201,8 +201,10 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
   const yargs = new Yargs()
     .parserConfiguration({
       'parse-numbers': false,
+      'parse-positional-numbers': false,
       'duplicate-arguments-array': false,
       'flatten-duplicate-arrays': false,
+      'greedy-arrays': false,
     })
     .usage('Usage: $0 [options]')
     .help()
