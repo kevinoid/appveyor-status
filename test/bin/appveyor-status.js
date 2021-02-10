@@ -262,7 +262,6 @@ describe('appveyor-status command', () => {
       const colorName = status === 'success' ? 'green'
         : status === 'failed' ? 'red'
           : 'gray';
-      // eslint-disable-next-line no-loop-func
       colorIt(`prints ${status} in ${colorName} to TTY`, (done) => {
         appveyorStatusMock.expects('getStatus')
           .once().withArgs(match.object, match.func).yields(null, status);
@@ -289,7 +288,6 @@ describe('appveyor-status command', () => {
     after(restoreTerm);
 
     for (const status of statusValues) {
-      // eslint-disable-next-line no-loop-func
       colorIt(`prints ${status} without color to TTY`, (done) => {
         appveyorStatusMock.expects('getStatus')
           .once().withArgs(match.object, match.func).yields(null, status);
@@ -307,7 +305,6 @@ describe('appveyor-status command', () => {
   });
 
   for (const arg of ['-q', '--quiet']) {
-    // eslint-disable-next-line no-loop-func
     it(`${arg} exits without printing status`, (done) => {
       appveyorStatusMock.expects('getStatus')
         .once().withArgs(match.object, match.func).yields(null, 'failed');
