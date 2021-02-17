@@ -7,6 +7,7 @@
 
 const SwaggerClient = require('swagger-client');
 const appveyorSwagger = require('appveyor-swagger');
+const assert = require('@kevinoid/assert-shim');
 const escapeStringRegexp = require('escape-string-regexp');
 const nock = require('nock');
 const proxyquire = require('proxyquire');
@@ -15,7 +16,6 @@ const stream = require('stream');
 const url = require('url');
 const { promisify: { custom: promisifyCustom } } = require('util');
 
-const assert = require('../test-lib/assert-backports');
 const gitUtils = require('../lib/git-utils');
 const appveyorUtils = require('../lib/appveyor-utils');
 const apiResponses = require('../test-lib/api-responses');

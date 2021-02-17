@@ -7,6 +7,7 @@
 
 const ansiStyles = require('ansi-styles');
 const appveyorSwagger = require('appveyor-swagger');
+const assert = require('@kevinoid/assert-shim');
 const escapeStringRegexp = require('escape-string-regexp');
 const fs = require('fs');
 const hasAnsi = require('has-ansi');
@@ -17,7 +18,6 @@ const stream = require('stream');
 const packageJson = require('../../package.json');
 const appveyorStatus = require('../..');
 const appveyorStatusCmd = require('../../bin/appveyor-status');
-const assert = require('../../test-lib/assert-backports');
 const CommitMismatchError = require('../../lib/commit-mismatch-error');
 
 const { match } = sinon;

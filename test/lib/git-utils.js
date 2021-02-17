@@ -5,13 +5,13 @@
 
 'use strict';
 
+const assert = require('@kevinoid/assert-shim');
 const path = require('path');
 // TODO [engine:node@>=12.10]: Use fs.rmdir({recursive: true})
 const rimraf = require('rimraf');
 const { pathToFileURL } = require('url');
 const { promisify } = require('util');
 
-const assert = require('../../test-lib/assert-backports');
 const gitUtils = require('../../lib/git-utils');
 const execFileOut = require('../../lib/exec-file-out');
 
