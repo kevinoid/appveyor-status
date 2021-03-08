@@ -134,6 +134,8 @@ before('setup test repository', function() {
 after('remove test repository', () => rimrafP(TEST_REPO_PATH));
 
 function checkoutDefault() {
+  // Increase timeout to cover slower CI environments.
+  this.timeout(4000);
   return execFileOut('git', ['checkout', '-q', defaultBranch], options);
 }
 
