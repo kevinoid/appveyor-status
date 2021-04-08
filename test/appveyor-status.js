@@ -5,6 +5,7 @@
 
 'use strict';
 
+const FakeTimers = require('@sinonjs/fake-timers');
 const SwaggerClient = require('swagger-client');
 const appveyorSwagger = require('appveyor-swagger');
 const assert = require('@kevinoid/assert-shim');
@@ -14,43 +15,18 @@ const proxyquire = require('proxyquire');
 const sinon = require('sinon');
 const stream = require('stream');
 const url = require('url');
-const { promisify: { custom: promisifyCustom } } = require('util');
 
 const gitUtils = require('../lib/git-utils');
 const appveyorUtils = require('../lib/appveyor-utils');
 const apiResponses = require('../test-lib/api-responses');
 const AmbiguousProjectError = require('../lib/ambiguous-project-error');
 
-const fakeTimers = { Date };
-const clock = sinon.useFakeTimers({
-  target: fakeTimers,
-  toFake: [
-    'Date',
-    'clearImmediate',
-    'clearInterval',
-    'clearTimeout',
-    'setImmediate',
-    'setInterval',
-    'setTimeout',
-  ],
-});
-// Ensure fakeTimer functions can be promisified
-// https://github.com/sinonjs/fake-timers/issues/347
-for (const methodName of Object.keys(fakeTimers)) {
-  const method = clock[methodName];
-  const promisified = method && method[promisifyCustom];
-  if (promisified) {
-    const fakeMethod = fakeTimers[methodName];
-    if (!fakeMethod[promisifyCustom]) {
-      fakeMethod[promisifyCustom] = promisified;
-    }
-  }
-}
+const clock = FakeTimers.createClock();
 
 const appveyorStatus = proxyquire(
   '..',
   {
-    timers: fakeTimers,
+    timers: clock,
   },
 );
 

@@ -5,6 +5,7 @@
 
 'use strict';
 
+const FakeTimers = require('@sinonjs/fake-timers');
 const assert = require('assert');
 const sinon = require('sinon');
 const timers = require('timers');
@@ -15,9 +16,7 @@ const retryAsync = require('../../lib/retry-async.js');
 // TODO [engine:node@>=15]: import { setImmediate } from 'timers/promises';
 const setImmediateP = promisify(timers.setImmediate);
 
-const clock = sinon.useFakeTimers({
-  target: { Date },
-});
+const clock = FakeTimers.createClock();
 const timeOptions = {
   now: clock.Date.now,
   setTimeout: promisify(clock.setTimeout),
