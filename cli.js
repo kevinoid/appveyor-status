@@ -9,7 +9,7 @@
 'use strict';
 
 const ansiStyles = require('ansi-styles');
-const Yargs = require('yargs/yargs');
+const yargs = require('yargs/yargs');
 const fs = require('fs');
 const readAllStream = require('read-all-stream');
 const { supportsColor } = require('supports-color');
@@ -56,6 +56,10 @@ const statusColor = {
 };
 
 function coerceWait(arg) {
+  if (arg === undefined) {
+    return arg;
+  }
+
   const val = arg === true ? Infinity : Number(arg);
   if (Number.isNaN(val)) {
     throw new TypeError(`Invalid number "${arg}"`);
@@ -197,7 +201,7 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
     return undefined;
   }
 
-  const yargs = new Yargs()
+  const yargsObj = yargs()
     .parserConfiguration({
       'parse-numbers': false,
       'parse-positional-numbers': false,
@@ -277,10 +281,11 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
        * 'Webhook ID of project (from badge URL, exclusive with commit)' */
       nargs: 1,
     })
+    .scriptName(packageJson.name)
     .version(`${packageJson.name} ${packageJson.version}`)
     .alias('version', 'V')
     .strict();
-  yargs.parse(args, (err, argOpts, output) => {
+  yargsObj.parse(args, (err, argOpts, output) => {
     if (err) {
       options.stderr.write(output ? `${output}\n`
         : `${err.name}: ${err.message}\n`);
