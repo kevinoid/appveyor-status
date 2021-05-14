@@ -6,18 +6,18 @@
 'use strict';
 
 const assert = require('@kevinoid/assert-shim');
+// TODO [engine:node@>=14]: import { rmdir } from 'fs/promises'
+const { promises: fsPromises } = require('fs');
 const path = require('path');
-// TODO [engine:node@>=12.10]: Use fs.rmdir({recursive: true})
-const rimraf = require('rimraf');
 const { pathToFileURL } = require('url');
-const { promisify } = require('util');
 
 const gitUtils = require('../../lib/git-utils.js');
 const execFileOut = require('../../lib/exec-file-out.js');
 
+const { rmdir } = fsPromises;
+
 const defaultBranch = 'main';
 const isWindows = /^win/i.test(process.platform);
-const rimrafP = promisify(rimraf);
 
 const BRANCH_REMOTES = {
   // Note:  must be origin so ls-remote default is origin for all git versions
@@ -48,7 +48,7 @@ before('setup test repository', function() {
   // Some git versions can run quite slowly on Windows
   this.timeout(isWindows ? 8000 : 4000);
 
-  return rimrafP(TEST_REPO_PATH)
+  return rmdir(TEST_REPO_PATH, { recursive: true })
     .then(async () => {
       try {
         await execFileOut(
@@ -131,7 +131,10 @@ before('setup test repository', function() {
       }), Promise.resolve()));
 });
 
-after('remove test repository', () => rimrafP(TEST_REPO_PATH));
+after('remove test repository', () => rmdir(
+  TEST_REPO_PATH,
+  { recursive: true },
+));
 
 function checkoutDefault() {
   // Increase timeout to cover slower CI environments.
