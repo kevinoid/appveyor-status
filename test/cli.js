@@ -62,9 +62,9 @@ describe('appveyor-status command', () => {
   let options;
   beforeEach(() => {
     options = {
-      in: new stream.PassThrough(),
-      out: new stream.PassThrough(),
-      err: new stream.PassThrough(),
+      stdin: new stream.PassThrough(),
+      stdout: new stream.PassThrough(),
+      stderr: new stream.PassThrough(),
     };
   });
 
@@ -106,15 +106,15 @@ describe('appveyor-status command', () => {
         assert.strictEqual(code, expectCode);
 
         if (expectOutMsg instanceof RegExp) {
-          assert.match(String(options.out.read()), expectOutMsg);
+          assert.match(String(options.stdout.read()), expectOutMsg);
         } else {
-          assert.strictEqual(options.out.read(), expectOutMsg);
+          assert.strictEqual(options.stdout.read(), expectOutMsg);
         }
 
         if (expectErrMsg instanceof RegExp) {
-          assert.match(String(options.err.read()), expectErrMsg);
+          assert.match(String(options.stderr.read()), expectErrMsg);
         } else {
-          assert.strictEqual(options.err.read(), expectErrMsg);
+          assert.strictEqual(options.stderr.read(), expectErrMsg);
         }
 
         appveyorStatusMock.verify();
@@ -212,7 +212,7 @@ describe('appveyor-status command', () => {
       )
       .yields(null, 'success');
     const allArgs = [...RUNTIME_ARGS, '-T', '-'];
-    options.in = fs.createReadStream(TEST_TOKEN_PATH);
+    options.stdin = fs.createReadStream(TEST_TOKEN_PATH);
     appveyorStatusCmd(allArgs, options, (err) => {
       assert.ifError(err);
       appveyorStatusMock.verify();
@@ -244,11 +244,11 @@ describe('appveyor-status command', () => {
       assert.ifError(err);
       assert.strictEqual(code, 0);
       assert.strictEqual(
-        String(options.out.read()),
+        String(options.stdout.read()),
         // Be strict about this format since other programs may use it
         'AppVeyor build status: success\n',
       );
-      assert.strictEqual(options.err.read(), null);
+      assert.strictEqual(options.stderr.read(), null);
       done();
     });
   });
@@ -265,17 +265,17 @@ describe('appveyor-status command', () => {
       colorIt(`prints ${status} in ${colorName} to TTY`, (done) => {
         appveyorStatusMock.expects('getStatus')
           .once().withArgs(match.object, match.func).yields(null, status);
-        options.out.isTTY = true;
+        options.stdout.isTTY = true;
         appveyorStatusCmd(RUNTIME_ARGS, options, (err, code) => {
           assert.ifError(err);
           assert.strictEqual(code, status === 'success' ? 0 : 2);
-          const outString = String(options.out.read());
+          const outString = String(options.stdout.read());
           const ansiStyle = ansiStyles[colorName];
           assert.match(
             outString,
             toRegExp(`${ansiStyle.open}status${ansiStyle.close}`),
           );
-          assert.strictEqual(options.err.read(), null);
+          assert.strictEqual(options.stderr.read(), null);
           done();
         });
       });
@@ -291,13 +291,13 @@ describe('appveyor-status command', () => {
       colorIt(`prints ${status} without color to TTY`, (done) => {
         appveyorStatusMock.expects('getStatus')
           .once().withArgs(match.object, match.func).yields(null, status);
-        options.out.isTTY = true;
+        options.stdout.isTTY = true;
         appveyorStatusCmd(RUNTIME_ARGS, options, (err, code) => {
           assert.ifError(err);
           assert.strictEqual(code, status === 'success' ? 0 : 2);
-          const outString = String(options.out.read());
+          const outString = String(options.stdout.read());
           assert(!hasAnsi(outString), 'does not have color escapes');
-          assert.strictEqual(options.err.read(), null);
+          assert.strictEqual(options.stderr.read(), null);
           done();
         });
       });
@@ -312,8 +312,8 @@ describe('appveyor-status command', () => {
       appveyorStatusCmd(allArgs, options, (err, code) => {
         assert.ifError(err);
         assert.strictEqual(code, 2);
-        assert.strictEqual(options.out.read(), null);
-        assert.strictEqual(options.err.read(), null);
+        assert.strictEqual(options.stdout.read(), null);
+        assert.strictEqual(options.stderr.read(), null);
         done();
       });
     });
@@ -388,29 +388,29 @@ describe('appveyor-status command', () => {
 
   it('yields Error for non-Readable in', (done) => {
     appveyorStatusMock.expects('getStatus').never();
-    appveyorStatusCmd(RUNTIME_ARGS, { in: true }, (err) => {
+    appveyorStatusCmd(RUNTIME_ARGS, { stdin: true }, (err) => {
       assert(err instanceof TypeError);
-      assert.match(err.message, /\boptions.in\b/);
+      assert.match(err.message, /\boptions.stdin\b/);
       done();
     });
   });
 
   it('yields Error for non-Writable out', (done) => {
     appveyorStatusMock.expects('getStatus').never();
-    const badOptions = { out: new stream.Readable() };
+    const badOptions = { stdout: new stream.Readable() };
     appveyorStatusCmd(RUNTIME_ARGS, badOptions, (err) => {
       assert(err instanceof TypeError);
-      assert.match(err.message, /\boptions.out\b/);
+      assert.match(err.message, /\boptions.stdout\b/);
       done();
     });
   });
 
   it('yields Error for non-Writable err', (done) => {
     appveyorStatusMock.expects('getStatus').never();
-    const badOptions = { err: new stream.Readable() };
+    const badOptions = { stderr: new stream.Readable() };
     appveyorStatusCmd(RUNTIME_ARGS, badOptions, (err) => {
       assert(err instanceof TypeError);
-      assert.match(err.message, /\boptions.err\b/);
+      assert.match(err.message, /\boptions.stderr\b/);
       done();
     });
   });
@@ -422,8 +422,8 @@ describe('appveyor-status command', () => {
     appveyorStatusCmd(RUNTIME_ARGS, options, (err, code) => {
       assert.ifError(err);
       assert.strictEqual(code, 1);
-      assert.strictEqual(options.out.read(), null);
-      const errString = String(options.err.read());
+      assert.strictEqual(options.stdout.read(), null);
+      const errString = String(options.stderr.read());
       assert.match(errString, toRegExp(errMsg));
       done();
     });
@@ -441,8 +441,8 @@ describe('appveyor-status command', () => {
     appveyorStatusCmd(allArgs, options, (err, code) => {
       assert.ifError(err);
       assert.strictEqual(code, 3);
-      assert.strictEqual(options.out.read(), null);
-      const errString = String(options.err.read());
+      assert.strictEqual(options.stdout.read(), null);
+      const errString = String(options.stderr.read());
       assert.match(errString, toRegExp(errTest.actual));
       assert.match(errString, toRegExp(errTest.expected));
       done();
@@ -462,8 +462,8 @@ describe('appveyor-status command', () => {
     appveyorStatusCmd(allArgs, options, (err, code) => {
       assert.ifError(err);
       assert.strictEqual(code, 3);
-      assert.strictEqual(options.out.read(), null);
-      const errString = String(options.err.read());
+      assert.strictEqual(options.stdout.read(), null);
+      const errString = String(options.stderr.read());
       assert.match(errString, toRegExp(errTest.actual));
       assert.match(errString, toRegExp(errTest.expected));
       assert.match(errString, toRegExp(testTag));

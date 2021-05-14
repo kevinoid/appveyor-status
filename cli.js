@@ -76,12 +76,12 @@ function checkStatus(options, callback) {
         if (options.commit !== err.expected) {
           expected += ` (${err.expected})`;
         }
-        options.err.write(`Error: Last build commit ${err.actual} `
+        options.stderr.write(`Error: Last build commit ${err.actual} `
                           + `did not match ${expected}\n`);
         // eslint-disable-next-line unicorn/no-null
         callback(null, ExitCode.FAIL_COMMIT);
       } else {
-        options.err.write(`${err}\n`);
+        options.stderr.write(`${err}\n`);
         // eslint-disable-next-line unicorn/no-null
         callback(null, ExitCode.FAIL_OTHER);
       }
@@ -99,7 +99,7 @@ function checkStatus(options, callback) {
         statusColored = status;
       }
 
-      options.out.write(`AppVeyor build status: ${statusColored}\n`);
+      options.stdout.write(`AppVeyor build status: ${statusColored}\n`);
     }
     callback(
       null, // eslint-disable-line unicorn/no-null
@@ -112,15 +112,15 @@ function checkStatus(options, callback) {
  *
  * @static
  * @typedef {{
- *   in: (module:stream.Readable|undefined),
- *   out: (module:stream.Writable|undefined),
- *   err: (module:stream.Writable|undefined)
+ *   stdin: (module:stream.Readable|undefined),
+ *   stdout: (module:stream.Writable|undefined),
+ *   stderr: (module:stream.Writable|undefined)
  * }} CommandOptions
- * @property {module:stream.Readable=} in Stream from which input is read.
+ * @property {module:stream.Readable=} stdin Stream from which input is read.
  * (default: <code>process.stdin</code>)
- * @property {module:stream.Writable=} out Stream to which output is written.
+ * @property {module:stream.Writable=} stdout Stream to which output is written.
  * (default: <code>process.stdout</code>)
- * @property {module:stream.Writable=} err Stream to which errors (and
+ * @property {module:stream.Writable=} stderr Stream to which errors (and
  * non-output status messages) are written.
  * (default: <code>process.stderr</code>)
  */
@@ -175,20 +175,20 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
     }
 
     options = {
-      in: process.stdin,
-      out: process.stdout,
-      err: process.stderr,
+      stdin: process.stdin,
+      stdout: process.stdout,
+      stderr: process.stderr,
       ...options,
     };
 
-    if (!options.in || typeof options.in.on !== 'function') {
-      throw new TypeError('options.in must be a stream.Readable');
+    if (!options.stdin || typeof options.stdin.on !== 'function') {
+      throw new TypeError('options.stdin must be a stream.Readable');
     }
-    if (!options.out || typeof options.out.write !== 'function') {
-      throw new TypeError('options.out must be a stream.Writable');
+    if (!options.stdout || typeof options.stdout.write !== 'function') {
+      throw new TypeError('options.stdout must be a stream.Writable');
     }
-    if (!options.err || typeof options.err.write !== 'function') {
-      throw new TypeError('options.err must be a stream.Writable');
+    if (!options.stderr || typeof options.stderr.write !== 'function') {
+      throw new TypeError('options.stderr must be a stream.Writable');
     }
   } catch (err) {
     process.nextTick(() => {
@@ -282,7 +282,7 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
     .strict();
   yargs.parse(args, (err, argOpts, output) => {
     if (err) {
-      options.err.write(output ? `${output}\n`
+      options.stderr.write(output ? `${output}\n`
         : `${err.name}: ${err.message}\n`);
       // eslint-disable-next-line unicorn/no-null
       callback(null, ExitCode.FAIL_ARGUMENTS);
@@ -290,7 +290,7 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
     }
 
     if (output) {
-      options.out.write(`${output}\n`);
+      options.stdout.write(`${output}\n`);
     }
 
     if (argOpts.help || argOpts.version) {
@@ -300,7 +300,7 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
     }
 
     if (argOpts._.length !== 0) {
-      options.err.write('Error: Unexpected non-option arguments.\n');
+      options.stderr.write('Error: Unexpected non-option arguments.\n');
       // eslint-disable-next-line unicorn/no-null
       callback(null, ExitCode.FAIL_ARGUMENTS);
       return;
@@ -311,7 +311,7 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
     delete argOpts.verbose;
 
     if (argOpts.color === undefined) {
-      argOpts.color = supportsColor(options.out).hasBasic;
+      argOpts.color = supportsColor(options.stdout).hasBasic;
     }
 
     if (argOpts.commit === true) {
@@ -331,11 +331,11 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
     const statusOpts = { ...options, ...argOpts };
 
     if (argOpts.tokenFile !== undefined) {
-      const tokenFileStream = argOpts.tokenFile === '-' ? options.in
+      const tokenFileStream = argOpts.tokenFile === '-' ? options.stdin
         : fs.createReadStream(argOpts.tokenFile);
       readAllStream(tokenFileStream, (errRead, token) => {
         if (errRead) {
-          options.err.write('Error: Unable to read API token file: '
+          options.stderr.write('Error: Unable to read API token file: '
                             + `${errRead.message}\n`);
           // eslint-disable-next-line unicorn/no-null
           callback(null, ExitCode.FAIL_ARGUMENTS);
