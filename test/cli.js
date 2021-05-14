@@ -15,10 +15,10 @@ const path = require('path');
 const sinon = require('sinon');
 const stream = require('stream');
 
-const packageJson = require('../../package.json');
-const appveyorStatus = require('../../index.js');
-const appveyorStatusCmd = require('../../bin/appveyor-status.js');
-const CommitMismatchError = require('../../lib/commit-mismatch-error.js');
+const packageJson = require('../package.json');
+const appveyorStatus = require('../index.js');
+const appveyorStatusCmd = require('../cli.js');
+const CommitMismatchError = require('../lib/commit-mismatch-error.js');
 
 const { match } = sinon;
 const statusValues = appveyorSwagger.definitions.Status.enum;
@@ -26,7 +26,7 @@ const statusValues = appveyorSwagger.definitions.Status.enum;
 // Simulate arguments passed by the node runtime
 const RUNTIME_ARGS = ['node', 'appveyor-status'];
 const TEST_TOKEN_PATH =
-  path.join(__dirname, '..', '..', 'test-data', 'token.txt');
+  path.join(__dirname, '..', 'test-data', 'token.txt');
 
 process.env.APPVEYOR_API_TOKEN = 'env-token';
 
