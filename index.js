@@ -635,6 +635,3 @@ function getStatusInternal(options) {
  * <code>undefined</code>.
  */
 exports.getStatus = wrapApiFunc(getStatusInternal);
-
-exports.AmbiguousProjectError = AmbiguousProjectError;
-exports.CommitMismatchError = CommitMismatchError;
