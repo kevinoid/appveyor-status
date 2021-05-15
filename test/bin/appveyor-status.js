@@ -16,9 +16,9 @@ const sinon = require('sinon');
 const stream = require('stream');
 
 const packageJson = require('../../package.json');
-const appveyorStatus = require('../..');
-const appveyorStatusCmd = require('../../bin/appveyor-status');
-const CommitMismatchError = require('../../lib/commit-mismatch-error');
+const appveyorStatus = require('../../index.js');
+const appveyorStatusCmd = require('../../bin/appveyor-status.js');
+const CommitMismatchError = require('../../lib/commit-mismatch-error.js');
 
 const { match } = sinon;
 const statusValues = appveyorSwagger.definitions.Status.enum;

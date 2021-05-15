@@ -16,10 +16,10 @@ const sinon = require('sinon');
 const stream = require('stream');
 const url = require('url');
 
-const gitUtils = require('../lib/git-utils');
-const appveyorUtils = require('../lib/appveyor-utils');
-const apiResponses = require('../test-lib/api-responses');
-const AmbiguousProjectError = require('../lib/ambiguous-project-error');
+const gitUtils = require('../lib/git-utils.js');
+const appveyorUtils = require('../lib/appveyor-utils.js');
+const apiResponses = require('../test-lib/api-responses.js');
+const AmbiguousProjectError = require('../lib/ambiguous-project-error.js');
 
 const clock = FakeTimers.createClock();
 

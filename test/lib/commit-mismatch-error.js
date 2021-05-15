@@ -7,7 +7,7 @@
 
 const assert = require('assert');
 
-const CommitMismatchError = require('../../lib/commit-mismatch-error');
+const CommitMismatchError = require('../../lib/commit-mismatch-error.js');
 
 describe('CommitMismatchError', () => {
   it('sets .actual and .expected from arguments', () => {

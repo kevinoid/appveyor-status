@@ -7,7 +7,7 @@
 
 const assert = require('assert');
 
-const AmbiguousProjectError = require('../../lib/ambiguous-project-error');
+const AmbiguousProjectError = require('../../lib/ambiguous-project-error.js');
 
 describe('AmbiguousProjectError', () => {
   it('sets .message and .projects from arguments', () => {

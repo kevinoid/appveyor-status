@@ -13,11 +13,11 @@ const nodeify = require('promise-nodeify');
 const timers = require('timers');
 const { promisify } = require('util');
 
-const gitUtils = require('./lib/git-utils');
-const appveyorUtils = require('./lib/appveyor-utils');
-const CommitMismatchError = require('./lib/commit-mismatch-error');
-const AmbiguousProjectError = require('./lib/ambiguous-project-error');
-const retryAsync = require('./lib/retry-async');
+const gitUtils = require('./lib/git-utils.js');
+const appveyorUtils = require('./lib/appveyor-utils.js');
+const CommitMismatchError = require('./lib/commit-mismatch-error.js');
+const AmbiguousProjectError = require('./lib/ambiguous-project-error.js');
+const retryAsync = require('./lib/retry-async.js');
 
 // Allow Date to be injected (via timers) for tests
 const { now } = timers.Date || Date;

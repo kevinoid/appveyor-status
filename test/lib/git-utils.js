@@ -12,8 +12,8 @@ const rimraf = require('rimraf');
 const { pathToFileURL } = require('url');
 const { promisify } = require('util');
 
-const gitUtils = require('../../lib/git-utils');
-const execFileOut = require('../../lib/exec-file-out');
+const gitUtils = require('../../lib/git-utils.js');
+const execFileOut = require('../../lib/exec-file-out.js');
 
 const defaultBranch = 'main';
 const isWindows = /^win/i.test(process.platform);

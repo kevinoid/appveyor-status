@@ -7,8 +7,8 @@
 
 const assert = require('assert');
 
-const apiResponses = require('../../test-lib/api-responses');
-const appveyorUtils = require('../../lib/appveyor-utils');
+const apiResponses = require('../../test-lib/api-responses.js');
+const appveyorUtils = require('../../lib/appveyor-utils.js');
 
 describe('appveyorUtils', () => {
   describe('.badgeToStatus', () => {
