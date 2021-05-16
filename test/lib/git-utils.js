@@ -6,7 +6,7 @@
 'use strict';
 
 const assert = require('@kevinoid/assert-shim');
-// TODO [engine:node@>=14]: import { rmdir } from 'fs/promises'
+// TODO [engine:node@>=14.14]: import { rm } from 'fs/promises'
 const { promises: fsPromises } = require('fs');
 const path = require('path');
 const { pathToFileURL } = require('url');
