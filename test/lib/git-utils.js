@@ -44,11 +44,28 @@ function neverCalled() {
   throw new Error('should not be called');
 }
 
+/**
+ * rmdir(2) forcefully (i.e. ignore ENOENT, like `rm -rf`).
+ *
+ * @private
+ * @param {string|Buffer|URL} dirPath Path of directory to remove.
+ * @param {object=} rmdirOptions Options passed to fsPromises.rmdir.
+ */
+async function rmdirF(dirPath, rmdirOptions) {
+  try {
+    await rmdir(dirPath, rmdirOptions);
+  } catch (err) {
+    if (err.code !== 'ENOENT') {
+      throw err;
+    }
+  }
+}
+
 before('setup test repository', function() {
   // Some git versions can run quite slowly on Windows
   this.timeout(isWindows ? 8000 : 4000);
 
-  return rmdir(TEST_REPO_PATH, { recursive: true })
+  return rmdirF(TEST_REPO_PATH, { recursive: true })
     .then(async () => {
       try {
         await execFileOut(
@@ -131,7 +148,7 @@ before('setup test repository', function() {
       }), Promise.resolve()));
 });
 
-after('remove test repository', () => rmdir(
+after('remove test repository', () => rmdirF(
   TEST_REPO_PATH,
   { recursive: true },
 ));
