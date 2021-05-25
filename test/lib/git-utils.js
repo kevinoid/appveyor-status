@@ -5,6 +5,7 @@
 
 'use strict';
 
+// TODO [engine:node@>=12.16]: require('assert');
 const assert = require('@kevinoid/assert-shim');
 // TODO [engine:node@>=14.14]: import { rm } from 'fs/promises'
 const { promises: fsPromises } = require('fs');

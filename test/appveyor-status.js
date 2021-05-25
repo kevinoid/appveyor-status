@@ -8,6 +8,7 @@
 const FakeTimers = require('@sinonjs/fake-timers');
 const SwaggerClient = require('swagger-client');
 const appveyorSwagger = require('appveyor-swagger');
+// TODO [engine:node@>=12.16]: require('assert');
 const assert = require('@kevinoid/assert-shim');
 const escapeStringRegexp = require('escape-string-regexp');
 const nock = require('nock');
