@@ -195,7 +195,7 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
       throw new TypeError('options.stderr must be a stream.Writable');
     }
   } catch (err) {
-    process.nextTick(() => {
+    queueMicrotask(() => {
       callback(err);
     });
     return undefined;
