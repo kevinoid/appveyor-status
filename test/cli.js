@@ -187,7 +187,9 @@ describe('appveyor-status command', () => {
   expectArgsAs(['-W', 'foo'], match({ webhookId: 'foo' }));
 
   expectArgsResult(
-    ['-t', 'foo', '-T', 'bar'], 4, null,
+    ['-t', 'foo', '-T', 'bar'],
+    4,
+    null,
     /conflict|exclusive|together/i,
   );
 

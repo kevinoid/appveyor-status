@@ -1195,14 +1195,16 @@ describe('appveyorStatus', function() {
       );
     });
 
-    it('rejects non-object options with TypeError',
+    it(
+      'rejects non-object options with TypeError',
       () => appveyorStatus.getStatus(true).then(
         sinon.mock().never(),
         (err) => {
           assert(err instanceof TypeError);
           assert.match(err.message, /\boptions\b/);
         },
-      ));
+      ),
+    );
 
     it('rejects project and repo with Error', () => {
       options.project = 'foo/bar';
@@ -1269,14 +1271,16 @@ describe('appveyorStatus', function() {
       );
     });
 
-    it('rejects non-Writable err with TypeError',
+    it(
+      'rejects non-Writable err with TypeError',
       () => appveyorStatus.getStatus({ err: new stream.Readable() }).then(
         sinon.mock().never(),
         (err) => {
           assert(err instanceof TypeError);
           assert.match(err.message, /\berr\b/);
         },
-      ));
+      ),
+    );
 
     it('rejects non-numeric wait with TypeError', () => {
       options.wait = 'forever';
