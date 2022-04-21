@@ -23,6 +23,9 @@ const apiResponses = require('../test-lib/api-responses.js');
 const AmbiguousProjectError = require('../lib/ambiguous-project-error.js');
 
 const clock = FakeTimers.createClock();
+// Skip tests which use global fetch (unsupported by nock)
+// eslint-disable-next-line no-undef
+const nofetchIt = typeof fetch === 'undefined' ? it : xit;
 
 const appveyorStatus = proxyquire(
   '..',
@@ -70,6 +73,22 @@ function waitForTimer(maxRetries) {
   });
 }
 
+function assertAuthorization(req, authorization) {
+  try {
+    assert.strictEqual(
+      req.headers.authorization,
+      authorization,
+    );
+  } catch {
+    // Single-element Array in node-fetch < v3.0.0
+    // https://github.com/node-fetch/node-fetch/pull/834
+    assert.deepEqual(
+      req.headers.authorization,
+      authorization,
+    );
+  }
+}
+
 describe('appveyorStatus', function() {
   // Increase timeout to cover slower CI environments.
   this.timeout(4000);
@@ -96,11 +115,21 @@ describe('appveyorStatus', function() {
     nock.cleanAll();
   });
 
+  let nodeFetch;
+  before(async () => {
+    // https://github.com/mysticatea/eslint-plugin-node/pull/256
+    // eslint-disable-next-line node/no-unsupported-features/es-syntax
+    const nodeFetchMod = await import('node-fetch');
+    nodeFetch = nodeFetchMod.default;
+  });
+
   // Test options object with standard streams for convenience
   let options;
   beforeEach(() => {
     options = {
       err: new stream.PassThrough(),
+      // Use nodeFetch instead of global fetch, which is not supported by nock
+      userFetch: nodeFetch,
     };
   });
 
@@ -797,10 +826,7 @@ describe('appveyorStatus', function() {
         .get('/api/projects')
         .query(true)
         .reply(200, function(uri, requestBody) {
-          assert.deepEqual(
-            this.req.headers.authorization,
-            [`Bearer ${testToken}`],
-          );
+          assertAuthorization(this.req, `Bearer ${testToken}`);
           return [
             apiResponses.getProject({
               repositoryType: 'git',
@@ -832,10 +858,7 @@ describe('appveyorStatus', function() {
         .get('/api/projects')
         .query(true)
         .reply(200, function(uri, requestBody) {
-          assert.deepEqual(
-            this.req.headers.authorization,
-            [`Bearer ${testToken2}`],
-          );
+          assertAuthorization(this.req, `Bearer ${testToken2}`);
           return [
             apiResponses.getProject({
               repositoryType: 'git',
@@ -849,6 +872,7 @@ describe('appveyorStatus', function() {
           apiToken: `Bearer ${testToken2}`,
         },
         spec: appveyorSwagger,
+        userFetch: nodeFetch,
       });
       options.repo = testRepo;
       options.token = testToken1;
@@ -1159,7 +1183,7 @@ describe('appveyorStatus', function() {
         });
     });
 
-    it('can be called with callback without options', (done) => {
+    nofetchIt('can be called with callback without options', (done) => {
       const testBranch = 'testb';
       const testProject = 'foo/bar';
       const testRemote = 'testr';

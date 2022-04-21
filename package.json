@@ -80,6 +80,7 @@
     "jsdoc": "^3.6.0",
     "mocha": "^9.0.0",
     "nock": "^13.0.2",
+    "node-fetch": "^3.0.0",
     "nodecat": "^2.0.0",
     "proxyquire": "^2.1.3",
     "rimraf": "^3.0.0",
@@ -103,7 +104,24 @@
   },
   "mocha": {
     "checkLeaks": true,
-    "exit": false
+    "exit": false,
+    "//": "Exclude globals added by fetch-blob for node-fetch on Node < 16.5: https://github.com/node-fetch/fetch-blob/blob/v3.1.5/streams.cjs#L22=",
+    "globals": [
+      "ByteLengthQueuingStrategy",
+      "CountQueuingStrategy",
+      "DOMException",
+      "ReadableByteStreamController",
+      "ReadableStream",
+      "ReadableStreamBYOBReader",
+      "ReadableStreamBYOBRequest",
+      "ReadableStreamDefaultController",
+      "ReadableStreamDefaultReader",
+      "TransformStream",
+      "TransformStreamDefaultController",
+      "WritableStream",
+      "WritableStreamDefaultController",
+      "WritableStreamDefaultWriter"
+    ]
   },
   "c8": {
     "exclude": [
