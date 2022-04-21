@@ -91,7 +91,7 @@ jobs:
         - ubuntu-latest
         - windows-latest
         node:
-        - '12.10'
+        - '12.20'
         - '>=17.1'
         exclude:
         # Exclude os/version already run in test-primary
