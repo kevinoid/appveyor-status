@@ -133,6 +133,7 @@ function makeClientErrorHandler(msgPrefix) {
  *   repo: string|undefined,
  *   statusBadgeId: string|undefined,
  *   token: string|undefined,
+ *   userFetch: Function|undefined,
  *   verbosity: number|undefined,
  *   wait: boolean|number|undefined,
  *   webhookId: string|undefined
@@ -159,6 +160,7 @@ function makeClientErrorHandler(msgPrefix) {
  * @property {string=} statusBadgeId Status badge ID to query
  * (exclusive with project, repo, and webhookId)
  * @property {string=} token AppVeyor API access token.
+ * @property {Function=} userFetch Fetch-compatible function to perform HTTP(S).
  * @property {number=} verbosity Amount of diagnostic information to print
  * (0 is default, larger yields more output).
  * @property {number=} wait Length of time to wait (in milliseconds) for build
@@ -276,6 +278,11 @@ function canonicalizeOptions(options, apiFunc) {
         apiToken: `Bearer ${options.token}`,
       };
     }
+
+    if (options.userFetch !== undefined && options.userFetch !== null) {
+      appveyorClientOptions.userFetch = options.userFetch;
+    }
+
     // Note: The constructor returns a Promise for the SwaggerClient rather
     // than the SwaggerClient instance.
     appveyorClientP = new SwaggerClient(appveyorClientOptions);
