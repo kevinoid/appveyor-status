@@ -47,7 +47,7 @@ for (const codeName of Object.keys(ExitCode)) {
 /** Maps AppVeyor build status to an ansi-styles color name.
  *
  * @constant
- * @type {object<string, string>}
+ * @type {Object<string, string>}
  * @private
  */
 const statusColor = {

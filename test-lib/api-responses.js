@@ -357,7 +357,7 @@ exports.getStatusBadge = function getStatusBadge(status) {
   if (!badgeData) {
     const badgeDataPath = path.join(__dirname, '..', 'test-data', 'badge.svg');
     badgeData =
-      fs.readFileSync(badgeDataPath, { encoding: 'utf-8' });
+      fs.readFileSync(badgeDataPath, { encoding: 'utf8' });
   }
 
   return badgeData.replace(/\bpassing\b/g, status);
