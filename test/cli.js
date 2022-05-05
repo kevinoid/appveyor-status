@@ -7,8 +7,7 @@
 
 const ansiStyles = require('ansi-styles');
 const appveyorSwagger = require('appveyor-swagger');
-// TODO [engine:node@>=12.16]: require('assert');
-const assert = require('@kevinoid/assert-shim');
+const assert = require('assert');
 const escapeStringRegexp = require('escape-string-regexp');
 const fs = require('fs');
 const hasAnsi = require('has-ansi');
