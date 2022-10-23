@@ -6,15 +6,12 @@
 'use strict';
 
 const assert = require('assert');
-// TODO [engine:node@>=14.14]: import { rm } from 'fs/promises'
-const { promises: fsPromises } = require('fs');
+const { rm } = require('fs/promises');
 const path = require('path');
 const { pathToFileURL } = require('url');
 
 const gitUtils = require('../../lib/git-utils.js');
 const execFileOut = require('../../lib/exec-file-out.js');
-
-const { rmdir } = fsPromises;
 
 const defaultBranch = 'main';
 const isWindows = /^win/i.test(process.platform);
@@ -43,19 +40,6 @@ const options = Object.freeze({ cwd: TEST_REPO_PATH });
 function neverCalled() {
   throw new Error('should not be called');
 }
-
-const rm = fsPromises.rm || function rmPoly(rmPath, rmOptions) {
-  if (!rmOptions || !rmOptions.force) {
-    return rmdir(rmPath, rmOptions);
-  }
-
-  return rmdir(rmPath, rmOptions)
-    .catch((err) => {
-      if (err.code !== 'ENOENT') {
-        throw err;
-      }
-    });
-};
 
 before('setup test repository', function() {
   // Some git versions can run quite slowly on Windows
