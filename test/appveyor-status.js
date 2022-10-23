@@ -116,8 +116,6 @@ describe('appveyorStatus', function() {
 
   let nodeFetch;
   before(async () => {
-    // https://github.com/mysticatea/eslint-plugin-node/pull/256
-    // eslint-disable-next-line node/no-unsupported-features/es-syntax
     const nodeFetchMod = await import('node-fetch');
     nodeFetch = nodeFetchMod.default;
   });
