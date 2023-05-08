@@ -201,7 +201,7 @@ function canonicalizeOptions(options, apiFunc) {
 
   options = { ...options };
 
-  options.err = options.err || process.stderr;
+  options.err ||= process.stderr;
   if (!options.err || typeof options.err.write !== 'function') {
     throw new TypeError('options.err must be a stream.Writable');
   }

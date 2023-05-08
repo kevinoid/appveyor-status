@@ -15,11 +15,11 @@ function neverCalled() {
 
 function quote(str) {
   return `'${
-    str.replace(/\\/g, '\\\\')
-      .replace(/'/g, '\\\'')
+    str.replaceAll('\\', '\\\\')
+      .replaceAll('\'', '\\\'')
       // Escape newline and tab for easier debugging
-      .replace(/\t/g, '\\t')
-      .replace(/\n/g, '\\n')
+      .replaceAll('\t', '\\t')
+      .replaceAll('\n', '\\n')
   }'`;
 }
 

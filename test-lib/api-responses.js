@@ -360,5 +360,5 @@ exports.getStatusBadge = function getStatusBadge(status) {
       fs.readFileSync(badgeDataPath, { encoding: 'utf8' });
   }
 
-  return badgeData.replace(/\bpassing\b/g, status);
+  return badgeData.replaceAll(/\bpassing\b/g, status);
 };
