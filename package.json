@@ -112,6 +112,8 @@
       "ReadableStreamBYOBRequest",
       "ReadableStreamDefaultController",
       "ReadableStreamDefaultReader",
+      "TextDecoderStream",
+      "TextEncoderStream",
       "TransformStream",
       "TransformStreamDefaultController",
       "WritableStream",
