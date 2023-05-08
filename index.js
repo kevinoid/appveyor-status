@@ -11,7 +11,7 @@ const appveyorSwagger = require('appveyor-swagger');
 const https = require('https');
 const nodeify = require('promise-nodeify');
 const timers = require('timers');
-const { promisify } = require('util');
+const { setTimeout: setTimeoutP } = require('timers/promises');
 
 const gitUtils = require('./lib/git-utils.js');
 const appveyorUtils = require('./lib/appveyor-utils.js');
@@ -21,9 +21,6 @@ const retryAsync = require('./lib/retry-async.js');
 
 // Allow Date to be injected (via timers) for tests
 const { now } = timers.Date || Date;
-
-// TODO [engine:node@>=15]: import { setTimeout } from 'timers/promises';
-const setTimeoutP = promisify(timers.setTimeout);
 
 /** Shallow, strict equality of properties in common between two objects.
  *

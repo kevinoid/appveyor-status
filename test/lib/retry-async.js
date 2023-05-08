@@ -8,13 +8,10 @@
 const FakeTimers = require('@sinonjs/fake-timers');
 const assert = require('assert');
 const sinon = require('sinon');
-const timers = require('timers');
+const { setImmediate: setImmediateP } = require('timers/promises');
 const { promisify } = require('util');
 
 const retryAsync = require('../../lib/retry-async.js');
-
-// TODO [engine:node@>=15]: import { setImmediate } from 'timers/promises';
-const setImmediateP = promisify(timers.setImmediate);
 
 const clock = FakeTimers.createClock();
 const timeOptions = {

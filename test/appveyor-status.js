@@ -19,6 +19,7 @@ const url = require('url');
 const gitUtils = require('../lib/git-utils.js');
 const appveyorUtils = require('../lib/appveyor-utils.js');
 const apiResponses = require('../test-lib/api-responses.js');
+const promisifyTimers = require('../test-lib/promisify-timers.js');
 const AmbiguousProjectError = require('../lib/ambiguous-project-error.js');
 
 const clock = FakeTimers.createClock();
@@ -30,6 +31,7 @@ const appveyorStatus = proxyquire(
   '..',
   {
     timers: clock,
+    'timers/promises': promisifyTimers(clock),
   },
 );
 
