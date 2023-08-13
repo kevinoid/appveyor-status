@@ -311,6 +311,28 @@ describe('gitUtils', () => {
       );
     });
 
+    it('parses SCP-like URL with IPv4 like ssh: URL', () => {
+      const testUrl = 'user@127.0.0.1:foo/bar.git';
+      assert.deepStrictEqual(
+        gitUtils.parseGitUrl(testUrl),
+        Object.assign(
+          new URL('ssh://user@127.0.0.1/foo/bar.git'),
+          { helper: undefined },
+        ),
+      );
+    });
+
+    it('parses SCP-like URL with IPv6 like ssh: URL', () => {
+      const testUrl = 'user@[::1]:foo/bar.git';
+      assert.deepStrictEqual(
+        gitUtils.parseGitUrl(testUrl),
+        Object.assign(
+          new URL('ssh://user@[::1]/foo/bar.git'),
+          { helper: undefined },
+        ),
+      );
+    });
+
     it('parses absolute path like file:// URL', () => {
       const testPath = path.resolve(path.join('foo', 'bar'));
       assert.deepStrictEqual(
