@@ -333,6 +333,50 @@ describe('gitUtils', () => {
       );
     });
 
+    it('parses SCP-like URL with IPv4-mapped IPv6 like ssh: URL', () => {
+      const testUrl = 'user@[::ffff:192.0.2.128]:foo/bar.git';
+      assert.deepStrictEqual(
+        gitUtils.parseGitUrl(testUrl),
+        Object.assign(
+          new URL('ssh://user@[::ffff:192.0.2.128]/foo/bar.git'),
+          { helper: undefined },
+        ),
+      );
+    });
+
+    it('parses SCP-like URL with IPv6 zone index like ssh: URL', () => {
+      const testUrl = 'user@[fe80::1ff:fe23:4567:890a%eth2]:foo/bar.git';
+      assert.deepStrictEqual(
+        gitUtils.parseGitUrl(testUrl),
+        Object.assign(
+          new URL('ssh://user@[fe80::1ff:fe23:4567:890a%25eth2]/foo/bar.git'),
+          { helper: undefined },
+        ),
+      );
+    });
+
+    it('parses SCP-like URL with domain and port like ssh: URL', () => {
+      const testUrl = 'user@[example.com:123]:foo/bar.git';
+      assert.deepStrictEqual(
+        gitUtils.parseGitUrl(testUrl),
+        Object.assign(
+          new URL('ssh://user@example.com:123/foo/bar.git'),
+          { helper: undefined },
+        ),
+      );
+    });
+
+    it('parses SCP-like URL with IPv4 and port like ssh: URL', () => {
+      const testUrl = 'user@[127.0.0.1:123]:foo/bar.git';
+      assert.deepStrictEqual(
+        gitUtils.parseGitUrl(testUrl),
+        Object.assign(
+          new URL('ssh://user@127.0.0.1:123/foo/bar.git'),
+          { helper: undefined },
+        ),
+      );
+    });
+
     it('parses absolute path like file:// URL', () => {
       const testPath = path.resolve(path.join('foo', 'bar'));
       assert.deepStrictEqual(
