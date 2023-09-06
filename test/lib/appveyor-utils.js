@@ -5,10 +5,10 @@
 
 'use strict';
 
-const assert = require('assert');
+const assert = require('node:assert');
 
-const apiResponses = require('../../test-lib/api-responses.js');
 const appveyorUtils = require('../../lib/appveyor-utils.js');
+const apiResponses = require('../../test-lib/api-responses.js');
 
 describe('appveyorUtils', () => {
   describe('.badgeToStatus', () => {

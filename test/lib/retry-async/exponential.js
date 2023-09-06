@@ -5,7 +5,7 @@
 
 'use strict';
 
-const assert = require('assert');
+const assert = require('node:assert');
 
 const exponential = require('../../../lib/retry-async/exponential.js');
 

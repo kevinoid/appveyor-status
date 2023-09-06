@@ -6,17 +6,18 @@
 
 'use strict';
 
-const SwaggerClient = require('swagger-client');
-const appveyorSwagger = require('appveyor-swagger');
-const https = require('https');
-const nodeify = require('promise-nodeify');
-const timers = require('timers');
-const { setTimeout: setTimeoutP } = require('timers/promises');
+const https = require('node:https');
+const timers = require('node:timers');
+const { setTimeout: setTimeoutP } = require('node:timers/promises');
 
-const gitUtils = require('./lib/git-utils.js');
+const appveyorSwagger = require('appveyor-swagger');
+const nodeify = require('promise-nodeify');
+const SwaggerClient = require('swagger-client');
+
+const AmbiguousProjectError = require('./lib/ambiguous-project-error.js');
 const appveyorUtils = require('./lib/appveyor-utils.js');
 const CommitMismatchError = require('./lib/commit-mismatch-error.js');
-const AmbiguousProjectError = require('./lib/ambiguous-project-error.js');
+const gitUtils = require('./lib/git-utils.js');
 const retryAsync = require('./lib/retry-async.js');
 
 // Allow Date to be injected (via timers) for tests
@@ -116,7 +117,7 @@ function makeClientErrorHandler(msgPrefix) {
   };
 }
 
-/** Options for {@link appveyorStatus} functions.
+/** Options for {@link module:appveyor-status.appveyorStatus} functions.
  *
  * @static
  * @typedef {{
@@ -323,7 +324,7 @@ function canonicalizeOptions(options, apiFunc) {
  * function(Error, T=)): Promise<T>} apiFunc API function to wrap.
  * @returns {function(module:appveyor-status.AppveyorStatusOptions=,
  * function(Error, T=)): Promise<T>} Function which calls
- * {@link canonicalizeOptions} with its argument and
+ * {@link module:appveyor-status.canonicalizeOptions} with its argument and
  * <code>apiFunc</code>.
  * @throws {TypeError} If callback argument passed to wrapped function is not
  * a function.
@@ -392,7 +393,8 @@ function shouldRetryForStatus(buildStatus) {
     || buildStatus === 'running';
 }
 
-/** Implements {@link getLastBuild} for options with non-null .project.
+/** Implements {@link module:appveyor-status.getLastBuild} for options with
+ * non-null .project.
  *
  * @private
  * @param {!module:appveyor-status.AppveyorStatusOptions} options Options
@@ -462,7 +464,7 @@ function getMatchingProject(options) {
     });
 }
 
-/** Implements {@link getLastBuild}.
+/** Implements {@link module:appveyor-status.getLastBuild}.
  *
  * @param {!module:appveyor-status.AppveyorStatusOptions} options Options.
  * @returns {!Promise<!appveyorSwagger.ProjectBuild>} Last AppVeyor build for
@@ -538,7 +540,7 @@ async function getLastBuildInternal(options) {
  */
 exports.getLastBuild = wrapApiFunc(getLastBuildInternal);
 
-/** Implements {@link getStatusBadge}.
+/** Implements {@link module:appveyor-status.getStatusBadge}.
  *
  * @param {!module:appveyor-status.AppveyorStatusOptions} options Options.
  * @returns {!Promise<string>} The current SVG status badge.
@@ -601,7 +603,7 @@ function getStatusBadgeInternal(options) {
  */
 exports.getStatusBadge = wrapApiFunc(getStatusBadgeInternal);
 
-/** Implements {@link getStatus}.
+/** Implements {@link module:appveyor-status.getStatus}.
  *
  * @param {!module:appveyor-status.AppveyorStatusOptions} options Options.
  * @returns {!Promise<string>} The current build status.

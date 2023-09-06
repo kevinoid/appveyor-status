@@ -5,20 +5,21 @@
 
 'use strict';
 
+const assert = require('node:assert');
+const fs = require('node:fs');
+const path = require('node:path');
+const stream = require('node:stream');
+
 const ansiStyles = require('ansi-styles');
 const appveyorSwagger = require('appveyor-swagger');
-const assert = require('assert');
 const escapeStringRegexp = require('escape-string-regexp');
-const fs = require('fs');
 const hasAnsi = require('has-ansi');
-const path = require('path');
 const sinon = require('sinon');
-const stream = require('stream');
 
-const packageJson = require('../package.json');
-const appveyorStatus = require('../index.js');
 const appveyorStatusCmd = require('../cli.js');
+const appveyorStatus = require('../index.js');
 const CommitMismatchError = require('../lib/commit-mismatch-error.js');
+const packageJson = require('../package.json');
 
 const { match } = sinon;
 const statusValues = appveyorSwagger.definitions.Status.enum;

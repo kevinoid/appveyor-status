@@ -5,7 +5,7 @@
 
 'use strict';
 
-const assert = require('assert');
+const assert = require('node:assert');
 
 const AmbiguousProjectError = require('../../lib/ambiguous-project-error.js');
 

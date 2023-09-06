@@ -5,22 +5,23 @@
 
 'use strict';
 
+const assert = require('node:assert');
+const stream = require('node:stream');
+const url = require('node:url');
+
 const FakeTimers = require('@sinonjs/fake-timers');
-const SwaggerClient = require('swagger-client');
 const appveyorSwagger = require('appveyor-swagger');
-const assert = require('assert');
 const escapeStringRegexp = require('escape-string-regexp');
 const nock = require('nock');
 const proxyquire = require('proxyquire');
 const sinon = require('sinon');
-const stream = require('stream');
-const url = require('url');
+const SwaggerClient = require('swagger-client');
 
-const gitUtils = require('../lib/git-utils.js');
+const AmbiguousProjectError = require('../lib/ambiguous-project-error.js');
 const appveyorUtils = require('../lib/appveyor-utils.js');
+const gitUtils = require('../lib/git-utils.js');
 const apiResponses = require('../test-lib/api-responses.js');
 const promisifyTimers = require('../test-lib/promisify-timers.js');
-const AmbiguousProjectError = require('../lib/ambiguous-project-error.js');
 
 const clock = FakeTimers.createClock();
 // Skip tests which use global fetch (unsupported by nock)
@@ -30,8 +31,8 @@ const nofetchIt = typeof fetch === 'undefined' ? it : xit;
 const appveyorStatus = proxyquire(
   '..',
   {
-    timers: clock,
-    'timers/promises': promisifyTimers(clock),
+    'node:timers': clock,
+    'node:timers/promises': promisifyTimers(clock),
   },
 );
 

@@ -5,13 +5,13 @@
 
 'use strict';
 
-const assert = require('assert');
-const { rm } = require('fs/promises');
-const path = require('path');
-const { pathToFileURL } = require('url');
+const assert = require('node:assert');
+const { rm } = require('node:fs/promises');
+const path = require('node:path');
+const { pathToFileURL } = require('node:url');
 
-const gitUtils = require('../../lib/git-utils.js');
 const execFileOut = require('../../lib/exec-file-out.js');
+const gitUtils = require('../../lib/git-utils.js');
 
 const defaultBranch = 'main';
 const isWindows = /^win/i.test(process.platform);

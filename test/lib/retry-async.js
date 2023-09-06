@@ -5,11 +5,12 @@
 
 'use strict';
 
+const assert = require('node:assert');
+const { setImmediate: setImmediateP } = require('node:timers/promises');
+const { promisify } = require('node:util');
+
 const FakeTimers = require('@sinonjs/fake-timers');
-const assert = require('assert');
 const sinon = require('sinon');
-const { setImmediate: setImmediateP } = require('timers/promises');
-const { promisify } = require('util');
 
 const retryAsync = require('../../lib/retry-async.js');
 

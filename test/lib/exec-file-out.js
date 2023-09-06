@@ -5,7 +5,7 @@
 
 'use strict';
 
-const assert = require('assert');
+const assert = require('node:assert');
 
 const execFileOut = require('../../lib/exec-file-out.js');
 

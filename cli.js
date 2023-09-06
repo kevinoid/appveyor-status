@@ -8,14 +8,14 @@
 
 'use strict';
 
+const fs = require('node:fs');
+
 const ansiStyles = require('ansi-styles');
-const yargs = require('yargs/yargs');
-const fs = require('fs');
 const readAllStream = require('read-all-stream');
 const { supportsColor } = require('supports-color');
+const yargs = require('yargs/yargs');
 
 const appveyorStatus = require('./index.js');
-
 const packageJson = require('./package.json');
 
 /** Exit codes returned by {@link module:appveyor-status/bin/appveyor-status}
