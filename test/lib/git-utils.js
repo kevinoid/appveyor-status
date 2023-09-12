@@ -344,7 +344,14 @@ describe('gitUtils', () => {
       );
     });
 
-    it('parses SCP-like URL with IPv6 zone index like ssh: URL', () => {
+    // Support for zone index in IPv6 address was dropped in Node.js 20,
+    // probably by Ada 2.0 <https://github.com/nodejs/node/pull/47339>
+    // to align with how IPv6 address is defined in the WHATWG URL Standard:
+    // https://url.spec.whatwg.org/#concept-ipv6
+    // See:
+    // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27234#c2
+    // https://github.com/whatwg/url/issues/392
+    xit('parses SCP-like URL with IPv6 zone index like ssh: URL', () => {
       const testUrl = 'user@[fe80::1ff:fe23:4567:890a%eth2]:foo/bar.git';
       assert.deepStrictEqual(
         gitUtils.parseGitUrl(testUrl),
