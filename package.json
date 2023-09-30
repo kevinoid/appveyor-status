@@ -71,6 +71,7 @@
     "eslint-plugin-jsdoc": "^46.0.0",
     "eslint-plugin-n": "^16.0.0",
     "eslint-plugin-promise": "^6.0.0",
+    "eslint-plugin-regexp": "^1.0.0",
     "eslint-plugin-unicorn": "^48.0.1",
     "has-ansi": "^4.0.0",
     "jsdoc": "^4.0.0",
@@ -95,6 +96,7 @@
       "eslint-plugin-jsdoc",
       "eslint-plugin-n",
       "eslint-plugin-promise",
+      "eslint-plugin-regexp",
       "eslint-plugin-unicorn"
     ]
   },
