@@ -25,7 +25,6 @@ const promisifyTimers = require('../test-lib/promisify-timers.js');
 
 const clock = FakeTimers.createClock();
 // Skip tests which use global fetch (unsupported by nock)
-// eslint-disable-next-line no-undef
 const nofetchIt = typeof fetch === 'undefined' ? it : xit;
 
 const appveyorStatus = proxyquire(
