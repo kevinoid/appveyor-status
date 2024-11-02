@@ -35,8 +35,8 @@ function assignUpdate(target, ...args) {
     if (nextSource) {
       // eslint-disable-next-line no-restricted-syntax
       for (const nextKey in nextSource) {
-        if (hasOwnProperty.call(nextSource, nextKey)
-            && hasOwnProperty.call(to, nextKey)) {
+        if (Object.hasOwn(nextSource, nextKey)
+            && Object.hasOwn(to, nextKey)) {
           to[nextKey] = nextSource[nextKey];
         }
       }

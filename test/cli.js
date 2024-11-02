@@ -33,7 +33,7 @@ process.env.APPVEYOR_API_TOKEN = 'env-token';
 
 // supports-color checks $FORCE_COLOR in require.  Can't test if set.
 const colorIt =
-  hasOwnProperty.call(process.env, 'FORCE_COLOR') ? xit : it;
+  Object.hasOwn(process.env, 'FORCE_COLOR') ? xit : it;
 
 const origTerm = process.env.TERM;
 function restoreTerm() {

@@ -33,7 +33,7 @@ const { now } = timers.Date || Date;
  */
 function shallowStrictCommonEqual(obj1, obj2) {
   return Object.keys(obj1)
-    .every((key) => !hasOwnProperty.call(obj2, key) || obj1[key] === obj2[key]);
+    .every((key) => !Object.hasOwn(obj2, key) || obj1[key] === obj2[key]);
 }
 
 /** Gets JSON body of a SwaggerClient response as an Object.
