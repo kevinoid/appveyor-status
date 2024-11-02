@@ -47,7 +47,7 @@ describe('CommitMismatchError', () => {
       actual: 'abc',
       expected: '123',
     };
-    // eslint-disable-next-line new-cap
+    // eslint-disable-next-line new-cap, unicorn/throw-new-error
     const err = CommitMismatchError(testOptions);
     assert.strictEqual(err.actual, testOptions.actual);
     assert.strictEqual(err.expected, testOptions.expected);
