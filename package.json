@@ -62,7 +62,7 @@
     "yargs": "^17.0.1"
   },
   "devDependencies": {
-    "@kevinoid/eslint-config": "^33.0.0",
+    "@kevinoid/eslint-config": "^33.1.0",
     "@sinonjs/fake-timers": "^10.0.0",
     "c8": "^10.0.0",
     "eslint": "^8.38.0",
