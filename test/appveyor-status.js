@@ -1113,7 +1113,7 @@ describe('appveyorStatus', function() {
       const ne = nock(apiUrl)
         .get(`/api/projects/status/${testStatusBadgeId}`)
         .query(true)
-        .reply(200, 'invalid', { 'Content-Type': undefined });
+        .reply(200, 'invalid');
       options.statusBadgeId = testStatusBadgeId;
       return appveyorStatus.getStatusBadge(options).then(
         sinon.mock().never(),
