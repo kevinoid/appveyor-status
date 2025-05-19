@@ -86,9 +86,7 @@ jobs:
         - ubuntu-latest
         - windows-latest
         node:
-        # Note: Although this project supports 18.0, some test dependencies
-        # only support 18.20 and later
-        - '18.20'
+        - '20.0'
         - latest
         exclude:
         # Exclude os/version already run in test-primary
