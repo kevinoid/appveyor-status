@@ -73,7 +73,7 @@
     "eslint-plugin-promise": "^7.0.0",
     "eslint-plugin-regexp": "^2.0.0",
     "eslint-plugin-unicorn": "^56.0.0",
-    "has-ansi": "^4.0.0",
+    "has-ansi": "^6.0.2",
     "jsdoc": "^4.0.0",
     "mocha": "^11.0.1",
     "nock": "^14.0.0",
