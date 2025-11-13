@@ -1,7 +1,7 @@
 AppVeyor Status
 ===============
 
-[![Build Status](https://img.shields.io/github/actions/workflow/status/kevinoid/appveyor-status/node.js.yml?branch=main&style=flat&label=build)](https://github.com/kevinoid/appveyor-status/actions?query=branch%3Amain)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/kevinoid/appveyor-status/node.js.yml?branch=main&style=flat&label=build)](https://github.com/kevinoid/appveyor-status/actions/workflows/node.js.yml?query=branch%3Amain)
 [![Build Status: Windows](https://img.shields.io/appveyor/ci/kevinoid/appveyor-status/main.svg?style=flat&label=build+on+windows)](https://ci.appveyor.com/project/kevinoid/appveyor-status)
 [![Coverage](https://img.shields.io/codecov/c/github/kevinoid/appveyor-status/main.svg?style=flat)](https://app.codecov.io/gh/kevinoid/appveyor-status/branch/main)
 [![Dependency Status](https://img.shields.io/librariesio/release/npm/appveyor-status.svg?style=flat)](https://libraries.io/npm/appveyor-status)
