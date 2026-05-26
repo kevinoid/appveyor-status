@@ -13,7 +13,7 @@ const stream = require('node:stream');
 const ansiStyles = require('ansi-styles');
 const appveyorSwagger = require('appveyor-swagger');
 const { default: escapeStringRegexp } = require('escape-string-regexp');
-const hasAnsi = require('has-ansi');
+const { default: hasAnsi } = require('has-ansi');
 const sinon = require('sinon');
 
 const appveyorStatusCmd = require('../cli.js');
