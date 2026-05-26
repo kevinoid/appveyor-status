@@ -81,7 +81,7 @@ function checkStatus(options, callback) {
           expected += ` (${err.expected})`;
         }
         options.stderr.write(`Error: Last build commit ${err.actual} `
-                          + `did not match ${expected}\n`);
+          + `did not match ${expected}\n`);
         // eslint-disable-next-line unicorn/no-null
         callback(null, ExitCode.FAIL_COMMIT);
       } else {
@@ -166,7 +166,7 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
     if (args === undefined || args === null) {
       args = [];
     } else if (typeof args !== 'object'
-               || Math.floor(args.length) !== args.length) {
+      || Math.floor(args.length) !== args.length) {
       throw new TypeError('args must be Array-like');
     } else if (args.length < 2) {
       throw new RangeError('args must have at least 2 elements');
@@ -341,7 +341,7 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
       readAllStream(tokenFileStream, (errRead, token) => {
         if (errRead) {
           options.stderr.write('Error: Unable to read API token file: '
-                            + `${errRead.message}\n`);
+            + `${errRead.message}\n`);
           // eslint-disable-next-line unicorn/no-null
           callback(null, ExitCode.FAIL_ARGUMENTS);
           return;

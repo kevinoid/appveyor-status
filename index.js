@@ -45,8 +45,8 @@ function shallowStrictCommonEqual(obj1, obj2) {
  */
 function getResponseJson(response) {
   if (response.obj === null
-      || response.obj === undefined
-      || response.obj === response.data) {
+    || response.obj === undefined
+    || response.obj === response.data) {
     try {
       response.obj = JSON.parse(response.data);
     } catch (errJson) {
@@ -196,7 +196,7 @@ function canonicalizeOptions(options, apiFunc) {
       .filter((propName) => options[propName]);
     if (projectOpts.length > 1) {
       throw new Error(`${projectOpts.join(' and ')}`
-                      + ' can not be specified together');
+        + ' can not be specified together');
     }
   }
 
@@ -218,7 +218,7 @@ function canonicalizeOptions(options, apiFunc) {
   if (typeof options.project === 'string') {
     options.project = appveyorUtils.projectFromString(options.project);
   } else if (options.project
-             && (!options.project.accountName || !options.project.slug)) {
+    && (!options.project.accountName || !options.project.slug)) {
     throw new Error('options.project must have accountName and slug');
   }
 
@@ -229,9 +229,9 @@ function canonicalizeOptions(options, apiFunc) {
 
   // If project, repo, statusBadgeId, & webhookId are unspecified, use work dir
   if (!options.project
-      && !options.repo
-      && !options.statusBadgeId
-      && !options.webhookId) {
+    && !options.repo
+    && !options.statusBadgeId
+    && !options.webhookId) {
     options.repo = '.';
   }
 
@@ -248,7 +248,7 @@ function canonicalizeOptions(options, apiFunc) {
       .catch((err) => {
         if (options.verbosity > 0) {
           options.err.write(`DEBUG: Unable to get remote: ${err}\n`
-                            + 'DEBUG: Will try to use origin remote.\n');
+            + 'DEBUG: Will try to use origin remote.\n');
         }
         return 'origin';
       })
@@ -449,7 +449,7 @@ function getMatchingProject(options) {
 
       if (repoProjects.length === 0) {
         throw new Error('No AppVeyor projects matching '
-                        + `${JSON.stringify(avRepo)}`);
+          + `${JSON.stringify(avRepo)}`);
       } else if (repoProjects.length > 1) {
         // Callers may want to handle this error specially, so make it usable
         const repoProjectStrs = repoProjects.map(appveyorUtils.projectToString);

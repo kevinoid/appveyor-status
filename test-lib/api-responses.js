@@ -28,7 +28,7 @@ function assignUpdate(target, ...args) {
 
   // Ensure target is an object.
   // Workaround until https://github.com/eslint/eslint/pull/11811 is merged
-  // eslint-disable-next-line no-new-object
+
   const to = new Object(target);
 
   for (const nextSource of args) {
@@ -36,7 +36,7 @@ function assignUpdate(target, ...args) {
       // eslint-disable-next-line no-restricted-syntax
       for (const nextKey in nextSource) {
         if (Object.hasOwn(nextSource, nextKey)
-            && Object.hasOwn(to, nextKey)) {
+          && Object.hasOwn(to, nextKey)) {
           to[nextKey] = nextSource[nextKey];
         }
       }
