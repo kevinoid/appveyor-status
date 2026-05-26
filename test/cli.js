@@ -10,7 +10,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const stream = require('node:stream');
 
-const ansiStyles = require('ansi-styles');
+const { default: ansiStyles } = require('ansi-styles');
 const appveyorSwagger = require('appveyor-swagger');
 const { default: escapeStringRegexp } = require('escape-string-regexp');
 const { default: hasAnsi } = require('has-ansi');

@@ -10,7 +10,7 @@
 
 const fs = require('node:fs');
 
-const ansiStyles = require('ansi-styles');
+const { default: ansiStyles } = require('ansi-styles');
 const readAllStream = require('read-all-stream');
 const { supportsColor } = require('supports-color');
 const yargs = require('yargs');
