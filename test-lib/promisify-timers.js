@@ -5,6 +5,8 @@
 
 'use strict';
 
+/* eslint-disable jsdoc/reject-function-type */
+
 /** Create setInterval and setTimeout functions compatible with the
  * timers/promises API which wrap the setInterval and setTimeout functions
  * from a given object.
