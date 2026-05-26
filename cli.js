@@ -12,7 +12,7 @@ const fs = require('node:fs');
 
 const { default: ansiStyles } = require('ansi-styles');
 const readAllStream = require('read-all-stream');
-const { supportsColor } = require('supports-color');
+const { createSupportsColor } = require('supports-color');
 const yargs = require('yargs');
 
 const appveyorStatus = require('./index.js');
@@ -316,7 +316,7 @@ module.exports = function appveyorStatusCmd(args, options, callback) {
     delete argOpts.verbose;
 
     if (argOpts.color === undefined) {
-      argOpts.color = supportsColor(options.stdout).hasBasic;
+      argOpts.color = createSupportsColor(options.stdout).hasBasic;
     }
 
     if (argOpts.commit === true) {
