@@ -11,7 +11,7 @@ const url = require('node:url');
 
 const FakeTimers = require('@sinonjs/fake-timers');
 const appveyorSwagger = require('appveyor-swagger');
-const escapeStringRegexp = require('escape-string-regexp');
+const { default: escapeStringRegexp } = require('escape-string-regexp');
 const nock = require('nock');
 const proxyquire = require('proxyquire');
 const sinon = require('sinon');
