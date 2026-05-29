@@ -12,7 +12,9 @@ image: Visual Studio 2022
 # Update engines.node in package.json if removing old versions.
 environment:
   matrix:
-    - nodejs_version: "20.19"
+    # Note: Update-NodeJsInstallation fails with 404 for major.minor version.
+    # Include patch number to avoid errors if 20.19 is not pre-installed.
+    - nodejs_version: "20.19.6"
       # Empty version installs most recent version available
     - nodejs_version: ""
 
