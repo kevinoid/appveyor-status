@@ -22,7 +22,15 @@ platform:
   - x64
 
 install:
-  - ps: Install-Product node $env:nodejs_version $env:platform
+  - ps: |
+      # Try to activate pre-installed version first.
+      # If that fails, run the full install
+      # https://www.appveyor.com/docs/lang/nodejs-iojs/#installing-any-version-of-nodejs
+      try {
+        Install-Product node $env:nodejs_version $env:platform
+      } catch {
+        Update-NodeJsInstallation $env:nodejs_version $env:platform
+      }
   # Ignore package-lock.json.  This is done for a few reasons:
   # - To test against current versions of dependencies.
   # - To test installability for dependents (doesn't use package-lock.json).
