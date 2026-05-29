@@ -16,13 +16,13 @@ environment:
       # Empty version installs most recent version available
     - nodejs_version: ""
 
-# If the package has arch-dependent features, uncomment this.
-#platform:
-#  - x86
-#  - x64
+platform:
+  # Uncomment to test on x86 (for packages with arch-dependent features)
+  # - x86
+  - x64
 
 install:
-  - ps: Install-Product node $env:nodejs_version
+  - ps: Install-Product node $env:nodejs_version $env:platform
   # Ignore package-lock.json.  This is done for a few reasons:
   # - To test against current versions of dependencies.
   # - To test installability for dependents (doesn't use package-lock.json).
