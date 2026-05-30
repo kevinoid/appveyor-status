@@ -1,3 +1,25 @@
+# [6.0.0](https://github.com/kevinoid/appveyor-status/compare/v5.0.1...v6.0.0) (2026-05-30)
+
+### BREAKING CHANGES
+
+* **deps:** Require Node.js ^20.19.0 || >=22.12.0 ([a423745](https://github.com/kevinoid/appveyor-status/commit/a423745f848929d69cc3f59a00c078343009636a))
+* package.json: Declare exports ([90f33af](https://github.com/kevinoid/appveyor-status/commit/90f33afbd3e58c65ea2f818a8d91817548f529c0))
+* Remove `Error` subclass exports ([c642414](https://github.com/kevinoid/appveyor-status/commit/c642414cbcc8970b49b752bf9c1a10d338bcda68))
+
+### Bug Fixes
+
+* fix regexp for SCP-like git URLs ([dab99a7](https://github.com/kevinoid/appveyor-status/commit/dab99a75773e9d393e2d74e940d5a6640ec73ada))
+* **package:** use git+https for repository.url ([7e0c184](https://github.com/kevinoid/appveyor-status/commit/7e0c184f905a03294505b8181185f627cfd6087d))
+* remove host brackets from SCP-like URLs ([45b663c](https://github.com/kevinoid/appveyor-status/commit/45b663cbce1a5a3b4afec1a97cc614edcb2e29f0))
+
+### Features
+
+* implement trusted publishing from GitHub ([645129a](https://github.com/kevinoid/appveyor-status/commit/645129a833aadb3bc7d87dd44b9ba7e58f918357))
+* add userFetch option ([640fd59](https://github.com/kevinoid/appveyor-status/commit/640fd5941bf6164e4defbf8be2a57cccaeb376a5))
+* **deps:** bump yargs from 17.0.1 to 18.0.0 ([a423745](https://github.com/kevinoid/appveyor-status/commit/a423745f848929d69cc3f59a00c078343009636a))
+* switch from nyc to c8 for native V8 coverage ([d72a313](https://github.com/kevinoid/appveyor-status/commit/d72a3136254166eda40fb56c550283758c25ac1f))
+
+
 ## [5.0.1](https://github.com/kevinoid/appveyor-status/compare/v5.0.0...v5.0.1) (2020-06-14)
 
 ### Features
