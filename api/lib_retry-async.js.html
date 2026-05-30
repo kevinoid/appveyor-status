@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: lib/retry-async.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: lib/retry-async.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @copyright Copyright 2017-2021 Kevin Locke &lt;kevin@kevinlocke.name>
+ * @license MIT
+ */
+
+'use strict';
+
+const { setTimeout: setTimeoutP } = require('node:timers/promises');
+
+const constant = require('./retry-async/constant.js');
+const exponential = require('./retry-async/exponential.js');
+
+function defaultShouldRetry(result) {
+  // Retry if the value was falsey
+  return !result;
+}
+
+/** Options for {@link module:appveyor-status/lib/retry-async.retryAsync}.
+ *
+ * @private
+ * @template TReturn
+ * @typedef {module:timers.SetTimeoutOptions} RetryAsyncOptions
+ * @property {(function(): number)=} now Function to get the current time in
+ * milliseconds since the epoch.
+ * @property {number=} maxTotalMs Maximum amount of time, in milliseconds,
+ * during which retries are attempted.  Duration of last wait may be reduced to
+ * avoid exceeding maxTotalMs.  Once maxTotalMs has elapsed, the value from
+ * the last attempt is returned.
+ * @property {number=} minWaitMs Minimum amount of time, in milliseconds,
+ * to wait.  If less than this amount of time remains before maxTotalMs is
+ * exceeded, the value of the last attempt is returned immediately.
+ * @property {module:timers/promise.setTimeout=} setTimeout Function to
+ * perform waits between retries.
+ * @property {(function(TReturn): boolean)=} shouldRetry Predicate which
+ * determines whether to retry the operation based on the return value of the
+ * previous attempt.
+ * @property {(number|module:globals.Iterable&lt;number>)=} waitMs Number of
+ * milliseconds to wait between attempts.
+ */
+
+/** Default values for options.
+ *
+ * @constant
+ * @private
+ * @type {RetryAsyncOptions}
+ */
+const DEFAULT_OPTIONS = Object.freeze({
+  maxTotalMs: Infinity,
+  minWaitMs: 4000,
+  now: Date.now,
+  setTimeout: setTimeoutP,
+  shouldRetry: defaultShouldRetry,
+  get waitMs() {
+    return exponential(2, 4000, 60000, Infinity);
+  },
+});
+
+/** Repeatedly invoke a function with given arguments on an exponential
+ * delay until the Promise it returns resolves to true.
+ *
+ * @template TReturn
+ * @param {function(...): !Promise&lt;TReturn>} operation Function to retry.
+ * @param {RetryAsyncOptions=} options Options.
+ * @param {Array=} args Arguments passed to operation.
+ * @returns {!Promise&lt;TReturn>} Promise for return value of last call to
+ * operation.
+ */
+module.exports =
+async function retryAsync(
+  operation,
+  {
+    maxTotalMs = DEFAULT_OPTIONS.maxTotalMs,
+    minWaitMs = DEFAULT_OPTIONS.minWaitMs,
+    now = DEFAULT_OPTIONS.now,
+    setTimeout: retrySetTimeout = DEFAULT_OPTIONS.setTimeout,
+    shouldRetry = DEFAULT_OPTIONS.shouldRetry,
+    waitMs = DEFAULT_OPTIONS.waitMs,
+    ...setTimeoutOptions
+  } = {},
+  ...args
+) {
+  // eslint-disable-next-line no-restricted-globals
+  const deadline = isFinite(maxTotalMs) ? now() + maxTotalMs : Infinity;
+
+  let waitIterator;
+  if (typeof waitMs === 'number') {
+    waitIterator = constant(waitMs);
+  } else if (waitMs &amp;&amp; typeof waitMs[Symbol.iterator] === 'function') {
+    waitIterator = waitMs[Symbol.iterator]();
+  } else {
+    throw new TypeError('waitMs must be a number or Iterable');
+  }
+
+  let waitResult;
+  try {
+    /* eslint-disable no-await-in-loop */
+    for (;;) {
+      const result = await operation(...args);
+      if (!shouldRetry(result)) {
+        return result;
+      }
+
+      const remaining = deadline - now();
+      if (remaining &lt; minWaitMs) {
+        return result;
+      }
+
+      waitResult = waitIterator.next();
+      if (waitResult.done) {
+        return result;
+      }
+
+      const delay = Math.min(
+        waitResult.value,
+        remaining,
+      );
+      await retrySetTimeout(delay, undefined, setTimeoutOptions);
+    }
+    /* eslint-enable no-await-in-loop */
+  } finally {
+    if (waitResult &amp;&amp; !waitResult.done &amp;&amp; waitIterator.return !== undefined) {
+      waitIterator.return();
+    }
+  }
+};
+
+module.exports.DEFAULT_OPTIONS = DEFAULT_OPTIONS;
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="appveyor-status_cli.html#.module:js">js</a></li><li><a href="module-appveyor-status.html">appveyor-status</a></li></ul><h3>Classes</h3><ul><li><a href="module-appveyor-status.AmbiguousProjectError.html">AmbiguousProjectError</a></li><li><a href="module-appveyor-status.CommitMismatchError.html">CommitMismatchError</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Sat May 30 2026 16:21:00 GMT-0600 (Mountain Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

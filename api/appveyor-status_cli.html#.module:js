@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Module: appveyor-status/bin/appveyor-status</title>
+    <title>JSDoc: Module: js</title>
 
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
@@ -17,7 +17,7 @@
 
 <div id="main">
 
-    <h1 class="page-title">Module: appveyor-status/bin/appveyor-status</h1>
+    <h1 class="page-title">Module: js</h1>
 
     
 
@@ -28,280 +28,16 @@
 
 <header>
     
-        
-            
-        
-            
-        
-    
 </header>
 
 <article>
     <div class="container-overview">
     
         
-            <div class="description">The appveyor-status command.</div>
+            <div class="description">The appveyor-status command entry point.</div>
         
 
         
-            
-
-    
-
-    
-    <h4 class="name" id="module:appveyor-status/bin/appveyor-status"><span class="type-signature"></span>(require("appveyor-status/bin/appveyor-status"))<span class="signature">(args<span class="signature-attributes">non-null</span>, options<span class="signature-attributes">opt</span>, callback<span class="signature-attributes">opt, nullable</span>)</span><span class="type-signature"> &rarr; {Promise.&lt;<a href="module-appveyor-status_bin_appveyor-status.html#.ExitCode">module:appveyor-status/bin/appveyor-status.ExitCode</a>>|undefined}</span></h4>
-    
-
-    
-
-
-
-<div class="description">
-    Entry point for this command.
-</div>
-
-
-
-
-
-
-
-
-
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-        <th>Attributes</th>
-        
-
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>args</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">Array.&lt;string></span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-
-                
-
-                
-                </td>
-            
-
-            
-
-            <td class="description last">Command-line arguments.</td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>options</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type"><a href="module-appveyor-status_bin_appveyor-status.html#.CommandOptions">module:appveyor-status/bin/appveyor-status.CommandOptions</a></span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-
-                
-                </td>
-            
-
-            
-
-            <td class="description last">Options.</td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>callback</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">function</span>
-
-
-            
-            </td>
-
-            
-                <td class="attributes">
-                
-                    &lt;optional><br>
-                
-
-                
-                    &lt;nullable><br>
-                
-
-                
-                </td>
-            
-
-            
-
-            <td class="description last">Callback for the exit code
-or an <code>Error</code>.  Required if <code>global.Promise</code> is
-not defined.</td>
-        </tr>
-
-    
-    </tbody>
-</table>
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="bin_appveyor-status.js.html">bin/appveyor-status.js</a>, <a href="bin_appveyor-status.js.html#line144">line 144</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<h5>Returns:</h5>
-
-        
-<div class="param-desc">
-    If <code>callback</code> is not given and
-<code>global.Promise</code> is defined, a <code>Promise</code> with the
-exit code or <code>Error</code>.
-</div>
-
-
-
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type">Promise.&lt;<a href="module-appveyor-status_bin_appveyor-status.html#.ExitCode">module:appveyor-status/bin/appveyor-status.ExitCode</a>></span>
-|
-
-<span class="param-type">undefined</span>
-
-
-    </dd>
-</dl>
-
-    
-
-
-
-
-
-        
-            
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 <dl class="details">
@@ -339,7 +75,7 @@ exit code or <code>Error</code>.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="bin_appveyor-status.js.html">bin/appveyor-status.js</a>, <a href="bin_appveyor-status.js.html#line2">line 2</a>
+        <a href="cli.js.html">cli.js</a>, <a href="cli.js.html#line1">line 1</a>
     </li></ul></dd>
     
 
@@ -349,24 +85,6 @@ exit code or <code>Error</code>.
 
     
 </dl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
         
@@ -396,7 +114,7 @@ exit code or <code>Error</code>.
 
 
 <div class="description">
-    Exit codes returned by <a href="module-appveyor-status_bin_appveyor-status.html">module:appveyor-status/bin/appveyor-status</a>
+    Exit codes returned by module:appveyor-status/bin/appveyor-status
 (as a bi-directional map).
 </div>
 
@@ -589,7 +307,7 @@ exit code or <code>Error</code>.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="bin_appveyor-status.js.html">bin/appveyor-status.js</a>, <a href="bin_appveyor-status.js.html#line29">line 29</a>
+        <a href="cli.js.html">cli.js</a>, <a href="cli.js.html#line28">line 28</a>
     </li></ul></dd>
     
 
@@ -668,7 +386,7 @@ exit code or <code>Error</code>.
 
         <tr>
             
-                <td class="name"><code>in</code></td>
+                <td class="name"><code>stdin</code></td>
             
 
             <td class="type">
@@ -700,7 +418,7 @@ exit code or <code>Error</code>.
 
         <tr>
             
-                <td class="name"><code>out</code></td>
+                <td class="name"><code>stdout</code></td>
             
 
             <td class="type">
@@ -732,7 +450,7 @@ exit code or <code>Error</code>.
 
         <tr>
             
-                <td class="name"><code>err</code></td>
+                <td class="name"><code>stderr</code></td>
             
 
             <td class="type">
@@ -797,7 +515,7 @@ non-output status messages) are written.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="bin_appveyor-status.js.html">bin/appveyor-status.js</a>, <a href="bin_appveyor-status.js.html#line112">line 112</a>
+        <a href="cli.js.html">cli.js</a>, <a href="cli.js.html#line115">line 115</a>
     </li></ul></dd>
     
 
@@ -827,13 +545,13 @@ non-output status messages) are written.
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-appveyor-status.html">appveyor-status</a></li><li><a href="module-appveyor-status_bin_appveyor-status.html">appveyor-status/bin/appveyor-status</a></li></ul><h3>Classes</h3><ul><li><a href="module-appveyor-status.AmbiguousProjectError.html">AmbiguousProjectError</a></li><li><a href="module-appveyor-status.CommitMismatchError.html">CommitMismatchError</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="appveyor-status_cli.html#.module:js">js</a></li><li><a href="module-appveyor-status.html">appveyor-status</a></li></ul><h3>Classes</h3><ul><li><a href="module-appveyor-status.AmbiguousProjectError.html">AmbiguousProjectError</a></li><li><a href="module-appveyor-status.CommitMismatchError.html">CommitMismatchError</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.3</a> on Sun Jun 14 2020 13:36:58 GMT-0600 (Mountain Daylight Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Sat May 30 2026 16:21:00 GMT-0600 (Mountain Daylight Time)
 </footer>
 
 <script> prettyPrint(); </script>

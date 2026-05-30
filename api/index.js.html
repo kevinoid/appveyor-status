@@ -27,43 +27,29 @@
     <section>
         <article>
             <pre class="prettyprint source linenums"><code>/**
- * @copyright Copyright 2017-2019 Kevin Locke &lt;kevin@kevinlocke.name>
+ * @copyright Copyright 2017-2020 Kevin Locke &lt;kevin@kevinlocke.name>
  * @license MIT
  * @module appveyor-status
  */
 
 'use strict';
 
-const SwaggerClient = require('swagger-client');
+const https = require('node:https');
+const timers = require('node:timers');
+const { setTimeout: setTimeoutP } = require('node:timers/promises');
+
 const appveyorSwagger = require('appveyor-swagger');
-const https = require('https');
 const nodeify = require('promise-nodeify');
+const SwaggerClient = require('swagger-client');
 
-const gitUtils = require('./lib/git-utils');
-const appveyorUtils = require('./lib/appveyor-utils');
-const CommitMismatchError = require('./lib/commit-mismatch-error');
-const AmbiguousProjectError = require('./lib/ambiguous-project-error');
+const AmbiguousProjectError = require('./lib/ambiguous-project-error.js');
+const appveyorUtils = require('./lib/appveyor-utils.js');
+const CommitMismatchError = require('./lib/commit-mismatch-error.js');
+const gitUtils = require('./lib/git-utils.js');
+const retryAsync = require('./lib/retry-async.js');
 
-/** Multiplicative increase in delay between retries.
- *
- * @constant
- * @private
- */
-const RETRY_DELAY_FACTOR_MS = 2;
-
-/** Minimum/Initial delay between retries (in milliseconds).
- *
- * @constant
- * @private
- */
-const RETRY_DELAY_MIN_MS = 4000;
-
-/** Maximum delay between retries (in milliseconds).
- *
- * @constant
- * @private
- */
-const RETRY_DELAY_MAX_MS = 60000;
+// Allow Date to be injected (via timers) for tests
+const { now } = timers.Date || Date;
 
 /** Shallow, strict equality of properties in common between two objects.
  *
@@ -75,7 +61,7 @@ const RETRY_DELAY_MAX_MS = 60000;
  */
 function shallowStrictCommonEqual(obj1, obj2) {
   return Object.keys(obj1)
-    .every((key) => !hasOwnProperty.call(obj2, key) || obj1[key] === obj2[key]);
+    .every((key) => !Object.hasOwn(obj2, key) || obj1[key] === obj2[key]);
 }
 
 /** Gets JSON body of a SwaggerClient response as an Object.
@@ -87,8 +73,8 @@ function shallowStrictCommonEqual(obj1, obj2) {
  */
 function getResponseJson(response) {
   if (response.obj === null
-      || response.obj === undefined
-      || response.obj === response.data) {
+    || response.obj === undefined
+    || response.obj === response.data) {
     try {
       response.obj = JSON.parse(response.data);
     } catch (errJson) {
@@ -159,7 +145,7 @@ function makeClientErrorHandler(msgPrefix) {
   };
 }
 
-/** Options for {@link appveyorStatus} functions.
+/** Options for {@link module:appveyor-status.appveyorStatus} functions.
  *
  * @static
  * @typedef {{
@@ -173,6 +159,7 @@ function makeClientErrorHandler(msgPrefix) {
  *   repo: string|undefined,
  *   statusBadgeId: string|undefined,
  *   token: string|undefined,
+ *   userFetch: undefined|function(string|!URL|!object, object=): Promise,
  *   verbosity: number|undefined,
  *   wait: boolean|number|undefined,
  *   webhookId: string|undefined
@@ -199,6 +186,8 @@ function makeClientErrorHandler(msgPrefix) {
  * @property {string=} statusBadgeId Status badge ID to query
  * (exclusive with project, repo, and webhookId)
  * @property {string=} token AppVeyor API access token.
+ * @property {(function(string|!URL|!object, object=): Promise)=} userFetch
+ * Fetch-compatible function to perform HTTP(S).
  * @property {number=} verbosity Amount of diagnostic information to print
  * (0 is default, larger yields more output).
  * @property {number=} wait Length of time to wait (in milliseconds) for build
@@ -218,9 +207,9 @@ function makeClientErrorHandler(msgPrefix) {
  * @template T
  * @param {module:appveyor-status.AppveyorStatusOptions=} options
  * Caller-provided options.
- * @param {function(!module:appveyor-status.AppveyorStatusOptions): !Promise&lt;T>}
- * apiFunc Function to
- * call with canonicalized &lt;code>options&lt;/code>.
+ * @param {function(!module:appveyor-status.AppveyorStatusOptions):
+ * !Promise&lt;T>} apiFunc Function to call with canonicalized
+ * &lt;code>options&lt;/code>.
  * @returns {!Promise&lt;T>} Return value from &lt;code>apiFunc&lt;/code>.
  * @throws {Error} If &lt;code>options&lt;/code> is invalid, inconsistent, or can not
  * be canonicalized.
@@ -236,13 +225,13 @@ function canonicalizeOptions(options, apiFunc) {
       .filter((propName) => options[propName]);
     if (projectOpts.length > 1) {
       throw new Error(`${projectOpts.join(' and ')}`
-                      + ' can not be specified together');
+        + ' can not be specified together');
     }
   }
 
   options = { ...options };
 
-  options.err = options.err || process.stderr;
+  options.err ||= process.stderr;
   if (!options.err || typeof options.err.write !== 'function') {
     throw new TypeError('options.err must be a stream.Writable');
   }
@@ -258,7 +247,7 @@ function canonicalizeOptions(options, apiFunc) {
   if (typeof options.project === 'string') {
     options.project = appveyorUtils.projectFromString(options.project);
   } else if (options.project
-             &amp;&amp; (!options.project.accountName || !options.project.slug)) {
+    &amp;&amp; (!options.project.accountName || !options.project.slug)) {
     throw new Error('options.project must have accountName and slug');
   }
 
@@ -269,9 +258,9 @@ function canonicalizeOptions(options, apiFunc) {
 
   // If project, repo, statusBadgeId, &amp; webhookId are unspecified, use work dir
   if (!options.project
-      &amp;&amp; !options.repo
-      &amp;&amp; !options.statusBadgeId
-      &amp;&amp; !options.webhookId) {
+    &amp;&amp; !options.repo
+    &amp;&amp; !options.statusBadgeId
+    &amp;&amp; !options.webhookId) {
     options.repo = '.';
   }
 
@@ -288,7 +277,7 @@ function canonicalizeOptions(options, apiFunc) {
       .catch((err) => {
         if (options.verbosity > 0) {
           options.err.write(`DEBUG: Unable to get remote: ${err}\n`
-                            + 'DEBUG: Will try to use origin remote.\n');
+            + 'DEBUG: Will try to use origin remote.\n');
         }
         return 'origin';
       })
@@ -316,6 +305,11 @@ function canonicalizeOptions(options, apiFunc) {
         apiToken: `Bearer ${options.token}`,
       };
     }
+
+    if (options.userFetch !== undefined &amp;&amp; options.userFetch !== null) {
+      appveyorClientOptions.userFetch = options.userFetch;
+    }
+
     // Note: The constructor returns a Promise for the SwaggerClient rather
     // than the SwaggerClient instance.
     appveyorClientP = new SwaggerClient(appveyorClientOptions);
@@ -359,7 +353,7 @@ function canonicalizeOptions(options, apiFunc) {
  * function(Error, T=)): Promise&lt;T>} apiFunc API function to wrap.
  * @returns {function(module:appveyor-status.AppveyorStatusOptions=,
  * function(Error, T=)): Promise&lt;T>} Function which calls
- * {@link canonicalizeOptions} with its argument and
+ * {@link module:appveyor-status.canonicalizeOptions} with its argument and
  * &lt;code>apiFunc&lt;/code>.
  * @throws {TypeError} If callback argument passed to wrapped function is not
  * a function.
@@ -396,57 +390,40 @@ function wrapApiFunc(apiFunc) {
  * @private
  */
 function getLastBuildNoWait(options) {
-  let lastBuildP;
-  const buildFromProject = options.project.builds &amp;&amp; options.project.builds[0];
-  if (options.useProjectBuilds
-      &amp;&amp; buildFromProject
-      &amp;&amp; (!options.branch || options.branch === buildFromProject.branch)) {
-    lastBuildP = Promise.resolve({
-      project: options.project,
-      build: buildFromProject,
-    });
+  const params = {
+    accountName: options.project.accountName,
+    projectSlug: options.project.slug,
+  };
+
+  const client = options.appveyorClient;
+  let responseP;
+  if (options.branch) {
+    params.buildBranch = options.branch;
+    responseP = client.apis.Project.getProjectLastBuildBranch(params);
   } else {
-    const params = {
-      accountName: options.project.accountName,
-      projectSlug: options.project.slug,
-    };
-
-    const client = options.appveyorClient;
-    let responseP;
-    if (options.branch) {
-      params.buildBranch = options.branch;
-      responseP = client.apis.Project.getProjectLastBuildBranch(params);
-    } else {
-      responseP = client.apis.Project.getProjectLastBuild(params);
-    }
-
-    lastBuildP = responseP
-      .catch(makeClientErrorHandler('Unable to get last project build: '))
-      .then(getResponseJson);
+    responseP = client.apis.Project.getProjectLastBuild(params);
   }
 
-  let checkedLastBuildP;
-  if (options.commit) {
-    checkedLastBuildP = lastBuildP.then((projectBuild) => {
-      if (projectBuild.build.commitId !== options.commit) {
-        const err = new CommitMismatchError({
-          actual: projectBuild.build.commitId,
-          expected: options.commit,
-        });
-        err.build = projectBuild.build;
-        err.project = projectBuild.project;
-        throw err;
-      }
-      return projectBuild;
-    });
-  } else {
-    checkedLastBuildP = lastBuildP;
-  }
-
-  return checkedLastBuildP;
+  return responseP
+    .catch(makeClientErrorHandler('Unable to get last project build: '))
+    .then(getResponseJson);
 }
 
-/** Implements {@link getLastBuild} for options with non-null .project.
+/** Checks if wait+retry should be attempted for a given build status.
+ *
+ * @private
+ * @param {string} buildStatus Status of the build.
+ * @returns {boolean} &lt;code>true&lt;/code> if the build status should be rechecked
+ * after waiting.
+ */
+function shouldRetryForStatus(buildStatus) {
+  return buildStatus === 'cancelling'
+    || buildStatus === 'queued'
+    || buildStatus === 'running';
+}
+
+/** Implements {@link module:appveyor-status.getLastBuild} for options with
+ * non-null .project.
  *
  * @private
  * @param {!module:appveyor-status.AppveyorStatusOptions} options Options
@@ -459,49 +436,24 @@ function getLastBuildForProject(options) {
     return getLastBuildNoWait(options);
   }
 
-  const deadline = Date.now() + options.wait;
-
-  function checkRetry(projectBuild, prevDelay) {
-    const buildStatus = appveyorUtils.projectBuildToStatus(projectBuild);
-    if (!['cancelling', 'queued', 'running'].includes(buildStatus)) {
-      return projectBuild;
-    }
-
-    const remaining = deadline - Date.now();
-    // Note:  If options.wait &lt; RETRY_DELAY_MIN_MS, honor it
-    if (remaining &lt; Math.min(RETRY_DELAY_MIN_MS, options.wait)) {
-      return projectBuild;
-    }
-
-    const delay = Math.min(
-      prevDelay * RETRY_DELAY_FACTOR_MS,
-      remaining,
-      RETRY_DELAY_MAX_MS,
-    );
-
-    if (options.verbosity > 0) {
+  const retryOptions = {
+    maxTotalMs: options.wait,
+    // Pass through injected now+setTimeout for testing
+    now,
+    setTimeout: setTimeoutP,
+    shouldRetry:
+      (projectBuild) => shouldRetryForStatus(projectBuild.build.status),
+  };
+  if (options.verbosity > 0) {
+    retryOptions.setTimeout = (delay, value, opts) => {
       options.err.write(
         'DEBUG: AppVeyor build queued.  '
         + `Waiting ${delay / 1000} seconds before retrying...\n`,
       );
-    }
-
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        // Do not use options.project.builds after waiting
-        delete options.useProjectBuilds;
-
-        resolve(getLastBuildNoWait(options)
-          .then((result) => checkRetry(result, delay)));
-      }, delay);
-    });
+      return setTimeoutP(delay, value, opts);
+    };
   }
-
-  return getLastBuildNoWait(options)
-    .then((result) => {
-      const seedDelay = RETRY_DELAY_MIN_MS / RETRY_DELAY_FACTOR_MS;
-      return checkRetry(result, seedDelay);
-    });
+  return retryAsync(getLastBuildNoWait, retryOptions, options);
 }
 
 /** Gets the AppVeyor project which matches the given options.
@@ -526,7 +478,7 @@ function getMatchingProject(options) {
 
       if (repoProjects.length === 0) {
         throw new Error('No AppVeyor projects matching '
-                        + `${JSON.stringify(avRepo)}`);
+          + `${JSON.stringify(avRepo)}`);
       } else if (repoProjects.length > 1) {
         // Callers may want to handle this error specially, so make it usable
         const repoProjectStrs = repoProjects.map(appveyorUtils.projectToString);
@@ -541,29 +493,60 @@ function getMatchingProject(options) {
     });
 }
 
-/** Implements {@link getLastBuild}.
+/** Implements {@link module:appveyor-status.getLastBuild}.
  *
  * @param {!module:appveyor-status.AppveyorStatusOptions} options Options.
  * @returns {!Promise&lt;!appveyorSwagger.ProjectBuild>} Last AppVeyor build for
  * project matching &lt;code>options&lt;/code>.
  * @private
  */
-function getLastBuildInternal(options) {
+async function getLastBuildInternal(options) {
+  let lastBuild;
   if (options.project) {
-    return getLastBuildForProject(options);
-  }
+    lastBuild = await getLastBuildForProject(options);
+  } else if (options.repo) {
+    const project = await getMatchingProject(options);
 
-  if (!options.repo) {
+    // If project.builds contains a build for the requested branch (if any)
+    // and wait is not requested or not necessary, use it.
+    const build = project.builds
+      .find((b) => !options.branch || b.branch === options.branch);
+    if (build &amp;&amp; (!options.wait || !shouldRetryForStatus(build.status))) {
+      lastBuild = {
+        project,
+        build,
+      };
+    } else {
+      // If build from project requires waiting, wait before first retry.
+      if (build) {
+        const delay = retryAsync.DEFAULT_OPTIONS.minWaitMs;
+        options.err.write(
+          `DEBUG: AppVeyor build ${build.status}.  Waiting ${
+            delay / 1000} seconds before retrying...\n`,
+        );
+        await setTimeoutP(delay);
+      }
+
+      lastBuild = await getLastBuildForProject({
+        ...options,
+        project,
+      });
+    }
+  } else {
     throw new Error('project or repo is required');
   }
 
-  return getMatchingProject(options)
-    .then((project) => {
-      const optionsWithProject = { ...options };
-      optionsWithProject.project = project;
-      optionsWithProject.useProjectBuilds = true;
-      return getLastBuildForProject(optionsWithProject);
+  if (options.commit &amp;&amp; lastBuild.build.commitId !== options.commit) {
+    const err = new CommitMismatchError({
+      actual: lastBuild.build.commitId,
+      expected: options.commit,
     });
+    err.build = lastBuild.build;
+    err.project = lastBuild.project;
+    throw err;
+  }
+
+  return lastBuild;
 }
 
 /** Gets the last AppVeyor build for a repo/branch.
@@ -586,7 +569,7 @@ function getLastBuildInternal(options) {
  */
 exports.getLastBuild = wrapApiFunc(getLastBuildInternal);
 
-/** Implements {@link getStatusBadge}.
+/** Implements {@link module:appveyor-status.getStatusBadge}.
  *
  * @param {!module:appveyor-status.AppveyorStatusOptions} options Options.
  * @returns {!Promise&lt;string>} The current SVG status badge.
@@ -649,7 +632,7 @@ function getStatusBadgeInternal(options) {
  */
 exports.getStatusBadge = wrapApiFunc(getStatusBadgeInternal);
 
-/** Implements {@link getStatus}.
+/** Implements {@link module:appveyor-status.getStatus}.
  *
  * @param {!module:appveyor-status.AppveyorStatusOptions} options Options.
  * @returns {!Promise&lt;string>} The current build status.
@@ -687,9 +670,6 @@ function getStatusInternal(options) {
  * &lt;code>undefined&lt;/code>.
  */
 exports.getStatus = wrapApiFunc(getStatusInternal);
-
-exports.AmbiguousProjectError = AmbiguousProjectError;
-exports.CommitMismatchError = CommitMismatchError;
 </code></pre>
         </article>
     </section>
@@ -700,13 +680,13 @@ exports.CommitMismatchError = CommitMismatchError;
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-appveyor-status.html">appveyor-status</a></li><li><a href="module-appveyor-status_bin_appveyor-status.html">appveyor-status/bin/appveyor-status</a></li></ul><h3>Classes</h3><ul><li><a href="module-appveyor-status.AmbiguousProjectError.html">AmbiguousProjectError</a></li><li><a href="module-appveyor-status.CommitMismatchError.html">CommitMismatchError</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="appveyor-status_cli.html#.module:js">js</a></li><li><a href="module-appveyor-status.html">appveyor-status</a></li></ul><h3>Classes</h3><ul><li><a href="module-appveyor-status.AmbiguousProjectError.html">AmbiguousProjectError</a></li><li><a href="module-appveyor-status.CommitMismatchError.html">CommitMismatchError</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.3</a> on Sun Jun 14 2020 13:36:58 GMT-0600 (Mountain Daylight Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Sat May 30 2026 16:21:00 GMT-0600 (Mountain Daylight Time)
 </footer>
 
 <script> prettyPrint(); </script>

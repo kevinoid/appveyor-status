@@ -266,7 +266,7 @@ return appveyorStatus.getLastBuild(options)
             <dd><pre><code>const testRemoteUrl = &#x27;git://foo.bar/baz&#x27;;
 const testStatus = &#x27;success&#x27;;
 gitUtilsMock.expects(&#x27;getBranch&#x27;)
-  .once().withArgs(matchOptionsCwd).rejects(new Error());
+  .once().withArgs(matchOptionsCwd).rejects(new Error(&#x27;test&#x27;));
 gitUtilsMock.expects(&#x27;getRemote&#x27;).never();
 gitUtilsMock.expects(&#x27;getRemoteUrl&#x27;)
   .once().withArgs(&#x27;origin&#x27;, matchOptionsCwd).resolves(testRemoteUrl);
@@ -294,7 +294,8 @@ const testStatus = &#x27;success&#x27;;
 gitUtilsMock.expects(&#x27;getBranch&#x27;)
   .once().withArgs(matchOptionsCwd).resolves(testBranch);
 gitUtilsMock.expects(&#x27;getRemote&#x27;)
-  .once().withArgs(testBranch, matchOptionsCwd).rejects(new Error());
+  .once().withArgs(testBranch, matchOptionsCwd)
+  .rejects(new Error(&#x27;test&#x27;));
 gitUtilsMock.expects(&#x27;getRemoteUrl&#x27;)
   .once().withArgs(&#x27;origin&#x27;, matchOptionsCwd).resolves(testRemoteUrl);
 gitUtilsMock.expects(&#x27;resolveCommit&#x27;).never();
@@ -338,8 +339,8 @@ options.repo = testRepo;
 return appveyorStatus.getLastBuild(options).then(
   sinon.mock().never(),
   (err) =&#x3E; {
-    assert.instanceOf(err, Error);
-    assert.include(err.message, testRepo);
+    assert(err instanceof Error);
+    assert.match(err.message, toRegExp(testRepo));
     ne.done();
   },
 );</code></pre></dd>
@@ -376,7 +377,7 @@ options.repo = testRepo;
 return appveyorStatus.getLastBuild(options).then(
   sinon.mock().never(),
   (err) =&#x3E; {
-    assert.instanceOf(err, AmbiguousProjectError);
+    assert(err instanceof AmbiguousProjectError);
     assert.deepEqual(
       err.projects,
       [testProject1.join(&#x27;/&#x27;), testProject2.join(&#x27;/&#x27;)],
@@ -401,7 +402,7 @@ return appveyorStatus.getLastBuild(options).then(
   sinon.mock().never(),
   (err) =&#x3E; {
     assert.match(err.message, /400|Bad Request/i);
-    assert.include(err.message, testErrMsg);
+    assert.match(err.message, toRegExp(testErrMsg));
     assert.strictEqual(err.status, 400);
     ne.done();
   },
@@ -421,7 +422,7 @@ options.project = testProject;
 return appveyorStatus.getLastBuild(options).then(
   sinon.mock().never(),
   (err) =&#x3E; {
-    assert.include(err.message, &#x27;JSON&#x27;);
+    assert.match(err.message, /\bJSON\b/);
     ne.done();
   },
 );</code></pre></dd>
@@ -441,7 +442,7 @@ options.project = testProject;
 return appveyorStatus.getLastBuild(options).then(
   sinon.mock().never(),
   (err) =&#x3E; {
-    assert.include(err.message, testErrMsg);
+    assert.match(err.message, toRegExp(testErrMsg));
     ne.done();
   },
 );</code></pre></dd>
@@ -459,10 +460,7 @@ const ne = nock(apiUrl)
   .get(&#x27;/api/projects&#x27;)
   .query(true)
   .reply(200, function(uri, requestBody) {
-    assert.deepEqual(
-      this.req.headers.authorization,
-      [&#x60;Bearer ${testToken}&#x60;],
-    );
+    assertAuthorization(this.req, &#x60;Bearer ${testToken}&#x60;);
     return [
       apiResponses.getProject({
         repositoryType: &#x27;git&#x27;,
@@ -493,10 +491,7 @@ const ne = nock(apiUrl)
   .get(&#x27;/api/projects&#x27;)
   .query(true)
   .reply(200, function(uri, requestBody) {
-    assert.deepEqual(
-      this.req.headers.authorization,
-      [&#x60;Bearer ${testToken2}&#x60;],
-    );
+    assertAuthorization(this.req, &#x60;Bearer ${testToken2}&#x60;);
     return [
       apiResponses.getProject({
         repositoryType: &#x27;git&#x27;,
@@ -510,6 +505,7 @@ options.appveyorClient = new SwaggerClient({
     apiToken: &#x60;Bearer ${testToken2}&#x60;,
   },
   spec: appveyorSwagger,
+  userFetch: nodeFetch,
 });
 options.repo = testRepo;
 options.token = testToken1;
@@ -559,26 +555,75 @@ const expectSuccess = nock(apiUrl)
   .get(&#x60;/api/projects/${testProject}&#x60;)
   .query(true)
   .reply(200, apiResponses.getProjectBuild({ status: testStatus }));
-let retriesDone = false;
-afterFirstRequest(() =&#x3E; {
-  assert(expectQueued.isDone(), &#x27;First call is made immediately.&#x27;);
-  assert(!expectSuccess.isDone(), &#x27;Retry is not done immediately.&#x27;);
-  clock.tick(900);
-  assert(!expectSuccess.isDone(), &#x27;Retry is not done less than 1 sec.&#x27;);
-  clock.tick(60000);
-  assert(expectSuccess.isDone(), &#x27;Retry is done less than 1 minute.&#x27;);
-  retriesDone = true;
-});
 options.project = testProject;
 options.wait = true;
-return appveyorStatus.getLastBuild(options)
+const projectBuildP = appveyorStatus.getLastBuild(options);
+return waitForTimer(10)
+  .then(() =&#x3E; {
+    assert(expectQueued.isDone(), &#x27;First call is made immediately.&#x27;);
+    assert(!expectSuccess.isDone(), &#x27;Retry is not done immediately.&#x27;);
+    clock.tick(900);
+    assert(
+      clock.countTimers() &#x3E; 0 &#x26;&#x26; !expectSuccess.isDone(),
+      &#x27;Retry not started after 900ms&#x27;,
+    );
+    clock.tick(59100);
+    assert.strictEqual(
+      clock.countTimers(),
+      0,
+      &#x27;Retry started before 60,000ms&#x27;,
+    );
+    return projectBuildP;
+  })
   .then((projectBuild) =&#x3E; {
     assert.strictEqual(projectBuildToStatus(projectBuild), testStatus);
-    assert(retriesDone, &#x27;Retries completed&#x27;);
+    assert.strictEqual(clock.countTimers(), 0, &#x27;Retries completed&#x27;);
     assert.strictEqual(
       options.err.read(),
       null,
       &#x27;does not print wait messages by default&#x27;,
+    );
+  });</code></pre></dd>
+                <dt>true retries queued status verbosely</dt>
+                <dt>/home/kevin/src/node-projects/appveyor-status/test/appveyor-status.js</dt>
+                <dd><pre><code>const testProject = &#x27;foo/bar&#x27;;
+const testStatus = &#x27;success&#x27;;
+const expectQueued = nock(apiUrl)
+  .get(&#x60;/api/projects/${testProject}&#x60;)
+  .query(true)
+  .reply(200, apiResponses.getProjectBuild({ status: &#x27;queued&#x27; }));
+const expectSuccess = nock(apiUrl)
+  .get(&#x60;/api/projects/${testProject}&#x60;)
+  .query(true)
+  .reply(200, apiResponses.getProjectBuild({ status: testStatus }));
+options.project = testProject;
+options.verbosity = 1;
+options.wait = true;
+const projectBuildP = appveyorStatus.getLastBuild(options);
+return waitForTimer(10)
+  .then(() =&#x3E; {
+    assert(expectQueued.isDone(), &#x27;First call is made immediately.&#x27;);
+    assert(!expectSuccess.isDone(), &#x27;Retry is not done immediately.&#x27;);
+    clock.tick(900);
+    assert(
+      clock.countTimers() &#x3E; 0 &#x26;&#x26; !expectSuccess.isDone(),
+      &#x27;Retry not started after 900ms&#x27;,
+    );
+    clock.tick(59100);
+    assert.strictEqual(
+      clock.countTimers(),
+      0,
+      &#x27;Retry started before 60,000ms&#x27;,
+    );
+    return projectBuildP;
+  })
+  .then((projectBuild) =&#x3E; {
+    assert.strictEqual(projectBuildToStatus(projectBuild), testStatus);
+    assert.strictEqual(clock.countTimers(), 0, &#x27;Retries completed&#x27;);
+    assert.match(
+      String(options.err.read()),
+      /\bwait/i,
+      &#x27;prints wait message when verbose&#x27;,
     );
   });</code></pre></dd>
                 <dt>true retries running status from project</dt>
@@ -602,23 +647,30 @@ const expectSuccess = nock(apiUrl)
   .get(&#x60;/api/projects/${testProjectParts.join(&#x27;/&#x27;)}&#x60;)
   .query(true)
   .reply(200, apiResponses.getProjectBuild({ status: testStatus }));
-let retriesDone = false;
-afterFirstRequest(() =&#x3E; {
-  assert(expectQueued.isDone(), &#x27;First call is made immediately.&#x27;);
-  assert(!expectSuccess.isDone(), &#x27;Retry is not done immediately.&#x27;);
-  clock.tick(900);
-  assert(!expectSuccess.isDone(), &#x27;Retry is not done less than 1 sec.&#x27;);
-  clock.tick(60000);
-  assert(expectSuccess.isDone(), &#x27;Retry is done less than 1 minute.&#x27;);
-  retriesDone = true;
-});
 options.repo = testRepoUrl;
 options.wait = true;
 options.verbosity = 1;
-return appveyorStatus.getLastBuild(options)
+const projectBuildP = appveyorStatus.getLastBuild(options);
+return waitForTimer(10)
+  .then(() =&#x3E; {
+    assert(expectQueued.isDone(), &#x27;First call is made immediately.&#x27;);
+    assert(!expectSuccess.isDone(), &#x27;Retry is not done immediately.&#x27;);
+    clock.tick(900);
+    assert(
+      clock.countTimers() &#x3E; 0 &#x26;&#x26; !expectSuccess.isDone(),
+      &#x27;Retry not started after 900ms&#x27;,
+    );
+    clock.tick(59100);
+    assert.strictEqual(
+      clock.countTimers(),
+      0,
+      &#x27;Retry started before 60,000ms&#x27;,
+    );
+    return projectBuildP;
+  })
   .then((projectBuild) =&#x3E; {
     assert.strictEqual(projectBuildToStatus(projectBuild), testStatus);
-    assert(retriesDone, &#x27;Retries completed&#x27;);
+    assert.strictEqual(clock.countTimers(), 0, &#x27;Retries completed&#x27;);
     assert.match(
       String(options.err.read()),
       /\bwait/i,
@@ -637,25 +689,33 @@ const expectSuccess = nock(apiUrl)
   .get(&#x60;/api/projects/${testProject}&#x60;)
   .query(true)
   .replyWithError(testErrMsg);
-let retriesDone = false;
-afterFirstRequest(() =&#x3E; {
-  assert(expectQueued.isDone(), &#x27;First call is made immediately.&#x27;);
-  assert(!expectSuccess.isDone(), &#x27;Retry is not done immediately.&#x27;);
-  clock.tick(900);
-  assert(!expectSuccess.isDone(), &#x27;Retry is not done less than 1 sec.&#x27;);
-  clock.tick(60000);
-  assert(expectSuccess.isDone(), &#x27;Retry is done less than 1 minute.&#x27;);
-  retriesDone = true;
-});
 options.project = testProject;
 options.wait = true;
-return appveyorStatus.getLastBuild(options).then(
-  sinon.mock().never(),
-  (err) =&#x3E; {
-    assert.include(err.message, testErrMsg);
-    assert(retriesDone, &#x27;Retries completed&#x27;);
-  },
-);</code></pre></dd>
+const projectBuildP = appveyorStatus.getLastBuild(options);
+return waitForTimer(10)
+  .then(() =&#x3E; {
+    assert(expectQueued.isDone(), &#x27;First call is made immediately.&#x27;);
+    assert(!expectSuccess.isDone(), &#x27;Retry is not done immediately.&#x27;);
+    clock.tick(900);
+    assert(
+      clock.countTimers() &#x3E; 0 &#x26;&#x26; !expectSuccess.isDone(),
+      &#x27;Retry not started after 900ms&#x27;,
+    );
+    clock.tick(59100);
+    assert.strictEqual(
+      clock.countTimers(),
+      0,
+      &#x27;Retry started before 60,000ms&#x27;,
+    );
+    return projectBuildP;
+  })
+  .then(
+    sinon.mock().never(),
+    (err) =&#x3E; {
+      assert.match(err.message, toRegExp(testErrMsg));
+      assert.strictEqual(clock.countTimers(), 0, &#x27;Retries completed&#x27;);
+    },
+  );</code></pre></dd>
                 <dt>returns queued status if wait elapses</dt>
                 <dt>/home/kevin/src/node-projects/appveyor-status/test/appveyor-status.js</dt>
                 <dd><pre><code>const testProject = &#x27;foo/bar&#x27;;
@@ -673,22 +733,29 @@ nock(apiUrl)
   .get(&#x60;/api/projects/${testProject}&#x60;)
   .query(true)
   .reply(200, apiResponses.getProjectBuild({ status: &#x27;queued&#x27; }));
-let retriesDone = false;
-afterFirstRequest(() =&#x3E; {
-  assert(expectQueued1.isDone(), &#x27;First call is made immediately.&#x27;);
-  assert(!expectQueued2.isDone(), &#x27;Retry is not done immediately.&#x27;);
-  clock.tick(900);
-  assert(!expectQueued2.isDone(), &#x27;Retry is not done less than 1 sec.&#x27;);
-  clock.tick(60000);
-  assert(expectQueued2.isDone(), &#x27;Retry is done less than 1 minute.&#x27;);
-  retriesDone = true;
-});
 options.project = testProject;
 options.wait = 8000;
-return appveyorStatus.getLastBuild(options)
+const projectBuildP = appveyorStatus.getLastBuild(options);
+return waitForTimer(10)
+  .then(() =&#x3E; {
+    assert(expectQueued1.isDone(), &#x27;First call is made immediately.&#x27;);
+    assert(!expectQueued2.isDone(), &#x27;Retry is not done immediately.&#x27;);
+    clock.tick(900);
+    assert(
+      clock.countTimers() &#x3E; 0 &#x26;&#x26; !expectQueued2.isDone(),
+      &#x27;Retry not started after 900ms&#x27;,
+    );
+    clock.tick(7100);
+    assert.strictEqual(
+      clock.countTimers(),
+      0,
+      &#x27;Retry started before 8,000ms&#x27;,
+    );
+    return projectBuildP;
+  })
   .then((projectBuild) =&#x3E; {
     assert.strictEqual(projectBuildToStatus(projectBuild), &#x27;queued&#x27;);
-    assert(retriesDone, &#x27;Retries completed&#x27;);
+    assert.strictEqual(clock.countTimers(), 0, &#x27;Retries completed&#x27;);
   });</code></pre></dd>
               </dl>
             </section>
@@ -891,7 +958,7 @@ gitUtilsMock.expects(&#x27;resolveCommit&#x27;).never();
 const ne = nock(apiUrl)
   .get(&#x60;/api/projects/status/${testStatusBadgeId}&#x60;)
   .query(true)
-  .reply(200, &#x27;invalid&#x27;, { &#x27;Content-Type&#x27;: undefined });
+  .reply(200, &#x27;invalid&#x27;);
 options.statusBadgeId = testStatusBadgeId;
 return appveyorStatus.getStatusBadge(options).then(
   sinon.mock().never(),
@@ -958,34 +1025,6 @@ return appveyorStatus.getStatus(options)
     assert.strictEqual(status, testStatus);
     ne.done();
   });</code></pre></dd>
-            <dt>can be called with callback without options</dt>
-            <dt>/home/kevin/src/node-projects/appveyor-status/test/appveyor-status.js</dt>
-            <dd><pre><code>const testBranch = &#x27;testb&#x27;;
-const testProject = &#x27;foo/bar&#x27;;
-const testRemote = &#x27;testr&#x27;;
-const testRemoteUrl = &#x60;https://github.com/${testProject}.git&#x60;;
-const testStatus = &#x27;success&#x27;;
-gitUtilsMock.expects(&#x27;getBranch&#x27;)
-  .once().withArgs(matchOptionsCwd).resolves(testBranch);
-gitUtilsMock.expects(&#x27;getRemote&#x27;)
-  .once().withArgs(testBranch, matchOptionsCwd).resolves(testRemote);
-gitUtilsMock.expects(&#x27;getRemoteUrl&#x27;)
-  .once().withArgs(testRemote, matchOptionsCwd).resolves(testRemoteUrl);
-gitUtilsMock.expects(&#x27;resolveCommit&#x27;).never();
-const ne = nock(apiUrl)
-  .get(&#x60;/api/projects/status/gitHub/${testProject}&#x60;)
-  .query(true)
-  .reply(
-    200,
-    apiResponses.getStatusBadge(testStatus),
-    { &#x27;Content-Type&#x27;: &#x27;image/svg+xml&#x27; },
-  );
-appveyorStatus.getStatus((err, status) =&#x3E; {
-  assert.ifError(err);
-  assert.strictEqual(status, testStatus);
-  ne.done();
-  done();
-});</code></pre></dd>
             <dt>throws TypeError for non-function callback</dt>
             <dt>/home/kevin/src/node-projects/appveyor-status/test/appveyor-status.js</dt>
             <dd><pre><code>assert.throws(
@@ -997,7 +1036,7 @@ appveyorStatus.getStatus((err, status) =&#x3E; {
             <dd><pre><code>appveyorStatus.getStatus(true).then(
         sinon.mock().never(),
         (err) =&#x3E; {
-          assert.instanceOf(err, TypeError);
+          assert(err instanceof TypeError);
           assert.match(err.message, /\boptions\b/);
         },
       )</code></pre></dd>
@@ -1008,7 +1047,7 @@ options.repo = &#x27;.&#x27;;
 return appveyorStatus.getStatus(options).then(
   sinon.mock().never(),
   (err) =&#x3E; {
-    assert.instanceOf(err, Error);
+    assert(err instanceof Error);
     assert.match(err.message, /\bproject\b/);
     assert.match(err.message, /\brepo\b/);
   },
@@ -1020,7 +1059,7 @@ options.statusBadgeId = &#x27;abcde&#x27;;
 return appveyorStatus.getStatus(options).then(
   sinon.mock().never(),
   (err) =&#x3E; {
-    assert.instanceOf(err, Error);
+    assert(err instanceof Error);
     assert.match(err.message, /\bproject\b/);
     assert.match(err.message, /\bstatusBadgeId\b/);
   },
@@ -1032,7 +1071,7 @@ options.statusBadgeId = &#x27;abcde&#x27;;
 return appveyorStatus.getStatus(options).then(
   sinon.mock().never(),
   (err) =&#x3E; {
-    assert.instanceOf(err, Error);
+    assert(err instanceof Error);
     assert.match(err.message, /\brepo\b/);
     assert.match(err.message, /\bstatusBadgeId\b/);
   },
@@ -1044,7 +1083,7 @@ options.webhookId = &#x27;abcde&#x27;;
 return appveyorStatus.getStatus(options).then(
   sinon.mock().never(),
   (err) =&#x3E; {
-    assert.instanceOf(err, Error);
+    assert(err instanceof Error);
     assert.match(err.message, /\bproject\b/);
     assert.match(err.message, /\bwebhookId\b/);
   },
@@ -1056,7 +1095,7 @@ options.webhookId = &#x27;abcde&#x27;;
 return appveyorStatus.getStatus(options).then(
   sinon.mock().never(),
   (err) =&#x3E; {
-    assert.instanceOf(err, Error);
+    assert(err instanceof Error);
     assert.match(err.message, /\brepo\b/);
     assert.match(err.message, /\bwebhookId\b/);
   },
@@ -1066,7 +1105,7 @@ return appveyorStatus.getStatus(options).then(
             <dd><pre><code>appveyorStatus.getStatus({ err: new stream.Readable() }).then(
         sinon.mock().never(),
         (err) =&#x3E; {
-          assert.instanceOf(err, TypeError);
+          assert(err instanceof TypeError);
           assert.match(err.message, /\berr\b/);
         },
       )</code></pre></dd>
@@ -1076,7 +1115,7 @@ return appveyorStatus.getStatus(options).then(
 return appveyorStatus.getStatus(options).then(
   sinon.mock().never(),
   (err) =&#x3E; {
-    assert.instanceOf(err, TypeError);
+    assert(err instanceof TypeError);
     assert.match(err.message, /\bwait\b/);
   },
 );</code></pre></dd>
@@ -1086,7 +1125,7 @@ return appveyorStatus.getStatus(options).then(
 return appveyorStatus.getStatus(options).then(
   sinon.mock().never(),
   (err) =&#x3E; {
-    assert.instanceOf(err, RangeError);
+    assert(err instanceof RangeError);
     assert.match(err.message, /\bwait\b/);
   },
 );</code></pre></dd>
@@ -1098,7 +1137,7 @@ return appveyorStatus.getStatus(options).then(
 return appveyorStatus.getStatus(options).then(
   sinon.mock().never(),
   (err) =&#x3E; {
-    assert.instanceOf(err, Error);
+    assert(err instanceof Error);
     assert.match(err.message, /\bproject\b/);
     assert.match(err.message, /\baccountName\b/);
   },
@@ -1111,7 +1150,7 @@ return appveyorStatus.getStatus(options).then(
 return appveyorStatus.getStatus(options).then(
   sinon.mock().never(),
   (err) =&#x3E; {
-    assert.instanceOf(err, Error);
+    assert(err instanceof Error);
     assert.match(err.message, /\bproject\b/);
     assert.match(err.message, /\bslug\b/);
   },
@@ -1124,7 +1163,7 @@ return appveyorStatus.getStatus(options).then(
       <h1>appveyor-status command</h1>
       <dl>
         <dt>returns undefined when called with a function</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;)
   .once()
   .withArgs(
@@ -1135,1028 +1174,1028 @@ const result = appveyorStatusCmd(RUNTIME_ARGS, sinon.mock().never());
 appveyorStatusMock.verify();
 assert.strictEqual(result, undefined);</code></pre></dd>
         <dt>prints error and exits for --badge</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).never();
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err, code) =&#x3E; {
   assert.ifError(err);
   assert.strictEqual(code, expectCode);
   if (expectOutMsg instanceof RegExp) {
-    assert.match(String(options.out.read()), expectOutMsg);
+    assert.match(String(options.stdout.read()), expectOutMsg);
   } else {
-    assert.strictEqual(options.out.read(), expectOutMsg);
+    assert.strictEqual(options.stdout.read(), expectOutMsg);
   }
   if (expectErrMsg instanceof RegExp) {
-    assert.match(String(options.err.read()), expectErrMsg);
+    assert.match(String(options.stderr.read()), expectErrMsg);
   } else {
-    assert.strictEqual(options.err.read(), expectErrMsg);
+    assert.strictEqual(options.stderr.read(), expectErrMsg);
   }
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>prints error and exits for -B</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).never();
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err, code) =&#x3E; {
   assert.ifError(err);
   assert.strictEqual(code, expectCode);
   if (expectOutMsg instanceof RegExp) {
-    assert.match(String(options.out.read()), expectOutMsg);
+    assert.match(String(options.stdout.read()), expectOutMsg);
   } else {
-    assert.strictEqual(options.out.read(), expectOutMsg);
+    assert.strictEqual(options.stdout.read(), expectOutMsg);
   }
   if (expectErrMsg instanceof RegExp) {
-    assert.match(String(options.err.read()), expectErrMsg);
+    assert.match(String(options.stderr.read()), expectErrMsg);
   } else {
-    assert.strictEqual(options.err.read(), expectErrMsg);
+    assert.strictEqual(options.stderr.read(), expectErrMsg);
   }
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>interprets --badge foo as match(statusBadgeId: foo)</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).once()
   .withArgs(
     expectObj,
     match.func,
   )
   .yields(null, &#x27;success&#x27;);
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err) =&#x3E; {
   assert.ifError(err);
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>interprets -B foo as match(statusBadgeId: foo)</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).once()
   .withArgs(
     expectObj,
     match.func,
   )
   .yields(null, &#x27;success&#x27;);
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err) =&#x3E; {
   assert.ifError(err);
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>interprets --branch as match(branch: true)</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).once()
   .withArgs(
     expectObj,
     match.func,
   )
   .yields(null, &#x27;success&#x27;);
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err) =&#x3E; {
   assert.ifError(err);
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>interprets -b as match(branch: true)</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).once()
   .withArgs(
     expectObj,
     match.func,
   )
   .yields(null, &#x27;success&#x27;);
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err) =&#x3E; {
   assert.ifError(err);
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>interprets --branch foo as match(branch: foo)</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).once()
   .withArgs(
     expectObj,
     match.func,
   )
   .yields(null, &#x27;success&#x27;);
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err) =&#x3E; {
   assert.ifError(err);
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>interprets -b foo as match(branch: foo)</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).once()
   .withArgs(
     expectObj,
     match.func,
   )
   .yields(null, &#x27;success&#x27;);
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err) =&#x3E; {
   assert.ifError(err);
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>interprets --color as match(color: true)</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).once()
   .withArgs(
     expectObj,
     match.func,
   )
   .yields(null, &#x27;success&#x27;);
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err) =&#x3E; {
   assert.ifError(err);
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>interprets --no-color as match(color: false)</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).once()
   .withArgs(
     expectObj,
     match.func,
   )
   .yields(null, &#x27;success&#x27;);
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err) =&#x3E; {
   assert.ifError(err);
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>interprets --commit as match(commit: HEAD)</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).once()
   .withArgs(
     expectObj,
     match.func,
   )
   .yields(null, &#x27;success&#x27;);
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err) =&#x3E; {
   assert.ifError(err);
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>interprets -c as match(commit: HEAD)</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).once()
   .withArgs(
     expectObj,
     match.func,
   )
   .yields(null, &#x27;success&#x27;);
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err) =&#x3E; {
   assert.ifError(err);
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>interprets --commit foo as match(commit: foo)</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).once()
   .withArgs(
     expectObj,
     match.func,
   )
   .yields(null, &#x27;success&#x27;);
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err) =&#x3E; {
   assert.ifError(err);
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>interprets --commit 123 as match(commit: 123)</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).once()
   .withArgs(
     expectObj,
     match.func,
   )
   .yields(null, &#x27;success&#x27;);
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err) =&#x3E; {
   assert.ifError(err);
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>interprets -c foo as match(commit: foo)</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).once()
   .withArgs(
     expectObj,
     match.func,
   )
   .yields(null, &#x27;success&#x27;);
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err) =&#x3E; {
   assert.ifError(err);
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>prints error and exits for --help</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).never();
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err, code) =&#x3E; {
   assert.ifError(err);
   assert.strictEqual(code, expectCode);
   if (expectOutMsg instanceof RegExp) {
-    assert.match(String(options.out.read()), expectOutMsg);
+    assert.match(String(options.stdout.read()), expectOutMsg);
   } else {
-    assert.strictEqual(options.out.read(), expectOutMsg);
+    assert.strictEqual(options.stdout.read(), expectOutMsg);
   }
   if (expectErrMsg instanceof RegExp) {
-    assert.match(String(options.err.read()), expectErrMsg);
+    assert.match(String(options.stderr.read()), expectErrMsg);
   } else {
-    assert.strictEqual(options.err.read(), expectErrMsg);
+    assert.strictEqual(options.stderr.read(), expectErrMsg);
   }
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>prints error and exits for -h</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).never();
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err, code) =&#x3E; {
   assert.ifError(err);
   assert.strictEqual(code, expectCode);
   if (expectOutMsg instanceof RegExp) {
-    assert.match(String(options.out.read()), expectOutMsg);
+    assert.match(String(options.stdout.read()), expectOutMsg);
   } else {
-    assert.strictEqual(options.out.read(), expectOutMsg);
+    assert.strictEqual(options.stdout.read(), expectOutMsg);
   }
   if (expectErrMsg instanceof RegExp) {
-    assert.match(String(options.err.read()), expectErrMsg);
+    assert.match(String(options.stderr.read()), expectErrMsg);
   } else {
-    assert.strictEqual(options.err.read(), expectErrMsg);
+    assert.strictEqual(options.stderr.read(), expectErrMsg);
   }
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>prints error and exits for -?</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).never();
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err, code) =&#x3E; {
   assert.ifError(err);
   assert.strictEqual(code, expectCode);
   if (expectOutMsg instanceof RegExp) {
-    assert.match(String(options.out.read()), expectOutMsg);
+    assert.match(String(options.stdout.read()), expectOutMsg);
   } else {
-    assert.strictEqual(options.out.read(), expectOutMsg);
+    assert.strictEqual(options.stdout.read(), expectOutMsg);
   }
   if (expectErrMsg instanceof RegExp) {
-    assert.match(String(options.err.read()), expectErrMsg);
+    assert.match(String(options.stderr.read()), expectErrMsg);
   } else {
-    assert.strictEqual(options.err.read(), expectErrMsg);
+    assert.strictEqual(options.stderr.read(), expectErrMsg);
   }
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>prints error and exits for --project</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).never();
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err, code) =&#x3E; {
   assert.ifError(err);
   assert.strictEqual(code, expectCode);
   if (expectOutMsg instanceof RegExp) {
-    assert.match(String(options.out.read()), expectOutMsg);
+    assert.match(String(options.stdout.read()), expectOutMsg);
   } else {
-    assert.strictEqual(options.out.read(), expectOutMsg);
+    assert.strictEqual(options.stdout.read(), expectOutMsg);
   }
   if (expectErrMsg instanceof RegExp) {
-    assert.match(String(options.err.read()), expectErrMsg);
+    assert.match(String(options.stderr.read()), expectErrMsg);
   } else {
-    assert.strictEqual(options.err.read(), expectErrMsg);
+    assert.strictEqual(options.stderr.read(), expectErrMsg);
   }
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>prints error and exits for -p</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).never();
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err, code) =&#x3E; {
   assert.ifError(err);
   assert.strictEqual(code, expectCode);
   if (expectOutMsg instanceof RegExp) {
-    assert.match(String(options.out.read()), expectOutMsg);
+    assert.match(String(options.stdout.read()), expectOutMsg);
   } else {
-    assert.strictEqual(options.out.read(), expectOutMsg);
+    assert.strictEqual(options.stdout.read(), expectOutMsg);
   }
   if (expectErrMsg instanceof RegExp) {
-    assert.match(String(options.err.read()), expectErrMsg);
+    assert.match(String(options.stderr.read()), expectErrMsg);
   } else {
-    assert.strictEqual(options.err.read(), expectErrMsg);
+    assert.strictEqual(options.stderr.read(), expectErrMsg);
   }
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>interprets --project foo as match(project: foo)</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).once()
   .withArgs(
     expectObj,
     match.func,
   )
   .yields(null, &#x27;success&#x27;);
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err) =&#x3E; {
   assert.ifError(err);
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>interprets -p foo as match(project: foo)</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).once()
   .withArgs(
     expectObj,
     match.func,
   )
   .yields(null, &#x27;success&#x27;);
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err) =&#x3E; {
   assert.ifError(err);
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>interprets --quiet as match(verbosity: -1)</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).once()
   .withArgs(
     expectObj,
     match.func,
   )
   .yields(null, &#x27;success&#x27;);
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err) =&#x3E; {
   assert.ifError(err);
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>interprets -q as match(verbosity: -1)</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).once()
   .withArgs(
     expectObj,
     match.func,
   )
   .yields(null, &#x27;success&#x27;);
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err) =&#x3E; {
   assert.ifError(err);
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>interprets -qq as match(verbosity: -2)</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).once()
   .withArgs(
     expectObj,
     match.func,
   )
   .yields(null, &#x27;success&#x27;);
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err) =&#x3E; {
   assert.ifError(err);
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>interprets --quiet -q as match(verbosity: -2)</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).once()
   .withArgs(
     expectObj,
     match.func,
   )
   .yields(null, &#x27;success&#x27;);
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err) =&#x3E; {
   assert.ifError(err);
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>prints error and exits for --repo</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).never();
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err, code) =&#x3E; {
   assert.ifError(err);
   assert.strictEqual(code, expectCode);
   if (expectOutMsg instanceof RegExp) {
-    assert.match(String(options.out.read()), expectOutMsg);
+    assert.match(String(options.stdout.read()), expectOutMsg);
   } else {
-    assert.strictEqual(options.out.read(), expectOutMsg);
+    assert.strictEqual(options.stdout.read(), expectOutMsg);
   }
   if (expectErrMsg instanceof RegExp) {
-    assert.match(String(options.err.read()), expectErrMsg);
+    assert.match(String(options.stderr.read()), expectErrMsg);
   } else {
-    assert.strictEqual(options.err.read(), expectErrMsg);
+    assert.strictEqual(options.stderr.read(), expectErrMsg);
   }
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>prints error and exits for -r</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).never();
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err, code) =&#x3E; {
   assert.ifError(err);
   assert.strictEqual(code, expectCode);
   if (expectOutMsg instanceof RegExp) {
-    assert.match(String(options.out.read()), expectOutMsg);
+    assert.match(String(options.stdout.read()), expectOutMsg);
   } else {
-    assert.strictEqual(options.out.read(), expectOutMsg);
+    assert.strictEqual(options.stdout.read(), expectOutMsg);
   }
   if (expectErrMsg instanceof RegExp) {
-    assert.match(String(options.err.read()), expectErrMsg);
+    assert.match(String(options.stderr.read()), expectErrMsg);
   } else {
-    assert.strictEqual(options.err.read(), expectErrMsg);
+    assert.strictEqual(options.stderr.read(), expectErrMsg);
   }
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>interprets --repo foo as match(repo: foo)</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).once()
   .withArgs(
     expectObj,
     match.func,
   )
   .yields(null, &#x27;success&#x27;);
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err) =&#x3E; {
   assert.ifError(err);
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>interprets -r foo as match(repo: foo)</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).once()
   .withArgs(
     expectObj,
     match.func,
   )
   .yields(null, &#x27;success&#x27;);
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err) =&#x3E; {
   assert.ifError(err);
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>prints error and exits for --token</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).never();
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err, code) =&#x3E; {
   assert.ifError(err);
   assert.strictEqual(code, expectCode);
   if (expectOutMsg instanceof RegExp) {
-    assert.match(String(options.out.read()), expectOutMsg);
+    assert.match(String(options.stdout.read()), expectOutMsg);
   } else {
-    assert.strictEqual(options.out.read(), expectOutMsg);
+    assert.strictEqual(options.stdout.read(), expectOutMsg);
   }
   if (expectErrMsg instanceof RegExp) {
-    assert.match(String(options.err.read()), expectErrMsg);
+    assert.match(String(options.stderr.read()), expectErrMsg);
   } else {
-    assert.strictEqual(options.err.read(), expectErrMsg);
+    assert.strictEqual(options.stderr.read(), expectErrMsg);
   }
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>prints error and exits for -t</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).never();
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err, code) =&#x3E; {
   assert.ifError(err);
   assert.strictEqual(code, expectCode);
   if (expectOutMsg instanceof RegExp) {
-    assert.match(String(options.out.read()), expectOutMsg);
+    assert.match(String(options.stdout.read()), expectOutMsg);
   } else {
-    assert.strictEqual(options.out.read(), expectOutMsg);
+    assert.strictEqual(options.stdout.read(), expectOutMsg);
   }
   if (expectErrMsg instanceof RegExp) {
-    assert.match(String(options.err.read()), expectErrMsg);
+    assert.match(String(options.stderr.read()), expectErrMsg);
   } else {
-    assert.strictEqual(options.err.read(), expectErrMsg);
+    assert.strictEqual(options.stderr.read(), expectErrMsg);
   }
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>interprets  as match(token: env-token)</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).once()
   .withArgs(
     expectObj,
     match.func,
   )
   .yields(null, &#x27;success&#x27;);
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err) =&#x3E; {
   assert.ifError(err);
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>interprets --token foo as match(token: foo)</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).once()
   .withArgs(
     expectObj,
     match.func,
   )
   .yields(null, &#x27;success&#x27;);
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err) =&#x3E; {
   assert.ifError(err);
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>interprets -t foo as match(token: foo)</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).once()
   .withArgs(
     expectObj,
     match.func,
   )
   .yields(null, &#x27;success&#x27;);
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err) =&#x3E; {
   assert.ifError(err);
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>prints error and exits for --token-file</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).never();
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err, code) =&#x3E; {
   assert.ifError(err);
   assert.strictEqual(code, expectCode);
   if (expectOutMsg instanceof RegExp) {
-    assert.match(String(options.out.read()), expectOutMsg);
+    assert.match(String(options.stdout.read()), expectOutMsg);
   } else {
-    assert.strictEqual(options.out.read(), expectOutMsg);
+    assert.strictEqual(options.stdout.read(), expectOutMsg);
   }
   if (expectErrMsg instanceof RegExp) {
-    assert.match(String(options.err.read()), expectErrMsg);
+    assert.match(String(options.stderr.read()), expectErrMsg);
   } else {
-    assert.strictEqual(options.err.read(), expectErrMsg);
+    assert.strictEqual(options.stderr.read(), expectErrMsg);
   }
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>prints error and exits for -T</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).never();
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err, code) =&#x3E; {
   assert.ifError(err);
   assert.strictEqual(code, expectCode);
   if (expectOutMsg instanceof RegExp) {
-    assert.match(String(options.out.read()), expectOutMsg);
+    assert.match(String(options.stdout.read()), expectOutMsg);
   } else {
-    assert.strictEqual(options.out.read(), expectOutMsg);
+    assert.strictEqual(options.stdout.read(), expectOutMsg);
   }
   if (expectErrMsg instanceof RegExp) {
-    assert.match(String(options.err.read()), expectErrMsg);
+    assert.match(String(options.stderr.read()), expectErrMsg);
   } else {
-    assert.strictEqual(options.err.read(), expectErrMsg);
+    assert.strictEqual(options.stderr.read(), expectErrMsg);
   }
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>interprets --token-file /home/kevin/src/node-projects/appveyor-status/test-data/token.txt as match(token: file-token)</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).once()
   .withArgs(
     expectObj,
     match.func,
   )
   .yields(null, &#x27;success&#x27;);
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err) =&#x3E; {
   assert.ifError(err);
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>interprets -T /home/kevin/src/node-projects/appveyor-status/test-data/token.txt as match(token: file-token)</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).once()
   .withArgs(
     expectObj,
     match.func,
   )
   .yields(null, &#x27;success&#x27;);
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err) =&#x3E; {
   assert.ifError(err);
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>prints error and exits for --token-file badfile</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).never();
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err, code) =&#x3E; {
   assert.ifError(err);
   assert.strictEqual(code, expectCode);
   if (expectOutMsg instanceof RegExp) {
-    assert.match(String(options.out.read()), expectOutMsg);
+    assert.match(String(options.stdout.read()), expectOutMsg);
   } else {
-    assert.strictEqual(options.out.read(), expectOutMsg);
+    assert.strictEqual(options.stdout.read(), expectOutMsg);
   }
   if (expectErrMsg instanceof RegExp) {
-    assert.match(String(options.err.read()), expectErrMsg);
+    assert.match(String(options.stderr.read()), expectErrMsg);
   } else {
-    assert.strictEqual(options.err.read(), expectErrMsg);
+    assert.strictEqual(options.stderr.read(), expectErrMsg);
   }
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>prints error and exits for -T badfile</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).never();
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err, code) =&#x3E; {
   assert.ifError(err);
   assert.strictEqual(code, expectCode);
   if (expectOutMsg instanceof RegExp) {
-    assert.match(String(options.out.read()), expectOutMsg);
+    assert.match(String(options.stdout.read()), expectOutMsg);
   } else {
-    assert.strictEqual(options.out.read(), expectOutMsg);
+    assert.strictEqual(options.stdout.read(), expectOutMsg);
   }
   if (expectErrMsg instanceof RegExp) {
-    assert.match(String(options.err.read()), expectErrMsg);
+    assert.match(String(options.stderr.read()), expectErrMsg);
   } else {
-    assert.strictEqual(options.err.read(), expectErrMsg);
+    assert.strictEqual(options.stderr.read(), expectErrMsg);
   }
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>interprets --verbose as match(verbosity: 1)</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).once()
   .withArgs(
     expectObj,
     match.func,
   )
   .yields(null, &#x27;success&#x27;);
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err) =&#x3E; {
   assert.ifError(err);
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>interprets -v as match(verbosity: 1)</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).once()
   .withArgs(
     expectObj,
     match.func,
   )
   .yields(null, &#x27;success&#x27;);
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err) =&#x3E; {
   assert.ifError(err);
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>interprets -vv as match(verbosity: 2)</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).once()
   .withArgs(
     expectObj,
     match.func,
   )
   .yields(null, &#x27;success&#x27;);
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err) =&#x3E; {
   assert.ifError(err);
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>interprets --verbose -v as match(verbosity: 2)</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).once()
   .withArgs(
     expectObj,
     match.func,
   )
   .yields(null, &#x27;success&#x27;);
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err) =&#x3E; {
   assert.ifError(err);
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>interprets --wait as match(wait: Infinity)</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).once()
   .withArgs(
     expectObj,
     match.func,
   )
   .yields(null, &#x27;success&#x27;);
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err) =&#x3E; {
   assert.ifError(err);
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>interprets -w as match(wait: Infinity)</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).once()
   .withArgs(
     expectObj,
     match.func,
   )
   .yields(null, &#x27;success&#x27;);
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err) =&#x3E; {
   assert.ifError(err);
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>interprets --wait 10 as match(wait: 10000)</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).once()
   .withArgs(
     expectObj,
     match.func,
   )
   .yields(null, &#x27;success&#x27;);
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err) =&#x3E; {
   assert.ifError(err);
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>interprets -w 10 as match(wait: 10000)</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).once()
   .withArgs(
     expectObj,
     match.func,
   )
   .yields(null, &#x27;success&#x27;);
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err) =&#x3E; {
   assert.ifError(err);
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>prints error and exits for --wait foo</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).never();
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err, code) =&#x3E; {
   assert.ifError(err);
   assert.strictEqual(code, expectCode);
   if (expectOutMsg instanceof RegExp) {
-    assert.match(String(options.out.read()), expectOutMsg);
+    assert.match(String(options.stdout.read()), expectOutMsg);
   } else {
-    assert.strictEqual(options.out.read(), expectOutMsg);
+    assert.strictEqual(options.stdout.read(), expectOutMsg);
   }
   if (expectErrMsg instanceof RegExp) {
-    assert.match(String(options.err.read()), expectErrMsg);
+    assert.match(String(options.stderr.read()), expectErrMsg);
   } else {
-    assert.strictEqual(options.err.read(), expectErrMsg);
+    assert.strictEqual(options.stderr.read(), expectErrMsg);
   }
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>prints error and exits for -w foo</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).never();
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err, code) =&#x3E; {
   assert.ifError(err);
   assert.strictEqual(code, expectCode);
   if (expectOutMsg instanceof RegExp) {
-    assert.match(String(options.out.read()), expectOutMsg);
+    assert.match(String(options.stdout.read()), expectOutMsg);
   } else {
-    assert.strictEqual(options.out.read(), expectOutMsg);
+    assert.strictEqual(options.stdout.read(), expectOutMsg);
   }
   if (expectErrMsg instanceof RegExp) {
-    assert.match(String(options.err.read()), expectErrMsg);
+    assert.match(String(options.stderr.read()), expectErrMsg);
   } else {
-    assert.strictEqual(options.err.read(), expectErrMsg);
+    assert.strictEqual(options.stderr.read(), expectErrMsg);
   }
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>prints error and exits for --webhook</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).never();
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err, code) =&#x3E; {
   assert.ifError(err);
   assert.strictEqual(code, expectCode);
   if (expectOutMsg instanceof RegExp) {
-    assert.match(String(options.out.read()), expectOutMsg);
+    assert.match(String(options.stdout.read()), expectOutMsg);
   } else {
-    assert.strictEqual(options.out.read(), expectOutMsg);
+    assert.strictEqual(options.stdout.read(), expectOutMsg);
   }
   if (expectErrMsg instanceof RegExp) {
-    assert.match(String(options.err.read()), expectErrMsg);
+    assert.match(String(options.stderr.read()), expectErrMsg);
   } else {
-    assert.strictEqual(options.err.read(), expectErrMsg);
+    assert.strictEqual(options.stderr.read(), expectErrMsg);
   }
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>prints error and exits for -W</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).never();
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err, code) =&#x3E; {
   assert.ifError(err);
   assert.strictEqual(code, expectCode);
   if (expectOutMsg instanceof RegExp) {
-    assert.match(String(options.out.read()), expectOutMsg);
+    assert.match(String(options.stdout.read()), expectOutMsg);
   } else {
-    assert.strictEqual(options.out.read(), expectOutMsg);
+    assert.strictEqual(options.stdout.read(), expectOutMsg);
   }
   if (expectErrMsg instanceof RegExp) {
-    assert.match(String(options.err.read()), expectErrMsg);
+    assert.match(String(options.stderr.read()), expectErrMsg);
   } else {
-    assert.strictEqual(options.err.read(), expectErrMsg);
+    assert.strictEqual(options.stderr.read(), expectErrMsg);
   }
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>interprets --webhook foo as match(webhookId: foo)</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).once()
   .withArgs(
     expectObj,
     match.func,
   )
   .yields(null, &#x27;success&#x27;);
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err) =&#x3E; {
   assert.ifError(err);
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>interprets -W foo as match(webhookId: foo)</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).once()
   .withArgs(
     expectObj,
     match.func,
   )
   .yields(null, &#x27;success&#x27;);
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err) =&#x3E; {
   assert.ifError(err);
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>prints error and exits for -t foo -T bar</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).never();
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err, code) =&#x3E; {
   assert.ifError(err);
   assert.strictEqual(code, expectCode);
   if (expectOutMsg instanceof RegExp) {
-    assert.match(String(options.out.read()), expectOutMsg);
+    assert.match(String(options.stdout.read()), expectOutMsg);
   } else {
-    assert.strictEqual(options.out.read(), expectOutMsg);
+    assert.strictEqual(options.stdout.read(), expectOutMsg);
   }
   if (expectErrMsg instanceof RegExp) {
-    assert.match(String(options.err.read()), expectErrMsg);
+    assert.match(String(options.stderr.read()), expectErrMsg);
   } else {
-    assert.strictEqual(options.err.read(), expectErrMsg);
+    assert.strictEqual(options.stderr.read(), expectErrMsg);
   }
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>interprets -q -v as match(verbosity: 0)</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).once()
   .withArgs(
     expectObj,
     match.func,
   )
   .yields(null, &#x27;success&#x27;);
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err) =&#x3E; {
   assert.ifError(err);
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>interprets -v -q as match(verbosity: 0)</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).once()
   .withArgs(
     expectObj,
     match.func,
   )
   .yields(null, &#x27;success&#x27;);
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err) =&#x3E; {
   assert.ifError(err);
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>interprets -v -q -v as match(verbosity: 1)</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).once()
   .withArgs(
     expectObj,
     match.func,
   )
   .yields(null, &#x27;success&#x27;);
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err) =&#x3E; {
   assert.ifError(err);
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>prints error and exits for --version</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).never();
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err, code) =&#x3E; {
   assert.ifError(err);
   assert.strictEqual(code, expectCode);
   if (expectOutMsg instanceof RegExp) {
-    assert.match(String(options.out.read()), expectOutMsg);
+    assert.match(String(options.stdout.read()), expectOutMsg);
   } else {
-    assert.strictEqual(options.out.read(), expectOutMsg);
+    assert.strictEqual(options.stdout.read(), expectOutMsg);
   }
   if (expectErrMsg instanceof RegExp) {
-    assert.match(String(options.err.read()), expectErrMsg);
+    assert.match(String(options.stderr.read()), expectErrMsg);
   } else {
-    assert.strictEqual(options.err.read(), expectErrMsg);
+    assert.strictEqual(options.stderr.read(), expectErrMsg);
   }
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>prints error and exits for -V</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).never();
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err, code) =&#x3E; {
   assert.ifError(err);
   assert.strictEqual(code, expectCode);
   if (expectOutMsg instanceof RegExp) {
-    assert.match(String(options.out.read()), expectOutMsg);
+    assert.match(String(options.stdout.read()), expectOutMsg);
   } else {
-    assert.strictEqual(options.out.read(), expectOutMsg);
+    assert.strictEqual(options.stdout.read(), expectOutMsg);
   }
   if (expectErrMsg instanceof RegExp) {
-    assert.match(String(options.err.read()), expectErrMsg);
+    assert.match(String(options.stderr.read()), expectErrMsg);
   } else {
-    assert.strictEqual(options.err.read(), expectErrMsg);
+    assert.strictEqual(options.stderr.read(), expectErrMsg);
   }
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>prints error and exits for foo</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).never();
-const allArgs = RUNTIME_ARGS.concat(args);
+const allArgs = [...RUNTIME_ARGS, ...args];
 appveyorStatusCmd(allArgs, options, (err, code) =&#x3E; {
   assert.ifError(err);
   assert.strictEqual(code, expectCode);
   if (expectOutMsg instanceof RegExp) {
-    assert.match(String(options.out.read()), expectOutMsg);
+    assert.match(String(options.stdout.read()), expectOutMsg);
   } else {
-    assert.strictEqual(options.out.read(), expectOutMsg);
+    assert.strictEqual(options.stdout.read(), expectOutMsg);
   }
   if (expectErrMsg instanceof RegExp) {
-    assert.match(String(options.err.read()), expectErrMsg);
+    assert.match(String(options.stderr.read()), expectErrMsg);
   } else {
-    assert.strictEqual(options.err.read(), expectErrMsg);
+    assert.strictEqual(options.stderr.read(), expectErrMsg);
   }
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>interprets -T - as reading token from stdin</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).once()
   .withArgs(
     match({ token: &#x27;file-token&#x27; }),
     match.func,
   )
   .yields(null, &#x27;success&#x27;);
-const allArgs = RUNTIME_ARGS.concat(&#x27;-T&#x27;, &#x27;-&#x27;);
-options.in = fs.createReadStream(TEST_TOKEN_PATH);
+const allArgs = [...RUNTIME_ARGS, &#x27;-T&#x27;, &#x27;-&#x27;];
+options.stdin = fs.createReadStream(TEST_TOKEN_PATH);
 appveyorStatusCmd(allArgs, options, (err) =&#x3E; {
   assert.ifError(err);
   appveyorStatusMock.verify();
   done();
 });</code></pre></dd>
         <dt>exits with code 2 for build cancelled</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;)
   .once().withArgs(match.object, match.func).yields(null, status);
 appveyorStatusCmd(RUNTIME_ARGS, options, (err, code) =&#x3E; {
@@ -2165,7 +2204,7 @@ appveyorStatusCmd(RUNTIME_ARGS, options, (err, code) =&#x3E; {
   done();
 });</code></pre></dd>
         <dt>exits with code 2 for build cancelling</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;)
   .once().withArgs(match.object, match.func).yields(null, status);
 appveyorStatusCmd(RUNTIME_ARGS, options, (err, code) =&#x3E; {
@@ -2174,7 +2213,7 @@ appveyorStatusCmd(RUNTIME_ARGS, options, (err, code) =&#x3E; {
   done();
 });</code></pre></dd>
         <dt>exits with code 2 for build failed</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;)
   .once().withArgs(match.object, match.func).yields(null, status);
 appveyorStatusCmd(RUNTIME_ARGS, options, (err, code) =&#x3E; {
@@ -2183,7 +2222,7 @@ appveyorStatusCmd(RUNTIME_ARGS, options, (err, code) =&#x3E; {
   done();
 });</code></pre></dd>
         <dt>exits with code 2 for build queued</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;)
   .once().withArgs(match.object, match.func).yields(null, status);
 appveyorStatusCmd(RUNTIME_ARGS, options, (err, code) =&#x3E; {
@@ -2192,7 +2231,7 @@ appveyorStatusCmd(RUNTIME_ARGS, options, (err, code) =&#x3E; {
   done();
 });</code></pre></dd>
         <dt>exits with code 2 for build running</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;)
   .once().withArgs(match.object, match.func).yields(null, status);
 appveyorStatusCmd(RUNTIME_ARGS, options, (err, code) =&#x3E; {
@@ -2201,7 +2240,7 @@ appveyorStatusCmd(RUNTIME_ARGS, options, (err, code) =&#x3E; {
   done();
 });</code></pre></dd>
         <dt>exits with code 2 for build starting</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;)
   .once().withArgs(match.object, match.func).yields(null, status);
 appveyorStatusCmd(RUNTIME_ARGS, options, (err, code) =&#x3E; {
@@ -2210,7 +2249,7 @@ appveyorStatusCmd(RUNTIME_ARGS, options, (err, code) =&#x3E; {
   done();
 });</code></pre></dd>
         <dt>exits with code 0 for build success</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;)
   .once().withArgs(match.object, match.func).yields(null, status);
 appveyorStatusCmd(RUNTIME_ARGS, options, (err, code) =&#x3E; {
@@ -2219,7 +2258,7 @@ appveyorStatusCmd(RUNTIME_ARGS, options, (err, code) =&#x3E; {
   done();
 });</code></pre></dd>
         <dt>exits with code 2 for build unrecognized</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;)
   .once().withArgs(match.object, match.func).yields(null, status);
 appveyorStatusCmd(RUNTIME_ARGS, options, (err, code) =&#x3E; {
@@ -2228,53 +2267,53 @@ appveyorStatusCmd(RUNTIME_ARGS, options, (err, code) =&#x3E; {
   done();
 });</code></pre></dd>
         <dt>prints status to stdout by default</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;)
   .once().withArgs(match.object, match.func).yields(null, &#x27;success&#x27;);
 appveyorStatusCmd(RUNTIME_ARGS, options, (err, code) =&#x3E; {
   assert.ifError(err);
   assert.strictEqual(code, 0);
   assert.strictEqual(
-    String(options.out.read()),
+    String(options.stdout.read()),
     // Be strict about this format since other programs may use it
     &#x27;AppVeyor build status: success\n&#x27;,
   );
-  assert.strictEqual(options.err.read(), null);
+  assert.strictEqual(options.stderr.read(), null);
   done();
 });</code></pre></dd>
         <dt>-q exits without printing status</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;)
   .once().withArgs(match.object, match.func).yields(null, &#x27;failed&#x27;);
-const allArgs = RUNTIME_ARGS.concat(arg);
+const allArgs = [...RUNTIME_ARGS, arg];
 appveyorStatusCmd(allArgs, options, (err, code) =&#x3E; {
   assert.ifError(err);
   assert.strictEqual(code, 2);
-  assert.strictEqual(options.out.read(), null);
-  assert.strictEqual(options.err.read(), null);
+  assert.strictEqual(options.stdout.read(), null);
+  assert.strictEqual(options.stderr.read(), null);
   done();
 });</code></pre></dd>
         <dt>--quiet exits without printing status</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;)
   .once().withArgs(match.object, match.func).yields(null, &#x27;failed&#x27;);
-const allArgs = RUNTIME_ARGS.concat(arg);
+const allArgs = [...RUNTIME_ARGS, arg];
 appveyorStatusCmd(allArgs, options, (err, code) =&#x3E; {
   assert.ifError(err);
   assert.strictEqual(code, 2);
-  assert.strictEqual(options.out.read(), null);
-  assert.strictEqual(options.err.read(), null);
+  assert.strictEqual(options.stdout.read(), null);
+  assert.strictEqual(options.stderr.read(), null);
   done();
 });</code></pre></dd>
         <dt>allows callback errors to propagate</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).never();
 const errTest = new Error(&#x27;test&#x27;);
 let caughtError = false;
 let called = false;
 // Note:  Chai assert.throws does not accept comparison function like node
 try {
-  const allArgs = RUNTIME_ARGS.concat([&#x27;foo&#x27;]);
+  const allArgs = [...RUNTIME_ARGS, &#x27;foo&#x27;];
   appveyorStatusCmd(allArgs, options, () =&#x3E; {
     assert(!called, &#x27;callback called exactly once&#x27;);
     called = true;
@@ -2286,15 +2325,14 @@ try {
 }
 assert(caughtError, &#x27;Missing expected exception.&#x27;);</code></pre></dd>
         <dt>throws for non-function callback</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).never();
 assert.throws(
   () =&#x3E; { appveyorStatusCmd(RUNTIME_ARGS, {}, true); },
   TypeError,
-  /\bcallback\b/,
 );</code></pre></dd>
         <dt>can be called without arguments</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;)
   .once()
   .withArgs(
@@ -2304,70 +2342,70 @@ assert.throws(
 appveyorStatusCmd(null, sinon.mock().never());
 appveyorStatusMock.verify();</code></pre></dd>
         <dt>yields TypeError for non-Array-like args</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).never();
 appveyorStatusCmd(true, options, (err) =&#x3E; {
-  assert.instanceOf(err, TypeError);
+  assert(err instanceof TypeError);
   assert.match(err.message, /\bArray\b/);
   done();
 });</code></pre></dd>
         <dt>yields RangeError for less than 2 args</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).never();
 appveyorStatusCmd([], options, (err) =&#x3E; {
-  assert.instanceOf(err, RangeError);
+  assert(err instanceof RangeError);
   assert.match(err.message, /\bargs\b/);
   done();
 });</code></pre></dd>
         <dt>yields Error for non-object options</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).never();
 appveyorStatusCmd(RUNTIME_ARGS, true, (err) =&#x3E; {
-  assert.instanceOf(err, TypeError);
+  assert(err instanceof TypeError);
   assert.match(err.message, /\boptions\b/);
   done();
 });</code></pre></dd>
         <dt>yields Error for non-Readable in</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).never();
-appveyorStatusCmd(RUNTIME_ARGS, { in: true }, (err) =&#x3E; {
-  assert.instanceOf(err, TypeError);
-  assert.match(err.message, /\boptions.in\b/);
+appveyorStatusCmd(RUNTIME_ARGS, { stdin: true }, (err) =&#x3E; {
+  assert(err instanceof TypeError);
+  assert.match(err.message, /\boptions.stdin\b/);
   done();
 });</code></pre></dd>
         <dt>yields Error for non-Writable out</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).never();
-const badOptions = { out: new stream.Readable() };
+const badOptions = { stdout: new stream.Readable() };
 appveyorStatusCmd(RUNTIME_ARGS, badOptions, (err) =&#x3E; {
-  assert.instanceOf(err, TypeError);
-  assert.match(err.message, /\boptions.out\b/);
+  assert(err instanceof TypeError);
+  assert.match(err.message, /\boptions.stdout\b/);
   done();
 });</code></pre></dd>
         <dt>yields Error for non-Writable err</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).never();
-const badOptions = { err: new stream.Readable() };
+const badOptions = { stderr: new stream.Readable() };
 appveyorStatusCmd(RUNTIME_ARGS, badOptions, (err) =&#x3E; {
-  assert.instanceOf(err, TypeError);
-  assert.match(err.message, /\boptions.err\b/);
+  assert(err instanceof TypeError);
+  assert.match(err.message, /\boptions.stderr\b/);
   done();
 });</code></pre></dd>
         <dt>exit code 1 and prints message on Error</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>const errMsg = &#x27;super duper test error&#x27;;
 appveyorStatusMock.expects(&#x27;getStatus&#x27;)
   .once().withArgs(match.object, match.func).yields(new Error(errMsg));
 appveyorStatusCmd(RUNTIME_ARGS, options, (err, code) =&#x3E; {
   assert.ifError(err);
   assert.strictEqual(code, 1);
-  assert.strictEqual(options.out.read(), null);
-  const errString = String(options.err.read());
-  assert.include(errString, errMsg);
+  assert.strictEqual(options.stdout.read(), null);
+  const errString = String(options.stderr.read());
+  assert.match(errString, toRegExp(errMsg));
   done();
 });</code></pre></dd>
         <dt>exit code 3 and prints message on CommitMismatchError</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>const testCommit = &#x27;123&#x27;;
 const errTest = new CommitMismatchError({
   actual: &#x27;foo&#x27;,
@@ -2375,18 +2413,18 @@ const errTest = new CommitMismatchError({
 });
 appveyorStatusMock.expects(&#x27;getStatus&#x27;)
   .once().withArgs(match.object, match.func).yields(errTest);
-const allArgs = RUNTIME_ARGS.concat([&#x27;-c&#x27;, testCommit]);
+const allArgs = [...RUNTIME_ARGS, &#x27;-c&#x27;, testCommit];
 appveyorStatusCmd(allArgs, options, (err, code) =&#x3E; {
   assert.ifError(err);
   assert.strictEqual(code, 3);
-  assert.strictEqual(options.out.read(), null);
-  const errString = String(options.err.read());
-  assert.include(errString, errTest.actual);
-  assert.include(errString, errTest.expected);
+  assert.strictEqual(options.stdout.read(), null);
+  const errString = String(options.stderr.read());
+  assert.match(errString, toRegExp(errTest.actual));
+  assert.match(errString, toRegExp(errTest.expected));
   done();
 });</code></pre></dd>
         <dt>CommitMismatchError prints both given and resolved</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>const testCommit = &#x27;123&#x27;;
 const testTag = &#x27;tagname&#x27;;
 const errTest = new CommitMismatchError({
@@ -2395,25 +2433,25 @@ const errTest = new CommitMismatchError({
 });
 appveyorStatusMock.expects(&#x27;getStatus&#x27;)
   .once().withArgs(match.object, match.func).yields(errTest);
-const allArgs = RUNTIME_ARGS.concat([&#x27;-c&#x27;, testTag]);
+const allArgs = [...RUNTIME_ARGS, &#x27;-c&#x27;, testTag];
 appveyorStatusCmd(allArgs, options, (err, code) =&#x3E; {
   assert.ifError(err);
   assert.strictEqual(code, 3);
-  assert.strictEqual(options.out.read(), null);
-  const errString = String(options.err.read());
-  assert.include(errString, errTest.actual);
-  assert.include(errString, errTest.expected);
-  assert.include(errString, testTag);
+  assert.strictEqual(options.stdout.read(), null);
+  const errString = String(options.stderr.read());
+  assert.match(errString, toRegExp(errTest.actual));
+  assert.match(errString, toRegExp(errTest.expected));
+  assert.match(errString, toRegExp(testTag));
   done();
 });</code></pre></dd>
         <dt>returns a Promise when called without a function</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;)
   .once().withArgs(match.object, match.func);
 const result = appveyorStatusCmd(RUNTIME_ARGS);
 assert(result instanceof Promise);</code></pre></dd>
         <dt>returned Promise is resolved with exit code</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;)
   .once().withArgs(match.object, match.func).yields(null, &#x27;success&#x27;);
 const result = appveyorStatusCmd(RUNTIME_ARGS, options);
@@ -2421,133 +2459,133 @@ return result.then((code) =&#x3E; {
   assert.strictEqual(code, 0);
 });</code></pre></dd>
         <dt>returned Promise is rejected with Error</dt>
-        <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
         <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;).never();
 const result = appveyorStatusCmd(RUNTIME_ARGS, true);
 return result.then(
   sinon.mock().never(),
-  (err) =&#x3E; { assert.instanceOf(err, TypeError); },
+  (err) =&#x3E; { assert(err instanceof TypeError); },
 );</code></pre></dd>
         <section class="suite">
           <h1>with $TERM=xterm</h1>
           <dl>
             <dt>prints cancelled in gray to TTY</dt>
-            <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+            <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
             <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;)
   .once().withArgs(match.object, match.func).yields(null, status);
-options.out.isTTY = true;
+options.stdout.isTTY = true;
 appveyorStatusCmd(RUNTIME_ARGS, options, (err, code) =&#x3E; {
   assert.ifError(err);
   assert.strictEqual(code, status === &#x27;success&#x27; ? 0 : 2);
-  const outString = String(options.out.read());
+  const outString = String(options.stdout.read());
   const ansiStyle = ansiStyles[colorName];
-  assert.include(
+  assert.match(
     outString,
-    &#x60;${ansiStyle.open}status${ansiStyle.close}&#x60;,
+    toRegExp(&#x60;${ansiStyle.open}status${ansiStyle.close}&#x60;),
   );
-  assert.strictEqual(options.err.read(), null);
+  assert.strictEqual(options.stderr.read(), null);
   done();
 });</code></pre></dd>
             <dt>prints cancelling in gray to TTY</dt>
-            <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+            <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
             <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;)
   .once().withArgs(match.object, match.func).yields(null, status);
-options.out.isTTY = true;
+options.stdout.isTTY = true;
 appveyorStatusCmd(RUNTIME_ARGS, options, (err, code) =&#x3E; {
   assert.ifError(err);
   assert.strictEqual(code, status === &#x27;success&#x27; ? 0 : 2);
-  const outString = String(options.out.read());
+  const outString = String(options.stdout.read());
   const ansiStyle = ansiStyles[colorName];
-  assert.include(
+  assert.match(
     outString,
-    &#x60;${ansiStyle.open}status${ansiStyle.close}&#x60;,
+    toRegExp(&#x60;${ansiStyle.open}status${ansiStyle.close}&#x60;),
   );
-  assert.strictEqual(options.err.read(), null);
+  assert.strictEqual(options.stderr.read(), null);
   done();
 });</code></pre></dd>
             <dt>prints failed in red to TTY</dt>
-            <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+            <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
             <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;)
   .once().withArgs(match.object, match.func).yields(null, status);
-options.out.isTTY = true;
+options.stdout.isTTY = true;
 appveyorStatusCmd(RUNTIME_ARGS, options, (err, code) =&#x3E; {
   assert.ifError(err);
   assert.strictEqual(code, status === &#x27;success&#x27; ? 0 : 2);
-  const outString = String(options.out.read());
+  const outString = String(options.stdout.read());
   const ansiStyle = ansiStyles[colorName];
-  assert.include(
+  assert.match(
     outString,
-    &#x60;${ansiStyle.open}status${ansiStyle.close}&#x60;,
+    toRegExp(&#x60;${ansiStyle.open}status${ansiStyle.close}&#x60;),
   );
-  assert.strictEqual(options.err.read(), null);
+  assert.strictEqual(options.stderr.read(), null);
   done();
 });</code></pre></dd>
             <dt>prints queued in gray to TTY</dt>
-            <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+            <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
             <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;)
   .once().withArgs(match.object, match.func).yields(null, status);
-options.out.isTTY = true;
+options.stdout.isTTY = true;
 appveyorStatusCmd(RUNTIME_ARGS, options, (err, code) =&#x3E; {
   assert.ifError(err);
   assert.strictEqual(code, status === &#x27;success&#x27; ? 0 : 2);
-  const outString = String(options.out.read());
+  const outString = String(options.stdout.read());
   const ansiStyle = ansiStyles[colorName];
-  assert.include(
+  assert.match(
     outString,
-    &#x60;${ansiStyle.open}status${ansiStyle.close}&#x60;,
+    toRegExp(&#x60;${ansiStyle.open}status${ansiStyle.close}&#x60;),
   );
-  assert.strictEqual(options.err.read(), null);
+  assert.strictEqual(options.stderr.read(), null);
   done();
 });</code></pre></dd>
             <dt>prints running in gray to TTY</dt>
-            <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+            <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
             <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;)
   .once().withArgs(match.object, match.func).yields(null, status);
-options.out.isTTY = true;
+options.stdout.isTTY = true;
 appveyorStatusCmd(RUNTIME_ARGS, options, (err, code) =&#x3E; {
   assert.ifError(err);
   assert.strictEqual(code, status === &#x27;success&#x27; ? 0 : 2);
-  const outString = String(options.out.read());
+  const outString = String(options.stdout.read());
   const ansiStyle = ansiStyles[colorName];
-  assert.include(
+  assert.match(
     outString,
-    &#x60;${ansiStyle.open}status${ansiStyle.close}&#x60;,
+    toRegExp(&#x60;${ansiStyle.open}status${ansiStyle.close}&#x60;),
   );
-  assert.strictEqual(options.err.read(), null);
+  assert.strictEqual(options.stderr.read(), null);
   done();
 });</code></pre></dd>
             <dt>prints starting in gray to TTY</dt>
-            <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+            <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
             <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;)
   .once().withArgs(match.object, match.func).yields(null, status);
-options.out.isTTY = true;
+options.stdout.isTTY = true;
 appveyorStatusCmd(RUNTIME_ARGS, options, (err, code) =&#x3E; {
   assert.ifError(err);
   assert.strictEqual(code, status === &#x27;success&#x27; ? 0 : 2);
-  const outString = String(options.out.read());
+  const outString = String(options.stdout.read());
   const ansiStyle = ansiStyles[colorName];
-  assert.include(
+  assert.match(
     outString,
-    &#x60;${ansiStyle.open}status${ansiStyle.close}&#x60;,
+    toRegExp(&#x60;${ansiStyle.open}status${ansiStyle.close}&#x60;),
   );
-  assert.strictEqual(options.err.read(), null);
+  assert.strictEqual(options.stderr.read(), null);
   done();
 });</code></pre></dd>
             <dt>prints success in green to TTY</dt>
-            <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+            <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
             <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;)
   .once().withArgs(match.object, match.func).yields(null, status);
-options.out.isTTY = true;
+options.stdout.isTTY = true;
 appveyorStatusCmd(RUNTIME_ARGS, options, (err, code) =&#x3E; {
   assert.ifError(err);
   assert.strictEqual(code, status === &#x27;success&#x27; ? 0 : 2);
-  const outString = String(options.out.read());
+  const outString = String(options.stdout.read());
   const ansiStyle = ansiStyles[colorName];
-  assert.include(
+  assert.match(
     outString,
-    &#x60;${ansiStyle.open}status${ansiStyle.close}&#x60;,
+    toRegExp(&#x60;${ansiStyle.open}status${ansiStyle.close}&#x60;),
   );
-  assert.strictEqual(options.err.read(), null);
+  assert.strictEqual(options.stderr.read(), null);
   done();
 });</code></pre></dd>
           </dl>
@@ -2556,94 +2594,94 @@ appveyorStatusCmd(RUNTIME_ARGS, options, (err, code) =&#x3E; {
           <h1>with $TERM=dumb</h1>
           <dl>
             <dt>prints cancelled without color to TTY</dt>
-            <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+            <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
             <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;)
   .once().withArgs(match.object, match.func).yields(null, status);
-options.out.isTTY = true;
+options.stdout.isTTY = true;
 appveyorStatusCmd(RUNTIME_ARGS, options, (err, code) =&#x3E; {
   assert.ifError(err);
   assert.strictEqual(code, status === &#x27;success&#x27; ? 0 : 2);
-  const outString = String(options.out.read());
+  const outString = String(options.stdout.read());
   assert(!hasAnsi(outString), &#x27;does not have color escapes&#x27;);
-  assert.strictEqual(options.err.read(), null);
+  assert.strictEqual(options.stderr.read(), null);
   done();
 });</code></pre></dd>
             <dt>prints cancelling without color to TTY</dt>
-            <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+            <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
             <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;)
   .once().withArgs(match.object, match.func).yields(null, status);
-options.out.isTTY = true;
+options.stdout.isTTY = true;
 appveyorStatusCmd(RUNTIME_ARGS, options, (err, code) =&#x3E; {
   assert.ifError(err);
   assert.strictEqual(code, status === &#x27;success&#x27; ? 0 : 2);
-  const outString = String(options.out.read());
+  const outString = String(options.stdout.read());
   assert(!hasAnsi(outString), &#x27;does not have color escapes&#x27;);
-  assert.strictEqual(options.err.read(), null);
+  assert.strictEqual(options.stderr.read(), null);
   done();
 });</code></pre></dd>
             <dt>prints failed without color to TTY</dt>
-            <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+            <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
             <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;)
   .once().withArgs(match.object, match.func).yields(null, status);
-options.out.isTTY = true;
+options.stdout.isTTY = true;
 appveyorStatusCmd(RUNTIME_ARGS, options, (err, code) =&#x3E; {
   assert.ifError(err);
   assert.strictEqual(code, status === &#x27;success&#x27; ? 0 : 2);
-  const outString = String(options.out.read());
+  const outString = String(options.stdout.read());
   assert(!hasAnsi(outString), &#x27;does not have color escapes&#x27;);
-  assert.strictEqual(options.err.read(), null);
+  assert.strictEqual(options.stderr.read(), null);
   done();
 });</code></pre></dd>
             <dt>prints queued without color to TTY</dt>
-            <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+            <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
             <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;)
   .once().withArgs(match.object, match.func).yields(null, status);
-options.out.isTTY = true;
+options.stdout.isTTY = true;
 appveyorStatusCmd(RUNTIME_ARGS, options, (err, code) =&#x3E; {
   assert.ifError(err);
   assert.strictEqual(code, status === &#x27;success&#x27; ? 0 : 2);
-  const outString = String(options.out.read());
+  const outString = String(options.stdout.read());
   assert(!hasAnsi(outString), &#x27;does not have color escapes&#x27;);
-  assert.strictEqual(options.err.read(), null);
+  assert.strictEqual(options.stderr.read(), null);
   done();
 });</code></pre></dd>
             <dt>prints running without color to TTY</dt>
-            <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+            <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
             <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;)
   .once().withArgs(match.object, match.func).yields(null, status);
-options.out.isTTY = true;
+options.stdout.isTTY = true;
 appveyorStatusCmd(RUNTIME_ARGS, options, (err, code) =&#x3E; {
   assert.ifError(err);
   assert.strictEqual(code, status === &#x27;success&#x27; ? 0 : 2);
-  const outString = String(options.out.read());
+  const outString = String(options.stdout.read());
   assert(!hasAnsi(outString), &#x27;does not have color escapes&#x27;);
-  assert.strictEqual(options.err.read(), null);
+  assert.strictEqual(options.stderr.read(), null);
   done();
 });</code></pre></dd>
             <dt>prints starting without color to TTY</dt>
-            <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+            <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
             <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;)
   .once().withArgs(match.object, match.func).yields(null, status);
-options.out.isTTY = true;
+options.stdout.isTTY = true;
 appveyorStatusCmd(RUNTIME_ARGS, options, (err, code) =&#x3E; {
   assert.ifError(err);
   assert.strictEqual(code, status === &#x27;success&#x27; ? 0 : 2);
-  const outString = String(options.out.read());
+  const outString = String(options.stdout.read());
   assert(!hasAnsi(outString), &#x27;does not have color escapes&#x27;);
-  assert.strictEqual(options.err.read(), null);
+  assert.strictEqual(options.stderr.read(), null);
   done();
 });</code></pre></dd>
             <dt>prints success without color to TTY</dt>
-            <dt>/home/kevin/src/node-projects/appveyor-status/test/bin/appveyor-status.js</dt>
+            <dt>/home/kevin/src/node-projects/appveyor-status/test/cli.js</dt>
             <dd><pre><code>appveyorStatusMock.expects(&#x27;getStatus&#x27;)
   .once().withArgs(match.object, match.func).yields(null, status);
-options.out.isTTY = true;
+options.stdout.isTTY = true;
 appveyorStatusCmd(RUNTIME_ARGS, options, (err, code) =&#x3E; {
   assert.ifError(err);
   assert.strictEqual(code, status === &#x27;success&#x27; ? 0 : 2);
-  const outString = String(options.out.read());
+  const outString = String(options.stdout.read());
   assert(!hasAnsi(outString), &#x27;does not have color escapes&#x27;);
-  assert.strictEqual(options.err.read(), null);
+  assert.strictEqual(options.stderr.read(), null);
   done();
 });</code></pre></dd>
           </dl>
@@ -2669,7 +2707,7 @@ assert.strictEqual(a.projects, undefined);</code></pre></dd>
         <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/ambiguous-project-error.js</dt>
         <dd><pre><code>const testMsg = &#x27;test message&#x27;;
 const testProjects = [];
-// eslint-disable-next-line new-cap
+// eslint-disable-next-line new-cap, unicorn/throw-new-error
 const a = AmbiguousProjectError(testMsg, testProjects);
 assert(a instanceof AmbiguousProjectError);
 assert.strictEqual(a.message, testMsg);
@@ -3059,7 +3097,7 @@ assert.strictEqual(err.message, testOptions.message);</code></pre></dd>
   actual: &#x27;abc&#x27;,
   expected: &#x27;123&#x27;,
 };
-// eslint-disable-next-line new-cap
+// eslint-disable-next-line new-cap, unicorn/throw-new-error
 const err = CommitMismatchError(testOptions);
 assert.strictEqual(err.actual, testOptions.actual);
 assert.strictEqual(err.expected, testOptions.expected);
@@ -3112,7 +3150,7 @@ return execFileOut(process.execPath, testArgs).then(
   (err) =&#x3E; {
     assert.strictEqual(
       err.cmd,
-      [process.execPath].concat(testArgs).join(&#x27; &#x27;),
+      [process.execPath, ...testArgs].join(&#x27; &#x27;),
     );
     assert.strictEqual(err.code, testCode);
     assert.strictEqual(err.stderr, &#x27;&#x27;);
@@ -3130,7 +3168,7 @@ return execFileOut(process.execPath, testArgs).then(
     assert(err.message.includes(testErr), &#x27;stderr is in message&#x27;);
     assert.strictEqual(
       err.cmd,
-      [process.execPath].concat(testArgs).join(&#x27; &#x27;),
+      [process.execPath, ...testArgs].join(&#x27; &#x27;),
     );
     assert.strictEqual(err.code, 0);
     assert.strictEqual(err.stderr, testErr);
@@ -3149,22 +3187,31 @@ return execFileOut(process.execPath, testArgs, options).then(
     assert(err.message.includes(testErr), &#x27;stderr is in message&#x27;);
     assert.strictEqual(
       err.cmd,
-      [process.execPath].concat(testArgs).join(&#x27; &#x27;),
+      [process.execPath, ...testArgs].join(&#x27; &#x27;),
     );
     assert.strictEqual(err.code, 0);
     assert.deepStrictEqual(err.stderr, Buffer.from(testErr));
     assert.deepStrictEqual(err.stdout, Buffer.from(testOut));
   },
 );</code></pre></dd>
-        <dt>does not reject stderr with only whitespace</dt>
+        <dt>rejects stderr with only whitespace</dt>
         <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/exec-file-out.js</dt>
         <dd><pre><code>const testOut = &#x27;stdout content&#x27;;
 const testErr = &#x27;\n\t\t  \n&#x27;;
 const testArgs = [&#x27;-e&#x27;, makeScript(testOut, testErr)];
-return execFileOut(process.execPath, testArgs)
-  .then((stdout) =&#x3E; {
-    assert.strictEqual(stdout, testOut);
-  });</code></pre></dd>
+return execFileOut(process.execPath, testArgs).then(
+  neverCalled,
+  (err) =&#x3E; {
+    assert(err.message.includes(testErr), &#x27;stderr is in message&#x27;);
+    assert.strictEqual(
+      err.cmd,
+      [process.execPath, ...testArgs].join(&#x27; &#x27;),
+    );
+    assert.strictEqual(err.code, 0);
+    assert.deepStrictEqual(err.stderr, testErr);
+    assert.deepStrictEqual(err.stdout, testOut);
+  },
+);</code></pre></dd>
         <dt>closes stdin to prevent hanging</dt>
         <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/exec-file-out.js</dt>
         <dd><pre><code>execFileOut(process.execPath)</code></pre></dd>
@@ -3176,12 +3223,12 @@ return execFileOut(process.execPath, testArgs)
         <section class="suite">
           <h1>.getBranch</h1>
           <dl>
-            <dt>resolves master on master</dt>
+            <dt>resolves main on main</dt>
             <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/git-utils.js</dt>
             <dd><pre><code>gitUtils.getBranch(options)
-      .then((branch) =&#x3E; {
-        assert.strictEqual(branch, &#x27;master&#x27;);
-      })</code></pre></dd>
+        .then((branch) =&#x3E; {
+          assert.strictEqual(branch, defaultBranch);
+        })</code></pre></dd>
             <dt>resolves branch1 on branch1</dt>
             <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/git-utils.js</dt>
             <dd><pre><code>execFileOut(&#x27;git&#x27;, [&#x27;checkout&#x27;, &#x27;-q&#x27;, &#x27;branch1&#x27;], options)
@@ -3196,7 +3243,7 @@ return execFileOut(process.execPath, testArgs)
         .then(
           neverCalled,
           (err) =&#x3E; {
-            assert.instanceOf(err, Error);
+            assert(err instanceof Error);
             assert.match(err.message, /branch/i);
           },
         )</code></pre></dd>
@@ -3205,37 +3252,37 @@ return execFileOut(process.execPath, testArgs)
         <section class="suite">
           <h1>.getRemote</h1>
           <dl>
-            <dt>resolves master to origin</dt>
+            <dt>resolves main to origin</dt>
             <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/git-utils.js</dt>
             <dd><pre><code>gitUtils.getRemote(branch, options).then((result) =&#x3E; {
-          assert.strictEqual(result, remote);
-        })</code></pre></dd>
+            assert.strictEqual(result, remote);
+          })</code></pre></dd>
             <dt>resolves branch1 to remote1</dt>
             <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/git-utils.js</dt>
             <dd><pre><code>gitUtils.getRemote(branch, options).then((result) =&#x3E; {
-          assert.strictEqual(result, remote);
-        })</code></pre></dd>
+            assert.strictEqual(result, remote);
+          })</code></pre></dd>
             <dt>resolves branch2 to remote2</dt>
             <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/git-utils.js</dt>
             <dd><pre><code>gitUtils.getRemote(branch, options).then((result) =&#x3E; {
-          assert.strictEqual(result, remote);
-        })</code></pre></dd>
+            assert.strictEqual(result, remote);
+          })</code></pre></dd>
             <dt>resolves branchnourl to nourl</dt>
             <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/git-utils.js</dt>
             <dd><pre><code>gitUtils.getRemote(branch, options).then((result) =&#x3E; {
-          assert.strictEqual(result, remote);
-        })</code></pre></dd>
+            assert.strictEqual(result, remote);
+          })</code></pre></dd>
             <dt>resolves branchnotslug to notslug</dt>
             <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/git-utils.js</dt>
             <dd><pre><code>gitUtils.getRemote(branch, options).then((result) =&#x3E; {
-          assert.strictEqual(result, remote);
-        })</code></pre></dd>
+            assert.strictEqual(result, remote);
+          })</code></pre></dd>
             <dt>rejects branch without remote with Error</dt>
             <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/git-utils.js</dt>
             <dd><pre><code>gitUtils.getRemote(&#x27;branchnoremote&#x27;, options).then(
         neverCalled,
         (err) =&#x3E; {
-          assert.instanceOf(err, Error);
+          assert(err instanceof Error);
         },
       )</code></pre></dd>
           </dl>
@@ -3272,7 +3319,7 @@ return execFileOut(process.execPath, testArgs)
             <dd><pre><code>gitUtils.getRemoteUrl(&#x27;invalidremote&#x27;, options).then(
         neverCalled,
         (err) =&#x3E; {
-          assert.instanceOf(err, Error);
+          assert(err instanceof Error);
         },
       )</code></pre></dd>
             <dt>uses ls-remote default for unspecified remote</dt>
@@ -3369,6 +3416,56 @@ assert.deepStrictEqual(
     { helper: undefined },
   ),
 );</code></pre></dd>
+            <dt>parses SCP-like URL with IPv4 like ssh: URL</dt>
+            <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/git-utils.js</dt>
+            <dd><pre><code>const testUrl = &#x27;user@127.0.0.1:foo/bar.git&#x27;;
+assert.deepStrictEqual(
+  gitUtils.parseGitUrl(testUrl),
+  Object.assign(
+    new URL(&#x27;ssh://user@127.0.0.1/foo/bar.git&#x27;),
+    { helper: undefined },
+  ),
+);</code></pre></dd>
+            <dt>parses SCP-like URL with IPv6 like ssh: URL</dt>
+            <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/git-utils.js</dt>
+            <dd><pre><code>const testUrl = &#x27;user@[::1]:foo/bar.git&#x27;;
+assert.deepStrictEqual(
+  gitUtils.parseGitUrl(testUrl),
+  Object.assign(
+    new URL(&#x27;ssh://user@[::1]/foo/bar.git&#x27;),
+    { helper: undefined },
+  ),
+);</code></pre></dd>
+            <dt>parses SCP-like URL with IPv4-mapped IPv6 like ssh: URL</dt>
+            <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/git-utils.js</dt>
+            <dd><pre><code>const testUrl = &#x27;user@[::ffff:192.0.2.128]:foo/bar.git&#x27;;
+assert.deepStrictEqual(
+  gitUtils.parseGitUrl(testUrl),
+  Object.assign(
+    new URL(&#x27;ssh://user@[::ffff:192.0.2.128]/foo/bar.git&#x27;),
+    { helper: undefined },
+  ),
+);</code></pre></dd>
+            <dt>parses SCP-like URL with domain and port like ssh: URL</dt>
+            <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/git-utils.js</dt>
+            <dd><pre><code>const testUrl = &#x27;user@[example.com:123]:foo/bar.git&#x27;;
+assert.deepStrictEqual(
+  gitUtils.parseGitUrl(testUrl),
+  Object.assign(
+    new URL(&#x27;ssh://user@example.com:123/foo/bar.git&#x27;),
+    { helper: undefined },
+  ),
+);</code></pre></dd>
+            <dt>parses SCP-like URL with IPv4 and port like ssh: URL</dt>
+            <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/git-utils.js</dt>
+            <dd><pre><code>const testUrl = &#x27;user@[127.0.0.1:123]:foo/bar.git&#x27;;
+assert.deepStrictEqual(
+  gitUtils.parseGitUrl(testUrl),
+  Object.assign(
+    new URL(&#x27;ssh://user@127.0.0.1:123/foo/bar.git&#x27;),
+    { helper: undefined },
+  ),
+);</code></pre></dd>
             <dt>parses absolute path like file:// URL</dt>
             <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/git-utils.js</dt>
             <dd><pre><code>const testPath = path.resolve(path.join(&#x27;foo&#x27;, &#x27;bar&#x27;));
@@ -3437,6 +3534,599 @@ return gitUtils.resolveCommit(branchName, options).then((hash) =&#x3E; {
       )</code></pre></dd>
           </dl>
         </section>
+      </dl>
+    </section>
+    <section class="suite">
+      <h1>retryAsync.constant</h1>
+      <dl>
+        <dt>returns an iterable of number first argument</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async/constant.js</dt>
+        <dd><pre><code>const expect = 1;
+let count = 0;
+for (const val of constant(expect)) {
+  assert.strictEqual(val, expect);
+  count += 1;
+  if (count &#x3E; 10) {
+    break;
+  }
+}
+assert.strictEqual(count, 11);</code></pre></dd>
+        <dt>returns an iterable of object first argument</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async/constant.js</dt>
+        <dd><pre><code>const expect = {};
+let count = 0;
+for (const val of constant(expect)) {
+  assert.strictEqual(val, expect);
+  count += 1;
+  if (count &#x3E; 10) {
+    break;
+  }
+}
+assert.strictEqual(count, 11);</code></pre></dd>
+        <dt>yields undefined if called without arguments</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async/constant.js</dt>
+        <dd><pre><code>let count = 0;
+for (const val of constant()) {
+  assert.strictEqual(val, undefined);
+  count += 1;
+  if (count &#x3E; 10) {
+    break;
+  }
+}
+assert.strictEqual(count, 11);</code></pre></dd>
+        <dt>yields count times for positive count</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async/constant.js</dt>
+        <dd><pre><code>const expectValue = 1;
+const expectCount = 5;
+let count = 0;
+for (const val of constant(expectValue, expectCount)) {
+  assert.strictEqual(val, expectValue);
+  count += 1;
+}
+assert.strictEqual(count, expectCount);</code></pre></dd>
+        <dt>yields 0 times for 0 count</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async/constant.js</dt>
+        <dd><pre><code>// eslint-disable-next-line no-unused-vars
+for (const val of constant(1, 0)) {
+  assert.fail(&#x27;Unexpected value&#x27;);
+}</code></pre></dd>
+        <dt>throws RangeError for negative count</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async/constant.js</dt>
+        <dd><pre><code>assert.throws(
+  () =&#x3E; constant(1, -1),
+  RangeError,
+);</code></pre></dd>
+        <dt>throws RangeError for NaN count</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async/constant.js</dt>
+        <dd><pre><code>assert.throws(
+  () =&#x3E; constant(1, NaN),
+  RangeError,
+);</code></pre></dd>
+        <dt>throws RangeError for non-integer count</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async/constant.js</dt>
+        <dd><pre><code>assert.throws(
+  () =&#x3E; constant(1, 1.5),
+  RangeError,
+);</code></pre></dd>
+        <dt>throws TypeError for non-coerces-to-NaN count</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async/constant.js</dt>
+        <dd><pre><code>assert.throws(
+  () =&#x3E; constant(1, {}),
+  TypeError,
+);</code></pre></dd>
+        <dt>throws TypeError for coerces-to-number count</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async/constant.js</dt>
+        <dd><pre><code>assert.throws(
+  () =&#x3E; constant(1, &#x27;1&#x27;),
+  TypeError,
+);</code></pre></dd>
+      </dl>
+    </section>
+    <section class="suite">
+      <h1>retryAsync.exponential</h1>
+      <dl>
+        <dt>returns an iterable of count exponentially increasing values</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async/exponential.js</dt>
+        <dd><pre><code>assert.deepStrictEqual(
+  [...exponential(2, 1, Infinity, 4)],
+  [1, 2, 4, 8],
+);</code></pre></dd>
+        <dt>supports non-integer values</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async/exponential.js</dt>
+        <dd><pre><code>assert.deepStrictEqual(
+  [...exponential(1.5, 1.5, Infinity, 3)],
+  [1.5, 1.5 * 1.5, 1.5 * 1.5 * 1.5],
+);</code></pre></dd>
+        <dt>limits to maximum value</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async/exponential.js</dt>
+        <dd><pre><code>assert.deepStrictEqual(
+  [...exponential(2, 1, 3, 4)],
+  [1, 2, 3, 3],
+);</code></pre></dd>
+        <dt>limits below initial value</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async/exponential.js</dt>
+        <dd><pre><code>assert.deepStrictEqual(
+  [...exponential(2, 2, 1, 2)],
+  [1, 1],
+);</code></pre></dd>
+        <dt>allows negative factor</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async/exponential.js</dt>
+        <dd><pre><code>assert.deepStrictEqual(
+  [...exponential(-2, 1, Infinity, 4)],
+  [1, -2, 4, -8],
+);</code></pre></dd>
+        <dt>allows negative initial</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async/exponential.js</dt>
+        <dd><pre><code>assert.deepStrictEqual(
+  [...exponential(2, -1, Infinity, 4)],
+  [-1, -2, -4, -8],
+);</code></pre></dd>
+        <dt>handles Infinity factor</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async/exponential.js</dt>
+        <dd><pre><code>assert.deepStrictEqual(
+  [...exponential(Infinity, 1, Infinity, 3)],
+  [1, Infinity, Infinity],
+);</code></pre></dd>
+        <dt>handles Infinity initial</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async/exponential.js</dt>
+        <dd><pre><code>assert.deepStrictEqual(
+  [...exponential(2, Infinity, Infinity, 2)],
+  [Infinity, Infinity],
+);</code></pre></dd>
+        <dt>handles NaN factor</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async/exponential.js</dt>
+        <dd><pre><code>assert.deepStrictEqual(
+  [...exponential(NaN, 1, Infinity, 3)],
+  [1, NaN, NaN],
+);</code></pre></dd>
+        <dt>handles NaN initial</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async/exponential.js</dt>
+        <dd><pre><code>assert.deepStrictEqual(
+  [...exponential(2, NaN, Infinity, 3)],
+  [NaN, NaN, NaN],
+);</code></pre></dd>
+        <dt>yields 0 times for 0 count</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async/exponential.js</dt>
+        <dd><pre><code>assert.deepStrictEqual(
+  [...exponential(2, 1, Infinity, 0)],
+  [],
+);</code></pre></dd>
+        <dt>throws TypeError for no args</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async/exponential.js</dt>
+        <dd><pre><code>assert.throws(
+  () =&#x3E; exponential(),
+  TypeError,
+);</code></pre></dd>
+        <dt>throws TypeError for non-number factor</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async/exponential.js</dt>
+        <dd><pre><code>assert.throws(
+  () =&#x3E; exponential({}),
+  TypeError,
+);</code></pre></dd>
+        <dt>throws TypeError for non-number initial</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async/exponential.js</dt>
+        <dd><pre><code>assert.throws(
+  () =&#x3E; exponential(2, {}),
+  TypeError,
+);</code></pre></dd>
+        <dt>throws TypeError for non-number maxValue</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async/exponential.js</dt>
+        <dd><pre><code>assert.throws(
+  () =&#x3E; exponential(2, 1, {}),
+  TypeError,
+);</code></pre></dd>
+        <dt>throws RangeError for NaN maxValue</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async/exponential.js</dt>
+        <dd><pre><code>assert.throws(
+  () =&#x3E; exponential(2, 1, NaN, 4),
+  RangeError,
+);</code></pre></dd>
+        <dt>throws TypeError for non-number count</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async/exponential.js</dt>
+        <dd><pre><code>assert.throws(
+  () =&#x3E; exponential(2, 1, 1, {}),
+  TypeError,
+);</code></pre></dd>
+        <dt>throws RangeError for negative count</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async/exponential.js</dt>
+        <dd><pre><code>assert.throws(
+  () =&#x3E; exponential(2, 1, 1, -1),
+  RangeError,
+);</code></pre></dd>
+        <dt>throws RangeError for NaN count</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async/exponential.js</dt>
+        <dd><pre><code>assert.throws(
+  () =&#x3E; exponential(2, 1, 1, NaN),
+  RangeError,
+);</code></pre></dd>
+        <dt>throws RangeError for non-integer count</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async/exponential.js</dt>
+        <dd><pre><code>assert.throws(
+  () =&#x3E; exponential(2, 1, 1, 1.5),
+  RangeError,
+);</code></pre></dd>
+      </dl>
+    </section>
+    <section class="suite">
+      <h1>retryAsync</h1>
+      <dl>
+        <dt>calls operation immediately with given args once if truthy</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async.js</dt>
+        <dd><pre><code>async () =&#x3E; {
+    const stubResult = {};
+    const stub = sinon.stub().resolves(stubResult);
+    const args = [1, {}, false];
+    const result = retryAsync(
+      stub,
+      { setTimeout: neverCalled },
+      ...args,
+    );
+    stub.calledOnceWithExactly(...args);
+    assert.strictEqual(await result, stubResult);
+    stub.calledOnceWithExactly(...args);
+  }</code></pre></dd>
+        <dt>calls operation with given number of args</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async.js</dt>
+        <dd><pre><code>async () =&#x3E; {
+    const stubResult = {};
+    const stub = sinon.stub().resolves(stubResult);
+    const args = [undefined, undefined];
+    const result = retryAsync(
+      stub,
+      { setTimeout: neverCalled },
+      ...args,
+    );
+    stub.calledOnceWithExactly(...args);
+    assert.strictEqual(await result, stubResult);
+    stub.calledOnceWithExactly(...args);
+  }</code></pre></dd>
+        <dt>returns immediately for !shouldRetry</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async.js</dt>
+        <dd><pre><code>async () =&#x3E; {
+    const stubResult = null;
+    const stub = sinon.stub().resolves(stubResult);
+    const shouldRetry = sinon.stub().returns(false);
+    const result = retryAsync(
+      stub,
+      {
+        setTimeout: neverCalled,
+        shouldRetry,
+      },
+    );
+    stub.calledOnceWithExactly();
+    shouldRetry.calledOnceWithExactly(stubResult);
+    assert.strictEqual(await result, stubResult);
+    stub.calledOnceWithExactly();
+    shouldRetry.calledOnceWithExactly(stubResult);
+  }</code></pre></dd>
+        <dt>returns immediately with rejection</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async.js</dt>
+        <dd><pre><code>async () =&#x3E; {
+    const stubCause = new Error(&#x27;test&#x27;);
+    const stub = sinon.stub().rejects(stubCause);
+    const result = retryAsync(
+      stub,
+      {
+        setTimeout: neverCalled,
+        shouldRetry: neverCalled,
+      },
+    );
+    stub.calledOnceWithExactly();
+    await assert.rejects(
+      () =&#x3E; result,
+      (cause) =&#x3E; {
+        assert.strictEqual(cause, stubCause);
+        return true;
+      },
+    );
+    stub.calledOnceWithExactly();
+  }</code></pre></dd>
+        <dt>returns immediately with exception</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async.js</dt>
+        <dd><pre><code>async () =&#x3E; {
+    const stubCause = new Error(&#x27;test&#x27;);
+    const stub = sinon.stub().throws(stubCause);
+    const result = retryAsync(
+      stub,
+      {
+        setTimeout: neverCalled,
+        shouldRetry: neverCalled,
+      },
+    );
+    stub.calledOnceWithExactly();
+    await assert.rejects(
+      () =&#x3E; result,
+      (cause) =&#x3E; {
+        assert.strictEqual(cause, stubCause);
+        return true;
+      },
+    );
+    stub.calledOnceWithExactly();
+  }</code></pre></dd>
+        <dt>handles non-Promise return values</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async.js</dt>
+        <dd><pre><code>async () =&#x3E; {
+    const stubResult = undefined;
+    const stub = sinon.stub().returns(stubResult);
+    const shouldRetry = sinon.stub().returns(false);
+    const result = retryAsync(
+      stub,
+      {
+        setTimeout: neverCalled,
+        shouldRetry,
+      },
+    );
+    stub.calledOnceWithExactly();
+    shouldRetry.calledOnceWithExactly(stubResult);
+    assert.strictEqual(await result, stubResult);
+    stub.calledOnceWithExactly();
+    shouldRetry.calledOnceWithExactly(stubResult);
+  }</code></pre></dd>
+        <dt>returns immediately for empty waitMs</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async.js</dt>
+        <dd><pre><code>async () =&#x3E; {
+    const stub = sinon.stub();
+    const result = retryAsync(
+      stub,
+      {
+        setTimeout: neverCalled,
+        waitMs: [],
+      },
+    );
+    stub.calledOnceWithExactly();
+    await result;
+    stub.calledOnceWithExactly();
+  }</code></pre></dd>
+        <dt>does not call return on exhausted waitMs iterator</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async.js</dt>
+        <dd><pre><code>async () =&#x3E; {
+    const stub = sinon.stub();
+    const result = retryAsync(
+      stub,
+      {
+        setTimeout: neverCalled,
+        waitMs: {
+          [Symbol.iterator]: () =&#x3E; ({
+            next: () =&#x3E; ({ done: true }),
+            return: neverCalled,
+          }),
+        },
+      },
+    );
+    stub.calledOnceWithExactly();
+    await result;
+    stub.calledOnceWithExactly();
+  }</code></pre></dd>
+        <dt>calls .return on non-exhausted waitMs iterator</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async.js</dt>
+        <dd><pre><code>async () =&#x3E; {
+    const stubResult = 1;
+    const stub = sinon.stub();
+    stub.onFirstCall().returns(undefined);
+    stub.onSecondCall().returns(stubResult);
+    const waitMs = 1000;
+    const iterReturn = sinon.stub();
+    const iter = {
+      next: () =&#x3E; ({ value: waitMs }),
+      return: iterReturn,
+    };
+    const result = retryAsync(
+      stub,
+      {
+        ...timeOptions,
+        waitMs: {
+          [Symbol.iterator]: () =&#x3E; iter,
+        },
+      },
+    );
+    assert.strictEqual(stub.callCount, 1);
+    await setImmediateP();
+    assert.strictEqual(clock.countTimers(), 1);
+    clock.tick(waitMs);
+    await setImmediateP();
+    assert.strictEqual(stub.callCount, 2);
+    assert.strictEqual(clock.countTimers(), 0);
+    assert.strictEqual(await result, stubResult);
+    assert.strictEqual(stub.callCount, 2);
+    stub.alwaysCalledWithExactly();
+    // .return() is called exactly once, on iter, with no arguments
+    iterReturn.calledOnceWithExactly();
+    iterReturn.alwaysCalledOn(iter);
+  }</code></pre></dd>
+        <dt>returns after all waitMs</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async.js</dt>
+        <dd><pre><code>async () =&#x3E; {
+    const stubResult = false;
+    const stub = sinon.stub();
+    stub.onFirstCall().returns(undefined);
+    stub.onSecondCall().returns(stubResult);
+    const args = [false, undefined];
+    const waitMs = [1000];
+    const result = retryAsync(
+      stub,
+      {
+        ...timeOptions,
+        waitMs,
+      },
+      ...args,
+    );
+    assert.strictEqual(stub.callCount, 1);
+    await setImmediateP();
+    assert.strictEqual(stub.callCount, 1);
+    assert.strictEqual(clock.countTimers(), 1);
+    clock.tick(waitMs[0] - 1);
+    await setImmediateP();
+    assert.strictEqual(stub.callCount, 1);
+    assert.strictEqual(clock.countTimers(), 1);
+    clock.tick(1);
+    await setImmediateP();
+    assert.strictEqual(stub.callCount, 2);
+    assert.strictEqual(clock.countTimers(), 0);
+    assert.strictEqual(await result, stubResult);
+    assert.strictEqual(stub.callCount, 2);
+    stub.alwaysCalledWithExactly(...args);
+  }</code></pre></dd>
+        <dt>accepts constant number waitMs</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async.js</dt>
+        <dd><pre><code>async () =&#x3E; {
+    const stubResult = 1;
+    const stub = sinon.stub();
+    stub.onThirdCall().returns(stubResult);
+    const waitMs = 1000;
+    const result = retryAsync(
+      stub,
+      {
+        ...timeOptions,
+        waitMs,
+      },
+    );
+    assert.strictEqual(stub.callCount, 1);
+    await setImmediateP();
+    assert.strictEqual(clock.countTimers(), 1);
+    clock.tick(waitMs);
+    await setImmediateP();
+    assert.strictEqual(stub.callCount, 2);
+    assert.strictEqual(clock.countTimers(), 1);
+    clock.tick(waitMs);
+    await setImmediateP();
+    assert.strictEqual(stub.callCount, 3);
+    assert.strictEqual(clock.countTimers(), 0);
+    assert.strictEqual(await result, stubResult);
+    assert.strictEqual(stub.callCount, 3);
+    stub.alwaysCalledWithExactly();
+  }</code></pre></dd>
+        <dt>returns after maxTotalMs</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async.js</dt>
+        <dd><pre><code>async () =&#x3E; {
+    const stubResult = false;
+    const stub = sinon.stub();
+    stub.onFirstCall().returns(undefined);
+    stub.onSecondCall().returns(stubResult);
+    const maxTotalMs = 10000;
+    const waitMs = maxTotalMs;
+    const result = retryAsync(
+      stub,
+      {
+        ...timeOptions,
+        maxTotalMs,
+        waitMs,
+      },
+    );
+    assert.strictEqual(stub.callCount, 1);
+    await setImmediateP();
+    assert.strictEqual(stub.callCount, 1);
+    assert.strictEqual(clock.countTimers(), 1);
+    clock.tick(maxTotalMs);
+    await setImmediateP();
+    assert.strictEqual(stub.callCount, 2);
+    assert.strictEqual(clock.countTimers(), 0);
+    assert.strictEqual(await result, stubResult);
+    assert.strictEqual(stub.callCount, 2);
+    stub.alwaysCalledWithExactly();
+  }</code></pre></dd>
+        <dt>reduces last wait time to avoid exceeding maxTotalMs</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async.js</dt>
+        <dd><pre><code>async () =&#x3E; {
+    const stubResult = false;
+    const stub = sinon.stub();
+    stub.onFirstCall().returns(undefined);
+    stub.onSecondCall().returns(stubResult);
+    const maxTotalMs = 5000;
+    const waitMs = 10000;
+    const result = retryAsync(
+      stub,
+      {
+        ...timeOptions,
+        maxTotalMs,
+        waitMs,
+      },
+    );
+    assert.strictEqual(stub.callCount, 1);
+    await setImmediateP();
+    assert.strictEqual(stub.callCount, 1);
+    assert.strictEqual(clock.countTimers(), 1);
+    clock.tick(maxTotalMs);
+    await setImmediateP();
+    assert.strictEqual(stub.callCount, 2);
+    assert.strictEqual(clock.countTimers(), 0);
+    assert.strictEqual(await result, stubResult);
+    assert.strictEqual(stub.callCount, 2);
+    stub.alwaysCalledWithExactly();
+  }</code></pre></dd>
+        <dt>does not wait less than minWaitMs</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async.js</dt>
+        <dd><pre><code>async () =&#x3E; {
+    const stubResult = false;
+    const stub = sinon.stub();
+    stub.onFirstCall().returns(undefined);
+    stub.onSecondCall().returns(stubResult);
+    const minWaitMs = 500;
+    const maxTotalMs = 1100;
+    const waitMs = 1000;
+    const result = retryAsync(
+      stub,
+      {
+        ...timeOptions,
+        maxTotalMs,
+        minWaitMs,
+        waitMs,
+      },
+    );
+    assert.strictEqual(stub.callCount, 1);
+    await setImmediateP();
+    assert.strictEqual(stub.callCount, 1);
+    assert.strictEqual(clock.countTimers(), 1);
+    clock.tick(waitMs);
+    await setImmediateP();
+    assert.strictEqual(stub.callCount, 2);
+    assert.strictEqual(clock.countTimers(), 0);
+    assert.strictEqual(await result, stubResult);
+    assert.strictEqual(stub.callCount, 2);
+    stub.alwaysCalledWithExactly();
+  }</code></pre></dd>
+        <dt>does not wait at all if maxTotalMs &#x3C; minWaitMs</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async.js</dt>
+        <dd><pre><code>async () =&#x3E; {
+    const stubResult = false;
+    const stub = sinon.stub().returns(stubResult);
+    const result = retryAsync(
+      stub,
+      {
+        setTimeout: neverCalled,
+        maxTotalMs: 500,
+        minWaitMs: 1000,
+        waitMs: 1000,
+      },
+    );
+    assert.strictEqual(stub.callCount, 1);
+    assert.strictEqual(await result, stubResult);
+    assert.strictEqual(stub.callCount, 1);
+    stub.alwaysCalledWithExactly();
+  }</code></pre></dd>
+        <dt>rejects with TypeError without arguments</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async.js</dt>
+        <dd><pre><code>return assert.rejects(
+  () =&#x3E; retryAsync(),
+  TypeError,
+);</code></pre></dd>
+        <dt>rejects with TypeError for non-function operation</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async.js</dt>
+        <dd><pre><code>return assert.rejects(
+  () =&#x3E; retryAsync(1),
+  TypeError,
+);</code></pre></dd>
+        <dt>rejects with TypeError for null options</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async.js</dt>
+        <dd><pre><code>return assert.rejects(
+  () =&#x3E; retryAsync(neverCalled, null),
+  TypeError,
+);</code></pre></dd>
+        <dt>rejects with TypeError if options.waitMs is not iterable</dt>
+        <dt>/home/kevin/src/node-projects/appveyor-status/test/lib/retry-async.js</dt>
+        <dd><pre><code>return assert.rejects(
+  () =&#x3E; retryAsync(neverCalled, { waitMs: {} }),
+  TypeError,
+);</code></pre></dd>
       </dl>
     </section>
   </div><!-- .container -->
