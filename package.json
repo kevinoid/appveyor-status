@@ -1,6 +1,6 @@
 {
   "name": "appveyor-status",
-  "version": "5.0.1",
+  "version": "6.0.0",
   "description": "Query the AppVeyor build status.",
   "keywords": [
     "appveyor",
