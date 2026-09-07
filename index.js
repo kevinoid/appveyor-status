@@ -454,7 +454,9 @@ function getMatchingProject(options) {
         throw new Error(
           `No AppVeyor projects matching ${JSON.stringify(avRepo)}`,
         );
-      } else if (repoProjects.length > 1) {
+      }
+
+      if (repoProjects.length > 1) {
         // Callers may want to handle this error specially, so make it usable
         const repoProjectStrs = repoProjects.map(appveyorUtils.projectToString);
         throw new AmbiguousProjectError(
