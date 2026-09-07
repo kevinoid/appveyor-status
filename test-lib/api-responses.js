@@ -356,6 +356,7 @@ exports.getProjectBuild = function getLastBuild(options) {
 exports.getStatusBadge = function getStatusBadge(status) {
   if (!badgeData) {
     const badgeDataPath = path.join(__dirname, '..', 'test-data', 'badge.svg');
+    // eslint-disable-next-line unicorn/no-top-level-assignment-in-function
     badgeData =
       // eslint-disable-next-line n/no-sync
       fs.readFileSync(badgeDataPath, { encoding: 'utf8' });
