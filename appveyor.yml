@@ -42,7 +42,9 @@ install:
 test_script:
   - node --version
   - npm --version
-  - npm test
+  # Lint on most recent Node.js version only
+  # Both for efficiency and to avoid errors due to devDep engine requirements
+  - ps: if ($env:nodejs_version) { npm run test-unit } else { npm test }
 
 # Disable build step, which we don't need
 build: off
