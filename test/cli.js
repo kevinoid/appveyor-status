@@ -326,21 +326,21 @@ describe('appveyor-status command', () => {
   it('allows callback errors to propagate', () => {
     appveyorStatusMock.expects('getStatus').never();
     const errTest = new Error('test');
-    let caughtError = false;
-    let called = false;
+    let haveError = false;
+    let wasCalled = false;
     // Note:  Chai assert.throws does not accept comparison function like node
     try {
       const allArgs = [...RUNTIME_ARGS, 'foo'];
       appveyorStatusCmd(allArgs, options, () => {
-        assert(!called, 'callback called exactly once');
-        called = true;
+        assert(!wasCalled, 'callback called exactly once');
+        wasCalled = true;
         throw errTest;
       });
     } catch (err) {
-      caughtError = true;
+      haveError = true;
       assert.strictEqual(err, errTest);
     }
-    assert(caughtError, 'Missing expected exception.');
+    assert(haveError, 'Missing expected exception.');
   });
 
   it('throws for non-function callback', () => {
