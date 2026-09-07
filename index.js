@@ -50,11 +50,12 @@ function getResponseJson(response) {
     try {
       response.obj = JSON.parse(response.data);
     } catch (errJson) {
-      const err = new Error(`Unable to parse JSON from ${response.method} `
+      throw new Error(
+        `Unable to parse JSON from ${response.method} `
         + `${response.url} with Content-Type `
-        + `${response.headers['content-type']}: ${errJson.message}`);
-      err.cause = errJson;
-      throw err;
+        + `${response.headers['content-type']}: ${errJson.message}`,
+        { cause: errJson },
+      );
     }
   }
 
