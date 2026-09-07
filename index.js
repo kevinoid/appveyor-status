@@ -197,8 +197,9 @@ function canonicalizeOptions(options, apiFunc) {
     const projectOpts = ['project', 'repo', 'statusBadgeId', 'webhookId']
       .filter((propName) => options[propName]);
     if (projectOpts.length > 1) {
-      throw new Error(`${projectOpts.join(' and ')}`
-        + ' can not be specified together');
+      throw new Error(
+        `${projectOpts.join(' and ')} can not be specified together`,
+      );
     }
   }
 
@@ -450,8 +451,9 @@ function getMatchingProject(options) {
       );
 
       if (repoProjects.length === 0) {
-        throw new Error('No AppVeyor projects matching '
-          + `${JSON.stringify(avRepo)}`);
+        throw new Error(
+          `No AppVeyor projects matching ${JSON.stringify(avRepo)}`,
+        );
       } else if (repoProjects.length > 1) {
         // Callers may want to handle this error specially, so make it usable
         const repoProjectStrs = repoProjects.map(appveyorUtils.projectToString);
