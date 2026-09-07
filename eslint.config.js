@@ -31,6 +31,10 @@ module.exports = [
         ],
       }],
 
+      // Don't prefer await over promise chaining
+      // TODO: Convert existing code, enable this rule
+      'unicorn/prefer-await': 'off',
+
       // Allow CommonJS modules
       'unicorn/prefer-module': 'off',
 
