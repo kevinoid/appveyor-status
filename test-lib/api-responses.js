@@ -362,5 +362,6 @@ exports.getStatusBadge = function getStatusBadge(status) {
       fs.readFileSync(badgeDataPath, { encoding: 'utf8' });
   }
 
-  return badgeData.replaceAll(/\bpassing\b/g, status);
+  // eslint-disable-next-line unicorn/no-unsafe-string-replacement
+  return badgeData.replaceAll(/\bpassing\b/g, status.replaceAll('$', '$$$$'));
 };
