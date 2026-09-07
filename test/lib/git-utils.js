@@ -248,6 +248,7 @@ describe('gitUtils', () => {
     for (const testCase of [
       { url: '.', result: true },
       { url: '/foo/bar', result: true },
+      // eslint-disable-next-line unicorn/prefer-https
       { url: 'http://example.com', result: false },
       { url: 'git://example.com', result: false },
       { url: 'git@example.com:foo', result: false },
@@ -283,6 +284,7 @@ describe('gitUtils', () => {
 
   describe('.parseGitUrl', () => {
     it('parses http: like url module', () => {
+      // eslint-disable-next-line unicorn/prefer-https
       const testUrl = 'http://user@example.com/foo/bar';
       assert.deepStrictEqual(
         gitUtils.parseGitUrl(testUrl),
