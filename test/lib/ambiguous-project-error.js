@@ -24,14 +24,14 @@ describe('AmbiguousProjectError', () => {
     assert.strictEqual(a.projects, undefined);
   });
 
-  it('can be instantiated without new', () => {
+  it('cannot be instantiated without new', () => {
     const testMsg = 'test message';
     const testProjects = [];
-    // eslint-disable-next-line new-cap, unicorn/throw-new-error
-    const a = AmbiguousProjectError(testMsg, testProjects);
-    assert(a instanceof AmbiguousProjectError);
-    assert.strictEqual(a.message, testMsg);
-    assert.strictEqual(a.projects, testProjects);
+    assert.throws(
+      // eslint-disable-next-line new-cap, unicorn/throw-new-error
+      () => AmbiguousProjectError(testMsg, testProjects),
+      TypeError,
+    );
   });
 
   it('inherits from Error', () => {

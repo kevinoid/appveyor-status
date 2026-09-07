@@ -42,23 +42,15 @@ describe('CommitMismatchError', () => {
     assert.strictEqual(err.message, testOptions.message);
   });
 
-  it('can be instantiated without new', () => {
+  it('cannot be instantiated without new', () => {
     const testOptions = {
       actual: 'abc',
       expected: '123',
     };
-    // eslint-disable-next-line new-cap, unicorn/throw-new-error
-    const err = CommitMismatchError(testOptions);
-    assert.strictEqual(err.actual, testOptions.actual);
-    assert.strictEqual(err.expected, testOptions.expected);
-    assert.strictEqual(err.operator, '===');
-    assert(
-      err.message.includes(testOptions.actual),
-      'constructs message with actual',
-    );
-    assert(
-      err.message.includes(testOptions.expected),
-      'constructs message with expected',
+    assert.throws(
+      // eslint-disable-next-line new-cap, unicorn/throw-new-error
+      () => CommitMismatchError(testOptions),
+      TypeError,
     );
   });
 
