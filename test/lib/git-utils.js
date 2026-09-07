@@ -193,7 +193,7 @@ describe('gitUtils', () => {
 
     for (const [branch, remoteRef] of Object.entries(BRANCH_REMOTES)) {
       if (remoteRef) {
-        const remote = remoteRef.split('/')[0];
+        const remote = remoteRef.split('/', 1)[0];
         it(
           `resolves ${branch} to ${remote}`,
           () => gitUtils.getRemote(branch, options).then((result) => {
