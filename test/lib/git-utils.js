@@ -191,8 +191,7 @@ describe('gitUtils', () => {
   describe('.getRemote', () => {
     after(checkoutDefault);
 
-    for (const branch of Object.keys(BRANCH_REMOTES)) {
-      const remoteRef = BRANCH_REMOTES[branch];
+    for (const [branch, remoteRef] of Object.entries(BRANCH_REMOTES)) {
       if (remoteRef) {
         const remote = remoteRef.split('/')[0];
         it(
@@ -216,8 +215,7 @@ describe('gitUtils', () => {
   });
 
   describe('.getRemoteUrl', () => {
-    for (const remoteName of Object.keys(REMOTES)) {
-      const remoteUrl = REMOTES[remoteName];
+    for (const [remoteName, remoteUrl] of Object.entries(REMOTES)) {
       it(
         `resolves ${remoteName} to ${remoteUrl}`,
         () => gitUtils.getRemoteUrl(remoteName, options)
