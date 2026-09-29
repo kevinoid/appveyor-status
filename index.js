@@ -15,7 +15,14 @@ const nodeify = require('promise-nodeify');
 const SwaggerClient = require('swagger-client');
 
 const AmbiguousProjectError = require('./lib/ambiguous-project-error.js');
-const appveyorUtils = require('./lib/appveyor-utils.js');
+const {
+  badgeToStatus,
+  parseAppveyorRepoUrl,
+  projectBuildToStatus,
+  projectFromString,
+  projectToString,
+  repoUrlToBadgeParams,
+} = require('./lib/appveyor-utils.js');
 const CommitMismatchError = require('./lib/commit-mismatch-error.js');
 const gitUtils = require('./lib/git-utils.js');
 const retryAsync = require('./lib/retry-async.js');
@@ -219,7 +226,7 @@ function canonicalizeOptions(options, apiFunc) {
   }
 
   if (typeof options.project === 'string') {
-    options.project = appveyorUtils.projectFromString(options.project);
+    options.project = projectFromString(options.project);
   } else if (options.project
     && (!options.project.accountName || !options.project.slug)) {
     throw new Error('options.project must have accountName and slug');
@@ -440,7 +447,7 @@ function getLastBuildForProject(options) {
  */
 function getMatchingProject(options) {
   // Parse early to avoid delay on error
-  const avRepo = appveyorUtils.parseAppveyorRepoUrl(options.repo);
+  const avRepo = parseAppveyorRepoUrl(options.repo);
 
   return options.appveyorClient.apis.Project.getProjects()
     .catch(makeClientErrorHandler('Unable to get projects: '))
@@ -458,7 +465,7 @@ function getMatchingProject(options) {
 
       if (repoProjects.length > 1) {
         // Callers may want to handle this error specially, so make it usable
-        const repoProjectStrs = repoProjects.map(appveyorUtils.projectToString);
+        const repoProjectStrs = repoProjects.map(projectToString);
         throw new AmbiguousProjectError(
           `Multiple AppVeyor projects matching ${JSON.stringify(avRepo)}: ${
             repoProjectStrs.join(', ')}`,
@@ -580,7 +587,7 @@ function getStatusBadgeInternal(options) {
       responseP = client.apis.Project.getProjectStatusBadge(params);
     }
   } else {
-    Object.assign(params, appveyorUtils.repoUrlToBadgeParams(options.repo));
+    Object.assign(params, repoUrlToBadgeParams(options.repo));
     if (options.branch) {
       params.branch = options.branch;
     }
@@ -619,13 +626,13 @@ function getStatusInternal(options) {
   if (options.commit || options.project) {
     // If AppVeyor project is known or commit checking is required, get build
     return getLastBuildInternal(options)
-      .then(appveyorUtils.projectBuildToStatus);
+      .then(projectBuildToStatus);
   }
 
   // Otherwise get the status badge (which can resolve repo and statusBadgeId in
   // single request without authentication)
   return getStatusBadgeInternal(options)
-    .then(appveyorUtils.badgeToStatus);
+    .then(badgeToStatus);
 }
 
 /** Gets the current AppVeyor status of a repo/branch.

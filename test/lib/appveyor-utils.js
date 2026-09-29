@@ -8,20 +8,23 @@
 const assert = require('node:assert');
 
 const appveyorUtils = require('../../lib/appveyor-utils.js');
-const apiResponses = require('../../test-lib/api-responses.js');
+const {
+  getProjectBuild,
+  getStatusBadge,
+} = require('../../test-lib/api-responses.js');
 
 describe('appveyorUtils', () => {
   describe('.badgeToStatus', () => {
     for (const status of ['success', 'failed']) {
       it(`extracts ${status} status`, () => {
-        const badge = apiResponses.getStatusBadge(status);
+        const badge = getStatusBadge(status);
         const result = appveyorUtils.badgeToStatus(badge);
         assert.strictEqual(result, status);
       });
     }
 
     it('throws for unrecognized status', () => {
-      const badge = apiResponses.getStatusBadge('whatever');
+      const badge = getStatusBadge('whatever');
       assert.throws(
         () => { appveyorUtils.badgeToStatus(badge); },
         Error,
@@ -29,7 +32,7 @@ describe('appveyorUtils', () => {
     });
 
     it('throws for ambiguous status', () => {
-      const badge = apiResponses.getStatusBadge('success failed');
+      const badge = getStatusBadge('success failed');
       assert.throws(
         () => { appveyorUtils.badgeToStatus(badge); },
         Error,
@@ -47,7 +50,7 @@ describe('appveyorUtils', () => {
   describe('.projectBuildToStatus', () => {
     it('returns any status of ProjectBuild', () => {
       const testStatus = 'foo';
-      const projectBuild = apiResponses.getProjectBuild({ status: testStatus });
+      const projectBuild = getProjectBuild({ status: testStatus });
       const result = appveyorUtils.projectBuildToStatus(projectBuild);
       assert.strictEqual(result, testStatus);
     });
