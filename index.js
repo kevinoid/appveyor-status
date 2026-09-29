@@ -24,6 +24,7 @@ const {
   repoUrlToBadgeParams,
 } = require('./lib/appveyor-utils.js');
 const CommitMismatchError = require('./lib/commit-mismatch-error.js');
+// Note: Can't destructure gitUtils import due to mocking in tests
 const gitUtils = require('./lib/git-utils.js');
 const retryAsync = require('./lib/retry-async.js');
 

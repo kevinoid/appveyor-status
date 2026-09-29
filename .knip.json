@@ -1,0 +1,19 @@
+{
+  "ignoreBinaries": [
+    // Ignore version binaries.  Install by running version-deps script.
+    "conventional-changelog",
+    "depcheck",
+    "david",
+    "git-branch-is",
+    "hub-ci-status"
+  ],
+  "ignoreIssues": {
+    // Can't use destructing import due to mocking in tests.
+    // https://knip.dev/guides/working-with-commonjs
+    "lib/git-utils.js": ["exports"],
+    // Can't import both retryAsync and retryAsync.DEFAULT_OPTIONS
+    "lib/retry-async.js": ["exports"]
+  },
+  "treatConfigHintsAsErrors": true,
+  "treatTagHintsAsErrors": true
+}
