@@ -79,19 +79,10 @@ function waitForTimer(maxRetries) {
 }
 
 function assertAuthorization(req, authorization) {
-  try {
-    assert.strictEqual(
-      req.headers.authorization,
-      authorization,
-    );
-  } catch {
-    // Single-element Array in node-fetch < v3.0.0
-    // https://github.com/node-fetch/node-fetch/pull/834
-    assert.deepEqual(
-      req.headers.authorization,
-      authorization,
-    );
-  }
+  assert.strictEqual(
+    req.headers.authorization,
+    authorization,
+  );
 }
 
 describe('appveyorStatus', function() {
