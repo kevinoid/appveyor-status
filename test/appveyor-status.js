@@ -12,7 +12,7 @@ const url = require('node:url');
 const FakeTimers = require('@sinonjs/fake-timers');
 const appveyorSwagger = require('appveyor-swagger');
 const { default: escapeStringRegexp } = require('escape-string-regexp');
-const nock = require('nock');
+const { default: nock } = require('nock');
 const proxyquire = require('proxyquire');
 const sinon = require('sinon');
 const SwaggerClient = require('swagger-client');
@@ -812,9 +812,9 @@ describe('appveyorStatus', function() {
         // IMPORTANT: Must be path which requires auth
         .get('/api/projects')
         .query(true)
-        .reply(200, function(uri, requestBody) {
+        .reply(200, (req) => {
           assert.strictEqual(
-            this.req.headers.authorization,
+            req.headers.get('authorization'),
             `Bearer ${testToken}`,
           );
           return [
@@ -847,9 +847,9 @@ describe('appveyorStatus', function() {
         // IMPORTANT: Must be path which requires auth
         .get('/api/projects')
         .query(true)
-        .reply(200, function(uri, requestBody) {
+        .reply(200, (req) => {
           assert.strictEqual(
-            this.req.headers.authorization,
+            req.headers.get('authorization'),
             `Bearer ${testToken2}`,
           );
           return [
