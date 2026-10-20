@@ -6,7 +6,7 @@
 # https://www.appveyor.com/docs/windows-images-software/
 # Note: Default is "Visual Studio 2015", which is Server 2012 R2, which is
 # not supported by node 25.3.
-image: Visual Studio 2022
+image: Visual Studio 2026
 
 # Be aware of https://github.com/nodejs/LTS when choosing versions to test
 # Update engines.node in package.json if removing old versions.
