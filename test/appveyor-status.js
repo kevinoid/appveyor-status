@@ -78,13 +78,6 @@ function waitForTimer(maxRetries) {
   });
 }
 
-function assertAuthorization(req, authorization) {
-  assert.strictEqual(
-    req.headers.authorization,
-    authorization,
-  );
-}
-
 describe('appveyorStatus', function() {
   // Increase timeout to cover slower CI environments.
   this.timeout(4000);
@@ -820,7 +813,10 @@ describe('appveyorStatus', function() {
         .get('/api/projects')
         .query(true)
         .reply(200, function(uri, requestBody) {
-          assertAuthorization(this.req, `Bearer ${testToken}`);
+          assert.strictEqual(
+            this.req.headers.authorization,
+            `Bearer ${testToken}`,
+          );
           return [
             getProject({
               repositoryType: 'git',
@@ -852,7 +848,10 @@ describe('appveyorStatus', function() {
         .get('/api/projects')
         .query(true)
         .reply(200, function(uri, requestBody) {
-          assertAuthorization(this.req, `Bearer ${testToken2}`);
+          assert.strictEqual(
+            this.req.headers.authorization,
+            `Bearer ${testToken2}`,
+          );
           return [
             getProject({
               repositoryType: 'git',
